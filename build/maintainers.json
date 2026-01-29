@@ -6267,7 +6267,8 @@
     "Blank0120"
   ],
   "/nuist/bulletin/:category?": [
-    "gylidian"
+    "gylidian",
+    "QianYu-u"
   ],
   "/nuist/cas/:category?": [
     "gylidian"
@@ -6445,7 +6446,9 @@
   "/openai/chatgpt-atlas/release-notes": [
     "xbot"
   ],
-  "/openai/chatgpt/release-notes": [],
+  "/openai/chatgpt/release-notes": [
+    "xbot"
+  ],
   "/openai/cookbook": [
     "liyaozhong"
   ],
