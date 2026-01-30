@@ -1219,7 +1219,7 @@ export type RoutePath =
   | `/gov/ndrc/fggz/:category{.+}?`
   | `/gov/ndrc/xwdt/:category{.+}?`
   | `/gov/ndrc/zfxxgk`
-  | `/gov/nea/sjzz/ghs`
+  | `/gov/nea/sjzz/:bureau`
   | `/gov/nifdc/:path{.+}?`
   | `/gov/nmpa/*`
   | `/gov/nopss/*`
@@ -2734,6 +2734,7 @@ export type RoutePath =
   | `/thzt/blog`
   | `/tidb/blog/c/:category?`
   | `/tiddlywiki/releases`
+  | `/tiktok/live/:user`
   | `/tiktok/user/:user/:iframe?`
   | `/timednews/news/:type?`
   | `/tingshuitz/changsha/:channelId?`
