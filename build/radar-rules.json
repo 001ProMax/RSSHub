@@ -35245,6 +35245,19 @@
       }
     ]
   },
+  "openalex.org": {
+    "_name": "OpenAlex",
+    ".": [
+      {
+        "title": "Works",
+        "docs": "https://docs.rsshub.app/routes/journal",
+        "source": [
+          "/works"
+        ],
+        "target": "/openalex/:journals/:type?/:ids?"
+      }
+    ]
+  },
   "openwrt.org": {
     "_name": "OpenWrt",
     ".": [
@@ -39455,6 +39468,19 @@
           "/:magazine/mulu.htm"
         ],
         "target": "/qstheory/magazine/:magazine"
+      }
+    ]
+  },
+  "quantamagazine.org": {
+    "_name": "Quanta Magazine",
+    ".": [
+      {
+        "title": "Archive",
+        "docs": "https://docs.rsshub.app/routes/new-media",
+        "source": [
+          "/"
+        ],
+        "target": "/quantamagazine/archive"
       }
     ]
   },

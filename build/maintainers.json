@@ -6469,6 +6469,9 @@
   "/openai/research": [
     "yuguorui"
   ],
+  "/openalex/:journals/:type?/:ids?": [
+    "emdoe"
+  ],
   "/openrice/:lang/hongkong/explore/chart/:category": [
     "after9"
   ],
@@ -7067,6 +7070,9 @@
   "/qstheory/magazine/:magazine": [
     "TonyRL",
     "cscnk52"
+  ],
+  "/quantamagazine/archive": [
+    "emdoe"
   ],
   "/questmobile/report/:industry?/:label?": [
     "nczitzk"
