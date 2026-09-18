@@ -148,6 +148,7 @@ const mergeDetail = (base: ListingExtra, d: DetailFields): ListingExtra => {
         area_m2: area_m2 ?? base.area_m2,
         line: clean(d.access?.split('(最寄駅)', 1)[0]?.replace('(沿線)', '')),
         walk_min: parseWalkMin(d.access),
+        key_money_months: parseMonths(d.key_money),
         business_limit: d.business_limit,
         address_hint: d.address ?? base.address_hint,
         ward: parseWard(d.address) ?? base.ward,
@@ -178,7 +179,14 @@ export const handler = async (ctx): Promise<Data> => {
             ? `${HOST}/app/?action=public_property_list_search&view=1&page_index=0&page_num=${PAGE_SIZE}&sort_id=0&sort_type=1`
             : `${HOST}/app/?action=public_property_list_search&Btn_start.x=1&Btn_start.y=1&pref%5B%5D=${prefCode}`;
 
-    const cards = parseList(await ofetch(listUrl)).slice(0, limit);
+    const html: string = await ofetch(listUrl, { responseType: 'text' });
+    // The site takes itself down daily for maintenance (published as 03:00–06:30 JST) and redirects every
+    // page to a notice. Failing loudly matters here: an empty feed is indistinguishable from "no new
+    // listings", which would read as a genuine zero in anything counting 新着 over time.
+    if (/メンテナンス中/.test(html)) {
+        throw new Error('sonomama: the site is under maintenance (published daily 03:00–06:30 JST); no listings could be read');
+    }
+    const cards = parseList(html).slice(0, limit);
     const items = await pMap(
         cards,
         (card) =>
