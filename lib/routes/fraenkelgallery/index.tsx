@@ -65,7 +65,7 @@ export const route: Route = {
 
 async function handler(ctx) {
     const type = ctx.req.param('type') ?? 'exhibitions';
-    const config = types[type as keyof typeof types];
+    const config = Object.entries(types).find(([key]) => key === type)?.[1];
     if (!config) {
         throw new InvalidParameterError(`Unknown type "${type}", expected one of ${Object.keys(types).join(', ')}`);
     }
@@ -85,11 +85,7 @@ async function handler(ctx) {
             // WordPress returns *_gmt without a timezone designator
             pubDate: parseDate(`${entry.date_gmt}Z`),
             updated: parseDate(`${entry.modified_gmt}Z`),
-            // an _embed sub-request that fails is inlined as an error object rather than a term list
-            category: (entry._embedded?.['wp:term'] ?? [])
-                .filter((group) => Array.isArray(group))
-                .flat()
-                .map((term) => decodeHTML(term.name)),
+            category: (entry._embedded?.['wp:term'] ?? []).flat().map((term) => decodeHTML(term.name)),
             description: renderToString(
                 <>
                     {image ? (

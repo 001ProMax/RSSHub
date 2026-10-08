@@ -44,7 +44,7 @@ async function handler(ctx) {
 
         const filter = filterResponse.pop();
 
-        if (filter?.id ?? undefined) {
+        if (filter?.id) {
             filterName = filter.name ?? filterKeyword;
             currentUrl = filter.link ?? currentUrl;
             apiUrl = `${rootUrl}/${filterRegion}/${apiSlug}/posts?_embed=true&per_page=${limit}&${filterType}=${filter.id}`;
@@ -91,7 +91,7 @@ async function handler(ctx) {
 
     const $ = load(currentResponse);
 
-    const icon = $('link[rel="apple-touch-icon"]').first().prop('href');
+    const icon = $('link[rel="apple-touch-icon"]').prop('href');
     const title = $('meta[property="og:site_name"]').prop('content') ?? 'Aqara';
 
     return {
@@ -99,7 +99,7 @@ async function handler(ctx) {
         title: `${title}${filterName ? ` - ${filterName}` : ''}`,
         link: currentUrl,
         description: $('meta[property="og:title"]').prop('content'),
-        language: $('meta[property="og:locale"]').prop('content') as Language,
+        language: $('meta[property="og:locale"]').prop('content')?.replace('_', '-') as Language,
         image: $('meta[name="msapplication-TileImage"]').prop('content'),
         icon,
         logo: icon,

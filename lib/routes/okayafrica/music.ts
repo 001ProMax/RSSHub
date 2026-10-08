@@ -1,6 +1,6 @@
 import { load } from 'cheerio';
 
-import type { Data, DataItem, Route } from '@/types';
+import type { Data, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
 import { parseDate } from '@/utils/parse-date';
@@ -41,7 +41,7 @@ async function handler(): Promise<Data> {
                         link,
                         pubDate: pubDate ? parseDate(pubDate) : undefined,
                         author: $page('.lab-hidden-byline-name').text(),
-                        description: $page('.bodytext').html() ?? undefined,
+                        description: $page('.bodytext').html(),
                         image: $page('meta[property="og:image"]').attr('content'),
                     };
                 });
@@ -53,6 +53,6 @@ async function handler(): Promise<Data> {
         link: listUrl,
         description: 'Latest music articles from OkayAfrica',
         language: 'en',
-        item: items as DataItem[],
+        item: items,
     };
 }

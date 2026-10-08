@@ -117,6 +117,7 @@ type ConfigEnvKeys =
     | `EMAIL_CONFIG_${string}`
     | 'ETHERSCAN_API_KEY'
     | 'F95ZONE_COOKIE'
+    | 'FACEBOOK_COOKIE'
     | 'FANBOX_SESSION_ID'
     | 'FANFOU_CONSUMER_KEY'
     | 'FANFOU_CONSUMER_SECRET'
@@ -135,10 +136,8 @@ type ConfigEnvKeys =
     | 'HUITUN_COOKIE'
     | 'INFZM_COOKIE'
     | 'INITIUM_MEMBER_COOKIE'
-    | 'IG_USERNAME'
-    | 'IG_PASSWORD'
-    | 'IG_PROXY'
     | 'IG_COOKIE'
+    | 'INSTAGRAM_COOKIE'
     | 'IWARA_USERNAME'
     | 'IWARA_PASSWORD'
     | 'JAVDB_SESSION'
@@ -445,6 +444,9 @@ export type Config = {
     f95zone: {
         cookie?: string;
     };
+    facebook: {
+        cookie?: string;
+    };
     fanbox: {
         session?: string;
     };
@@ -490,9 +492,6 @@ export type Config = {
         memberCookie?: string;
     };
     instagram: {
-        username?: string;
-        password?: string;
-        proxy?: string;
         cookie?: string;
     };
     iwara: {
@@ -983,6 +982,9 @@ const calculateValue = () => {
         f95zone: {
             cookie: envs.F95ZONE_COOKIE,
         },
+        facebook: {
+            cookie: envs.FACEBOOK_COOKIE,
+        },
         fanbox: {
             session: envs.FANBOX_SESSION_ID,
         },
@@ -1028,10 +1030,7 @@ const calculateValue = () => {
             memberCookie: envs.INITIUM_MEMBER_COOKIE,
         },
         instagram: {
-            username: envs.IG_USERNAME,
-            password: envs.IG_PASSWORD,
-            proxy: envs.IG_PROXY,
-            cookie: envs.IG_COOKIE,
+            cookie: envs.INSTAGRAM_COOKIE ?? envs.IG_COOKIE,
         },
         iwara: {
             username: envs.IWARA_USERNAME,

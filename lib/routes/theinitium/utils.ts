@@ -170,7 +170,7 @@ export async function postsToItems(posts: GhostPost[]) {
 
             // For paid articles with truncated content, scrape full text if cookie available
             if (!post.access && memberCookie) {
-                const fullHtml = (await cache.tryGet(`theinitium:full:${post.slug}`, () => scrapeFullArticle(post.url, memberCookie) as Promise<string>, config.cache.contentExpire)) as string | null;
+                const fullHtml = await cache.tryGet(`theinitium:full:${post.slug}`, () => scrapeFullArticle(post.url, memberCookie), config.cache.contentExpire);
                 if (fullHtml) {
                     description = cleanGhostHtml(fullHtml);
                 }
@@ -178,14 +178,14 @@ export async function postsToItems(posts: GhostPost[]) {
 
             return {
                 title: post.title,
-                author: authors.join(', ') || post.primary_author?.name || '',
+                author: authors.join(', ') || post.primary_author?.name,
                 category: categories,
                 description,
                 link: post.url,
                 pubDate: parseDate(post.published_at),
                 updated: parseDate(post.updated_at),
                 guid: post.uuid,
-                banner: post.feature_image ?? undefined,
+                banner: post.feature_image,
             };
         })
     );

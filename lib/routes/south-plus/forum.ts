@@ -10,6 +10,14 @@ import { parseDate } from '@/utils/parse-date';
 
 const BASE_URL = 'https://south-plus.net';
 
+type ForumHeaders = {
+    Accept: string;
+    'Accept-Language': string;
+    Referer: string;
+    'User-Agent'?: string;
+    Cookie?: string;
+};
+
 async function handler(ctx): Promise<Data> {
     const fid = ctx.req.param('fid') ?? '8';
     const cookie = config.southplus.cookie;
@@ -17,7 +25,7 @@ async function handler(ctx): Promise<Data> {
 
     const forumUrl = `${BASE_URL}/thread.php?fid-${fid}.html`;
 
-    const headers: Record<string, string> = {
+    const headers: ForumHeaders = {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9',
         Referer: 'https://south-plus.net/index.php',
@@ -96,7 +104,7 @@ async function handler(ctx): Promise<Data> {
                     // PHPWind: <div class="f14" id="read_tpc"> for the first post
                     const contentEl = $detail('#read_tpc');
                     if (contentEl.length > 0) {
-                        item.description = contentEl.html() ?? '';
+                        item.description = contentEl.html();
 
                         // Get the original post date from tiptop area
                         const dateEl = $detail('.tiptop .fl.gray');
