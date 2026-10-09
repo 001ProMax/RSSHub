@@ -4,7 +4,7 @@ import type { AnyNode } from 'domhandler';
 
 import type { DataItem, Route } from '@/types';
 import got from '@/utils/got';
-import { finishArticleItem } from '@/utils/wechat-mp';
+import { finishArticleItem, normalizeUrl } from '@/utils/wechat-mp';
 
 export const route: Route = {
     path: '/tgchannel/:id/:mpName?/:searchQueryType?',
@@ -165,11 +165,13 @@ async function handler(ctx) {
                 title,
                 pubDate,
                 link,
-                // guid: link,
+                guid: link,
             };
 
             if (link !== undefined) {
                 try {
+                    single.link = normalizeUrl(link);
+                    single.guid = single.link;
                     return await finishArticleItem(single);
                 } catch {
                     single.description = $item.find('.tgme_widget_message_text').html();
@@ -179,11 +181,10 @@ async function handler(ctx) {
         })
     );
 
-    out.reverse();
     return {
         title: mpName || $('.tgme_channel_info_header_title').text(),
         link: `https://t.me/s/${id}`,
-        item: out.filter(Boolean),
+        item: out.toReversed().filter(Boolean),
         allowEmpty: !!mpName,
     };
 }
