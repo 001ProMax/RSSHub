@@ -41,15 +41,12 @@ type ConfigEnvKeys =
     | 'CACHE_HTTP_TOKEN'
     // Proxy
     | 'PROXY_URI'
-    | 'PROXY_URIS'
     | 'PROXY_PROTOCOL'
     | 'PROXY_HOST'
     | 'PROXY_PORT'
     | 'PROXY_AUTH'
     | 'PROXY_URL_REGEX'
     | 'PROXY_STRATEGY'
-    | 'PROXY_FAILOVER_TIMEOUT'
-    | 'PROXY_HEALTH_CHECK_INTERVAL'
     | 'PAC_URI'
     | 'PAC_SCRIPT'
     // Access control
@@ -161,6 +158,7 @@ type ConfigEnvKeys =
     | 'LORIENTLEJOUR_TOKEN'
     | 'LORIENTLEJOUR_USERNAME'
     | 'LORIENTLEJOUR_PASSWORD'
+    | 'LOWENDTALK_COOKIE'
     | 'MALAYSIAKINI_EMAIL'
     | 'MALAYSIAKINI_PASSWORD'
     | 'MALAYSIAKINI_REFRESHTOKEN'
@@ -201,6 +199,7 @@ type ConfigEnvKeys =
     | 'PKUBBS_COOKIE'
     | 'QINGTING_ID'
     | 'READWISE_ACCESS_TOKEN'
+    | 'REUTERS_AUTH_TOKEN'
     | 'SARABA1ST_COOKIE'
     | 'SARABA1ST_HOST'
     | 'SEHUATANG_COOKIE'
@@ -320,7 +319,6 @@ export type Config = {
     };
     // proxy
     proxyUri?: string;
-    proxyUris?: string[];
     proxy: {
         protocol?: string;
         host?: string;
@@ -328,8 +326,6 @@ export type Config = {
         auth?: string;
         url_regex: string;
         strategy: 'on_retry' | 'all';
-        failoverTimeout?: number;
-        healthCheckInterval?: number;
     };
     pacUri?: string;
     pacScript?: string;
@@ -551,6 +547,9 @@ export type Config = {
         username?: string;
         password?: string;
     };
+    lowendtalk: {
+        cookie?: string;
+    };
     malaysiakini: {
         email?: string;
         password?: string;
@@ -636,6 +635,9 @@ export type Config = {
     };
     readwise: {
         accessToken?: string;
+    };
+    reuters: {
+        authToken?: string;
     };
     saraba1st: {
         cookie?: string;
@@ -869,11 +871,6 @@ const calculateValue = () => {
         },
         // proxy
         proxyUri: envs.PROXY_URI,
-        proxyUris: envs.PROXY_URIS
-            ? envs.PROXY_URIS.split(',')
-                  .map((uri) => uri.trim())
-                  .filter(Boolean)
-            : undefined,
         proxy: {
             protocol: envs.PROXY_PROTOCOL,
             host: envs.PROXY_HOST,
@@ -881,8 +878,6 @@ const calculateValue = () => {
             auth: envs.PROXY_AUTH,
             url_regex: envs.PROXY_URL_REGEX || '.*',
             strategy: envs.PROXY_STRATEGY || 'all', // all / on_retry
-            failoverTimeout: toInt(envs.PROXY_FAILOVER_TIMEOUT, 5000),
-            healthCheckInterval: toInt(envs.PROXY_HEALTH_CHECK_INTERVAL, 60000),
         },
         pacUri: envs.PAC_URI,
         pacScript: envs.PAC_SCRIPT,
@@ -1105,6 +1100,9 @@ const calculateValue = () => {
             username: envs.LORIENTLEJOUR_USERNAME,
             password: envs.LORIENTLEJOUR_PASSWORD,
         },
+        lowendtalk: {
+            cookie: envs.LOWENDTALK_COOKIE,
+        },
         malaysiakini: {
             email: envs.MALAYSIAKINI_EMAIL,
             password: envs.MALAYSIAKINI_PASSWORD,
@@ -1190,6 +1188,9 @@ const calculateValue = () => {
         },
         readwise: {
             accessToken: envs.READWISE_ACCESS_TOKEN,
+        },
+        reuters: {
+            authToken: envs.REUTERS_AUTH_TOKEN,
         },
         saraba1st: {
             cookie: envs.SARABA1ST_COOKIE,

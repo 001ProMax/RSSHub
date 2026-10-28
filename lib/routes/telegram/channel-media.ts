@@ -8,6 +8,7 @@ import { config } from '@/config';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import cacheModule from '@/utils/cache/index';
+import { isWorker } from '@/utils/is-worker';
 
 import { getClient, getDocument, getFilename, unwrapMedia } from './tglib/client';
 
@@ -94,7 +95,7 @@ async function* streamDocument(client: TelegramClient, obj: Api.Document, thumbS
             requestSize,
             dcId: obj.dcId,
             offset: alignedOffset,
-            limit: limit ? Math.ceil(limit.subtract(alignedOffset).add(1).toJSNumber() / requestSize) : undefined,
+            limit: limit ? limit.subtract(alignedOffset).add(1).toJSNumber() : undefined,
         }
     );
     for await (const chunk of chunks) {
@@ -159,9 +160,15 @@ function parseRange(range: string, length: bigInt.BigInteger) {
 export async function configureMiddlewares(ctx: Context) {
     // media is too heavy to cache in memory or redis, and lock-up is not needed
     await cacheModule.set(ctx.get('cacheControlKey'), '0', config.cache.requestTimeout);
-    ctx.req.raw.headers.delete('Accept-Encoding'); // avoid hono compress() middleware detecting Accept-Encoding on req
+    // Workers have no compress() middleware and their request headers are immutable
+    if (!isWorker) {
+        ctx.req.raw.headers.delete('Accept-Encoding'); // avoid hono compress() middleware detecting Accept-Encoding on req
+    }
 }
 function streamResponse(c: Context, bodyIter: AsyncGenerator<Buffer>) {
+    if (c.req.method === 'HEAD') {
+        return c.body(null);
+    }
     return stream(c, async (stream) => {
         let aborted = false;
         stream.onAbort(() => {
