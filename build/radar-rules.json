@@ -145,6 +145,19 @@
       }
     ]
   },
+  "10086.cn": {
+    "_name": "中国移动",
+    "b2b": [
+      {
+        "title": "采购与招标网公告",
+        "docs": "https://docs.rsshub.app/routes/10086",
+        "source": [
+          "/"
+        ],
+        "target": "/10086/b2b"
+      }
+    ]
+  },
   "12306.cn": {
     "_name": "12306",
     "www": [
@@ -2121,6 +2134,19 @@
       }
     ]
   },
+  "hn.plus": {
+    "_name": "HN+",
+    "konek": [
+      {
+        "title": "Deep Web Konek - Newest posts",
+        "docs": "https://docs.rsshub.app/routes/hn.plus",
+        "source": [
+          "/newest"
+        ],
+        "target": "/hn.plus/konek/newest"
+      }
+    ]
+  },
   "hnu.edu.cn": {
     "_name": "湖南大学",
     "scc": [
@@ -3657,6 +3683,35 @@
       }
     ]
   },
+  "cum.st": {
+    "_name": "OnlyHeaven",
+    ".": [
+      {
+        "title": "Posts and DMs",
+        "docs": "https://docs.rsshub.app/routes/cum.st",
+        "source": [
+          "/posts"
+        ],
+        "target": "/cum.st/posts"
+      },
+      {
+        "title": "Posts and DMs",
+        "docs": "https://docs.rsshub.app/routes/cum.st",
+        "source": [
+          "/dms"
+        ],
+        "target": "/cum.st/dms"
+      },
+      {
+        "title": "Posts and DMs",
+        "docs": "https://docs.rsshub.app/routes/cum.st",
+        "source": [
+          "/creators/:service/:id"
+        ],
+        "target": "/cum.st/:service/:id"
+      }
+    ]
+  },
   "dataguidance.com": {
     "_name": "DataGuidance",
     "www": [
@@ -4378,6 +4433,32 @@
   },
   "nanhua.net": {
     "_name": "南华期货",
+    "www": [
+      {
+        "title": "指数日报",
+        "docs": "https://docs.rsshub.app/routes/nanhua",
+        "source": [
+          "/subpage/research/nawaaindex/indexresearch/index-daily.html"
+        ],
+        "target": "/nanhua/index-research/daily"
+      },
+      {
+        "title": "指数周报",
+        "docs": "https://docs.rsshub.app/routes/nanhua",
+        "source": [
+          "/subpage/research/nawaaindex/indexresearch/index-weekly.html"
+        ],
+        "target": "/nanhua/index-research/weekly"
+      },
+      {
+        "title": "指数季报",
+        "docs": "https://docs.rsshub.app/routes/nanhua",
+        "source": [
+          "/subpage/research/nawaaindex/indexresearch/seminar.html"
+        ],
+        "target": "/nanhua/index-research/quarterly"
+      }
+    ],
     "mall": [
       {
         "title": "研报",
@@ -22378,6 +22459,27 @@
       }
     ]
   },
+  "game-wisdom.com": {
+    "_name": "Game Wisdom",
+    ".": [
+      {
+        "title": "Articles",
+        "docs": "https://docs.rsshub.app/routes/game-wisdom",
+        "source": [
+          "/"
+        ],
+        "target": "/game-wisdom/"
+      },
+      {
+        "title": "Articles",
+        "docs": "https://docs.rsshub.app/routes/game-wisdom",
+        "source": [
+          "/category/:category"
+        ],
+        "target": "/game-wisdom/:category"
+      }
+    ]
+  },
   "gameapps.hk": {
     "_name": "GameApps.hk 香港手机游戏网",
     ".": [
@@ -25584,6 +25686,14 @@
           "/"
         ],
         "target": "/hotukdeals/hottest"
+      },
+      {
+        "title": "Tag",
+        "docs": "https://docs.rsshub.app/routes/hotukdeals",
+        "source": [
+          "/tag/:tag"
+        ],
+        "target": "/hotukdeals/tag/:tag"
       }
     ]
   },
@@ -31564,6 +31674,28 @@
           "/news/"
         ],
         "target": "/lovelive-anime/news"
+      }
+    ]
+  },
+  "lowendtalk.com": {
+    "_name": "LowEndTalk",
+    ".": [
+      {
+        "title": "Discussion",
+        "docs": "https://docs.rsshub.app/routes/lowendtalk",
+        "source": [
+          "/discussion/:id/*",
+          "/discussion/:id"
+        ],
+        "target": "/lowendtalk/discussion/:id"
+      },
+      {
+        "title": "User Discussions / Comments",
+        "docs": "https://docs.rsshub.app/routes/lowendtalk",
+        "source": [
+          "/profile/:type/:username"
+        ],
+        "target": "/lowendtalk/profile/:type/:username"
       }
     ]
   },
@@ -37570,6 +37702,30 @@
         ],
         "target": "/nytimes/rss/:cat?"
       }
+    ],
+    "www": [
+      {
+        "title": "Wirecutter",
+        "docs": "https://docs.rsshub.app/routes/nytimes",
+        "source": [
+          "/wirecutter",
+          "/wirecutter/reviews/:slug"
+        ],
+        "target": "/nytimes/wirecutter"
+      }
+    ]
+  },
+  "oaktreecapital.com": {
+    "_name": "Oaktree Capital",
+    "www": [
+      {
+        "title": "Insights",
+        "docs": "https://docs.rsshub.app/routes/oaktree",
+        "source": [
+          "/insights"
+        ],
+        "target": "/oaktree/insights"
+      }
     ]
   },
   "obsidian.md": {
@@ -38611,6 +38767,23 @@
           "/"
         ],
         "target": "/pacilution/latest"
+      }
+    ]
+  },
+  "panasonic.com": {
+    "_name": "Panasonic",
+    "av.jpn.support": [
+      {
+        "title": "Camera and lens firmware",
+        "docs": "https://docs.rsshub.app/routes/panasonic",
+        "source": [
+          "/support/global/cs/dsc/download/top.html",
+          "/support/global/cs/dsc/download/index4.html",
+          "/support/global/cs/dsc/download/index.html",
+          "/support/global/cs/dsc/download/index2.html",
+          "/support/global/cs/dsc/download/index5.html"
+        ],
+        "target": "/panasonic/firmware"
       }
     ]
   },
@@ -41995,84 +42168,108 @@
         "target": "/samrdprc/:id"
       },
       {
-        "title": "网站首页 - 新闻动态",
+        "title": "新闻公告 - 中心新闻",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/xwdt/gzdt/"
+          "/gnxw/index.html"
         ],
-        "target": "/samrdprc/xwdt/gzdt"
+        "target": "/samrdprc/gnxw"
       },
       {
-        "title": "网站首页 - 网站公告",
+        "title": "新闻公告 - 公告",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/wzgg/"
+          "/gsgg/gg/index.html"
         ],
-        "target": "/samrdprc/wzgg"
+        "target": "/samrdprc/gsgg/gg"
       },
       {
-        "title": "网站首页 - 汽车召回",
+        "title": "安全信息 - 汽车召回",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/qczh/"
+          "/zhxx/jdczh/jdczh/index.html"
         ],
-        "target": "/samrdprc/qczh"
+        "target": "/samrdprc/zhxx/jdczh/jdczh"
       },
       {
-        "title": "网站首页 - 消费品召回",
+        "title": "安全信息 - 消费品召回",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/xfpzh/"
+          "/xfpzh/index.html"
         ],
         "target": "/samrdprc/xfpzh"
       },
       {
-        "title": "科学研究 - 技术报告",
+        "title": "科学研究 - 科技成果",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/yjgz/jsyj/"
+          "/kxyj/kjcg/index.html"
         ],
-        "target": "/samrdprc/yjgz/jsyj"
+        "target": "/samrdprc/kxyj/kjcg"
       },
       {
-        "title": "科学研究 - SAC/TC463",
+        "title": "科学研究 - 科技动态",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/yjgz/sactc/"
+          "/kxyj/kjdt/index.html"
         ],
-        "target": "/samrdprc/yjgz/sactc"
+        "target": "/samrdprc/kxyj/kjdt"
       },
       {
-        "title": "科学研究 - 研究动态",
+        "title": "安全教育 - 安全知识",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/yjgz/yjfx/"
+          "/aqjy/aqzs/index.html"
         ],
-        "target": "/samrdprc/yjgz/yjfx"
+        "target": "/samrdprc/aqjy/aqzs"
       },
       {
-        "title": "安全教育 - 安全教育",
+        "title": "安全教育 - 消费提示",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/aqjy/"
+          "/aqjy/xfts/index.html"
         ],
-        "target": "/samrdprc/aqjy"
+        "target": "/samrdprc/aqjy/xfts"
       },
       {
-        "title": "法律法规 - 国内法规",
+        "title": "法规标准 - 国内法规",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/flfg/gnfg/"
+          "/fgbz/gnfg/index.html"
         ],
-        "target": "/samrdprc/flfg/gnfg"
+        "target": "/samrdprc/fgbz/gnfg"
+      },
+      {
+        "title": "法规标准 - 国外法规",
+        "docs": "https://docs.rsshub.app/routes/samrdprc",
+        "source": [
+          "/fgbz/gwfg/index.html"
+        ],
+        "target": "/samrdprc/fgbz/gwfg"
       },
       {
         "title": "召回信息",
         "docs": "https://docs.rsshub.app/routes/samrdprc",
         "source": [
-          "/:type1/:type2"
+          "/xfpzh/index.html"
         ],
-        "target": "/samrdprc/news/:type1/:type2"
+        "target": "/samrdprc/news/xfpzh/xfpgnzh"
+      },
+      {
+        "title": "召回信息",
+        "docs": "https://docs.rsshub.app/routes/samrdprc",
+        "source": [
+          "/zhxx/jdczh/jdczh/index.html"
+        ],
+        "target": "/samrdprc/news/qczh/gnzhqc"
+      },
+      {
+        "title": "召回信息",
+        "docs": "https://docs.rsshub.app/routes/samrdprc",
+        "source": [
+          "/fzlm/zhgg/qczhgg/index.html"
+        ],
+        "target": "/samrdprc/news/qczh/qczhgg1"
       }
     ]
   },
@@ -47521,6 +47718,14 @@
     "_name": "The Atlantic",
     "www": [
       {
+        "title": "Author",
+        "docs": "https://docs.rsshub.app/routes/theatlantic",
+        "source": [
+          "/author/:id"
+        ],
+        "target": "/theatlantic/author/:id"
+      },
+      {
         "title": "News",
         "docs": "https://docs.rsshub.app/routes/theatlantic",
         "source": [
@@ -50558,6 +50763,19 @@
           "/kxyj/kydt.htm"
         ],
         "target": "/xmu/kydt"
+      }
+    ]
+  },
+  "xsw.tw": {
+    "_name": "台湾小说网",
+    "m": [
+      {
+        "title": "章节目录",
+        "docs": "https://docs.rsshub.app/routes/xsw",
+        "source": [
+          "/:bookId/"
+        ],
+        "target": "/xsw/:bookId"
       }
     ]
   },
@@ -58935,6 +59153,43 @@
           "/"
         ],
         "target": "/line/today/:edition?/:tab?"
+      }
+    ]
+  },
+  "lingowhale.com": {
+    "_name": "语鲸 LingoWhale",
+    ".": [
+      {
+        "title": "频道",
+        "docs": "https://docs.rsshub.app/routes/lingowhale",
+        "source": [
+          "/channels"
+        ],
+        "target": "/lingowhale/channel/:id"
+      },
+      {
+        "title": "热门",
+        "docs": "https://docs.rsshub.app/routes/lingowhale",
+        "source": [
+          "/topics"
+        ],
+        "target": "/lingowhale/hot/:type?"
+      },
+      {
+        "title": "搜索",
+        "docs": "https://docs.rsshub.app/routes/lingowhale",
+        "source": [
+          "/channels"
+        ],
+        "target": "/lingowhale/search/:keyword/:type?"
+      },
+      {
+        "title": "话题",
+        "docs": "https://docs.rsshub.app/routes/lingowhale",
+        "source": [
+          "/topics"
+        ],
+        "target": "/lingowhale/topic/:id"
       }
     ]
   },

@@ -735,6 +735,60 @@
     "url": "8264.com",
     "lang": "zh-CN"
   },
+  "10086": {
+    "routes": {
+      "/b2b/:type?": {
+        "path": "/b2b/:type?",
+        "categories": [
+          "other"
+        ],
+        "example": "/10086/b2b/PROCUREMENT",
+        "parameters": {
+          "type": {
+            "description": "公告类型",
+            "options": [
+              {
+                "value": "PROCUREMENT",
+                "label": "招标采购公告"
+              },
+              {
+                "value": "PURCHASE_SERVICE",
+                "label": "采购服务"
+              },
+              {
+                "value": "VENDOR",
+                "label": "供应商公告"
+              },
+              {
+                "value": "IMPORTANT_NOTICE",
+                "label": "系统通知"
+              }
+            ],
+            "default": "PROCUREMENT"
+          }
+        },
+        "radar": [
+          {
+            "source": [
+              "b2b.10086.cn/"
+            ],
+            "target": "/b2b"
+          }
+        ],
+        "name": "采购与招标网公告",
+        "maintainers": [
+          "TonyRL"
+        ],
+        "url": "b2b.10086.cn",
+        "location": "b2b.ts",
+        "module": "() => import('@/routes/10086/b2b.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "中国移动",
+    "url": "10086.cn",
+    "lang": "zh-CN"
+  },
   "12306": {
     "routes": {
       "/:date/:from/:to/:type?": {
@@ -8017,6 +8071,36 @@
     "url": "hashnode.dev",
     "lang": "en"
   },
+  "hn.plus": {
+    "routes": {
+      "/konek/newest": {
+        "path": "/konek/newest",
+        "categories": [
+          "new-media"
+        ],
+        "example": "/hn.plus/konek/newest",
+        "name": "Deep Web Konek - Newest posts",
+        "maintainers": [
+          "TungHaHuy"
+        ],
+        "radar": [
+          {
+            "source": [
+              "konek.hn.plus/newest"
+            ],
+            "target": "/konek/newest"
+          }
+        ],
+        "url": "konek.hn.plus/newest",
+        "location": "newest.ts",
+        "module": "() => import('@/routes/hn.plus/newest.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "HN+",
+    "url": "hn.plus",
+    "lang": "en"
+  },
   "hnu": {
     "routes": {
       "/careers": {
@@ -13673,6 +13757,56 @@
     "url": "news.cts.com.tw",
     "lang": "zh-TW"
   },
+  "cum.st": {
+    "routes": {
+      "/:service?/:id?/:type?": {
+        "path": "/:service?/:id?/:type?",
+        "categories": [
+          "multimedia"
+        ],
+        "example": "/cum.st/posts",
+        "parameters": {
+          "service": "Platform (`onlyfans`, `fansly`, or `patreon`), or `posts` / `dms` for the latest posts / DMs across all creators (defaults to `posts`)",
+          "id": "Creator ID from the creator URL; required when a platform is specified",
+          "type": "Use `dms` for the creator’s DMs; defaults to posts"
+        },
+        "features": {
+          "nsfw": true
+        },
+        "radar": [
+          {
+            "source": [
+              "cum.st/posts"
+            ],
+            "target": "/posts"
+          },
+          {
+            "source": [
+              "cum.st/dms"
+            ],
+            "target": "/dms"
+          },
+          {
+            "source": [
+              "cum.st/creators/:service/:id"
+            ],
+            "target": "/:service/:id"
+          }
+        ],
+        "name": "Posts and DMs",
+        "maintainers": [
+          "gekangen"
+        ],
+        "description": "Sources\n\n| Latest posts | Latest DMs | OnlyFans creator | Fansly creator | Patreon creator |\n| ------------ | ---------- | ---------------- | -------------- | --------------- |\n| posts        | dms        | onlyfans         | fansly         | patreon         |\n\n::: tip\nWhen **service** is `posts` or `dms`, **id** is not used. For a creator, use `/cum.st/onlyfans/CREATOR_ID` for posts or `/cum.st/onlyfans/CREATOR_ID/dms` for DMs. Replace `onlyfans` with `fansly` or `patreon` for other creators. Available images are included in the feed entries.\n:::",
+        "location": "index.ts",
+        "module": "() => import('@/routes/cum.st/index.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "OnlyHeaven",
+    "url": "cum.st",
+    "lang": "en"
+  },
   "dahecube": {
     "routes": {
       "/:type?": {
@@ -16859,6 +16993,64 @@
   },
   "nanhua": {
     "routes": {
+      "/index-research/:category?": {
+        "path": "/index-research/:category?",
+        "categories": [
+          "finance"
+        ],
+        "example": "/nanhua/index-research/daily",
+        "parameters": {
+          "category": {
+            "description": "报告类型",
+            "default": "daily",
+            "options": [
+              {
+                "value": "daily",
+                "label": "指数日报"
+              },
+              {
+                "value": "weekly",
+                "label": "指数周报"
+              },
+              {
+                "value": "quarterly",
+                "label": "指数季报"
+              }
+            ]
+          }
+        },
+        "radar": [
+          {
+            "title": "指数日报",
+            "source": [
+              "www.nanhua.net/subpage/research/nawaaindex/indexresearch/index-daily.html"
+            ],
+            "target": "/index-research/daily"
+          },
+          {
+            "title": "指数周报",
+            "source": [
+              "www.nanhua.net/subpage/research/nawaaindex/indexresearch/index-weekly.html"
+            ],
+            "target": "/index-research/weekly"
+          },
+          {
+            "title": "指数季报",
+            "source": [
+              "www.nanhua.net/subpage/research/nawaaindex/indexresearch/seminar.html"
+            ],
+            "target": "/index-research/quarterly"
+          }
+        ],
+        "name": "南华指数研究",
+        "maintainers": [
+          "pseudoyu"
+        ],
+        "url": "www.nanhua.net/subpage/research/nawaaindex/indexresearch/index-daily.html",
+        "description": "报告正文为 PDF，条目链接直接指向 PDF 文件。",
+        "location": "index-research.ts",
+        "module": "() => import('@/routes/nanhua/index-research.ts')"
+      },
       "/report/:type1/:type2": {
         "path": "/report/:type1/:type2",
         "categories": [
@@ -49319,6 +49511,32 @@
     ],
     "lang": "zh-CN"
   },
+  "craigslist": {
+    "routes": {
+      "/:location/:type/:query?": {
+        "path": "/:location/:type/:query?",
+        "categories": [
+          "shopping"
+        ],
+        "example": "/craigslist/sfbay/sso",
+        "parameters": {
+          "location": "Craigslist site, the subdomain of the site you browse, e.g. `sfbay` for `sfbay.craigslist.org`",
+          "type": "Search type, the category abbreviation that follows `/search/` in the Craigslist search URL, e.g. `sso` (sale by owner), `apa` (apartments / housing for rent), `cta` (cars & trucks), `jjj` (all jobs), `sss` (all for sale)",
+          "query": "Search keywords"
+        },
+        "name": "Search",
+        "maintainers": [
+          "TonyRL"
+        ],
+        "location": "search.ts",
+        "module": "() => import('@/routes/craigslist/search.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "Craigslist",
+    "url": "www.craigslist.org",
+    "lang": "en"
+  },
   "creaders": {
     "routes": {
       "/headline": {
@@ -60647,6 +60865,92 @@
     ],
     "lang": "en"
   },
+  "game-wisdom": {
+    "routes": {
+      "/:category?": {
+        "path": "/:category?",
+        "name": "Articles",
+        "url": "game-wisdom.com",
+        "maintainers": [
+          "mcdp-adk"
+        ],
+        "example": "/game-wisdom",
+        "parameters": {
+          "category": {
+            "description": "Category. Omit for the latest articles.",
+            "options": [
+              {
+                "value": "analysis",
+                "label": "Analysis"
+              },
+              {
+                "value": "critical",
+                "label": "Critical Pieces"
+              },
+              {
+                "value": "general",
+                "label": "General"
+              },
+              {
+                "value": "guest",
+                "label": "Guest Pieces"
+              },
+              {
+                "value": "podcast",
+                "label": "Podcast"
+              },
+              {
+                "value": "series",
+                "label": "Series"
+              },
+              {
+                "value": "spotlight",
+                "label": "Spotlight"
+              },
+              {
+                "value": "videos",
+                "label": "Videos"
+              }
+            ]
+          }
+        },
+        "description": "Game Wisdom's official RSS feeds only include excerpts. This route fetches the full article body from each article page.",
+        "categories": [
+          "game"
+        ],
+        "features": {
+          "requireConfig": false,
+          "requirePuppeteer": false,
+          "antiCrawler": false,
+          "supportRadar": true,
+          "supportBT": false,
+          "supportPodcast": false,
+          "supportScihub": false
+        },
+        "radar": [
+          {
+            "source": [
+              "game-wisdom.com/"
+            ],
+            "target": "/"
+          },
+          {
+            "source": [
+              "game-wisdom.com/category/:category"
+            ],
+            "target": "/:category"
+          }
+        ],
+        "view": 0,
+        "location": "index.ts",
+        "module": "() => import('@/routes/game-wisdom/index.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "Game Wisdom",
+    "url": "game-wisdom.com",
+    "lang": "en"
+  },
   "gameapps": {
     "routes": {
       "/": {
@@ -65381,8 +65685,8 @@
   },
   "hackernews": {
     "routes": {
-      "/:section?/:type?/:value?": {
-        "path": "/:section?/:type?/:value?",
+      "/:section?/:type?/:value?/:minComments?": {
+        "path": "/:section?/:type?/:value?/:minComments?",
         "categories": [
           "programming"
         ],
@@ -65396,7 +65700,10 @@
             "description": "Content format, default to `sources`. `sources` links to original articles, `comments` fetches full comment threads, `comments_list` shows parent story with single comment"
           },
           "value": {
-            "description": "For `threads`/`submitted` sections, set user ID. For `over` section, set minimum points threshold (default 100). For other sections, appended as `?id=<value>` (e.g. `value=dang` → `?id=dang`)"
+            "description": "For `threads`/`submitted` sections, set user ID. For `over` section, set minimum points threshold (default 100). For other sections, appended as `?id=<value>` (e.g. `value=dang` → `?id=dang`). In story-listing sections (`index`, `best`, `front`, `active`, `newest`, `ask`, `show`, `shownew`, `asknew`, `noobstories`, `pool`, `classic`, `launches`, `news`, `invited`), a purely numeric value acts as minimum comment count instead (same as `minComments`)"
+          },
+          "minComments": {
+            "description": "Minimum comment count, items below it are filtered out. Works with any story-listing section, e.g. `/hackernews/over/sources/100/10`. For sections where `value` is unused (`index`, `best`, `front`, `active`, `newest`, `ask`, `show`, `shownew`, `asknew`, `noobstories`, `pool`, `classic`, `launches`, `news`, `invited`), the number may be placed in `value` instead, e.g. `/hackernews/index/sources/10`. Ignored on sections without story comment counts (`jobs`, `threads`, `newcomments`, `bestcomments`, `noobcomments`, `highlights`)"
           }
         },
         "features": {
@@ -65468,7 +65775,7 @@
           "nczitzk",
           "xie-dongping"
         ],
-        "description": "Subscribe to Hacker News content by section, user, or minimum points\n\nExamples:\n\n| HN100              | User submitted                       | User threads                       | Comments list                            |\n| ------------------ | ------------------------------------ | ---------------------------------- | ---------------------------------------- |\n| `/hackernews/over` | `/hackernews/submitted/sources/dang` | `/hackernews/threads/sources/dang` | `/hackernews/threads/comments_list/dang` |",
+        "description": "Subscribe to Hacker News content by section, user, minimum points, or minimum comments\n\nExamples:\n\n| HN100              | User submitted                       | User threads                       | Comments list                            | Min comments                   |\n| ------------------ | ------------------------------------ | ---------------------------------- | ---------------------------------------- | ------------------------------ |\n| `/hackernews/over` | `/hackernews/submitted/sources/dang` | `/hackernews/threads/sources/dang` | `/hackernews/threads/comments_list/dang` | `/hackernews/index/sources/10` |",
         "location": "index.ts",
         "module": "() => import('@/routes/hackernews/index.ts')"
       }
@@ -68443,6 +68750,65 @@
         ],
         "location": "index.ts",
         "module": "() => import('@/routes/hotukdeals/index.ts')"
+      },
+      "/tag/:tag/:sort?": {
+        "path": "/tag/:tag/:sort?",
+        "categories": [
+          "shopping"
+        ],
+        "example": "/hotukdeals/tag/flight",
+        "parameters": {
+          "tag": "Tag, can be found in URL, e.g. `flight` for `https://www.hotukdeals.com/tag/flight`",
+          "sort": {
+            "description": "Sort order",
+            "default": "new",
+            "options": [
+              {
+                "value": "new",
+                "label": "Most recent"
+              },
+              {
+                "value": "temp",
+                "label": "Hottest"
+              },
+              {
+                "value": "highest_price",
+                "label": "Highest price"
+              },
+              {
+                "value": "lowest_price",
+                "label": "Lowest price"
+              },
+              {
+                "value": "discussion",
+                "label": "Recently commented"
+              }
+            ]
+          }
+        },
+        "features": {
+          "requireConfig": false,
+          "requirePuppeteer": false,
+          "antiCrawler": true,
+          "supportBT": false,
+          "supportPodcast": false,
+          "supportScihub": false
+        },
+        "radar": [
+          {
+            "source": [
+              "www.hotukdeals.com/tag/:tag"
+            ],
+            "target": "/tag/:tag"
+          }
+        ],
+        "name": "Tag",
+        "maintainers": [
+          "zhgqthomas"
+        ],
+        "url": "www.hotukdeals.com",
+        "location": "tag.ts",
+        "module": "() => import('@/routes/hotukdeals/tag.ts')"
       }
     },
     "apiRoutes": {},
@@ -81595,6 +81961,84 @@
     "url": "www.lovelive-anime.jp",
     "lang": "ja"
   },
+  "lowendtalk": {
+    "routes": {
+      "/discussion/:id": {
+        "path": "/discussion/:id",
+        "categories": [
+          "bbs"
+        ],
+        "example": "/lowendtalk/discussion/168480",
+        "parameters": {
+          "id": "Discussion id, can be found in the URL"
+        },
+        "radar": [
+          {
+            "source": [
+              "lowendtalk.com/discussion/:id/*",
+              "lowendtalk.com/discussion/:id"
+            ]
+          }
+        ],
+        "name": "Discussion",
+        "maintainers": [
+          "nczitzk"
+        ],
+        "url": "lowendtalk.com",
+        "location": "discussion.ts",
+        "module": "() => import('@/routes/lowendtalk/discussion.ts')"
+      },
+      "/profile/:type/:username": {
+        "path": "/profile/:type/:username",
+        "categories": [
+          "bbs"
+        ],
+        "example": "/lowendtalk/profile/discussions/Ikoula",
+        "parameters": {
+          "type": {
+            "description": "Content type",
+            "options": [
+              {
+                "value": "discussions",
+                "label": "Discussions"
+              },
+              {
+                "value": "comments",
+                "label": "Comments"
+              }
+            ]
+          },
+          "username": "Username, can be found in the profile URL"
+        },
+        "features": {
+          "requireConfig": [
+            {
+              "name": "LOWENDTALK_COOKIE",
+              "description": "The `Cookie` header of a logged-in session. Profile pages are only visible to signed-in users."
+            }
+          ]
+        },
+        "radar": [
+          {
+            "source": [
+              "lowendtalk.com/profile/:type/:username"
+            ]
+          }
+        ],
+        "name": "User Discussions / Comments",
+        "maintainers": [
+          "TonyRL"
+        ],
+        "url": "lowendtalk.com",
+        "location": "profile.ts",
+        "module": "() => import('@/routes/lowendtalk/profile.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "LowEndTalk",
+    "url": "lowendtalk.com",
+    "lang": "en"
+  },
   "lrepacks": {
     "routes": {
       "/:category?": {
@@ -94526,11 +94970,76 @@
         "description": "Enhance the official EN RSS feed",
         "location": "rss.ts",
         "module": "() => import('@/routes/nytimes/rss.ts')"
+      },
+      "/wirecutter": {
+        "path": "/wirecutter",
+        "categories": [
+          "traditional-media"
+        ],
+        "view": 0,
+        "example": "/nytimes/wirecutter",
+        "parameters": {},
+        "features": {
+          "requireConfig": false,
+          "requirePuppeteer": false,
+          "antiCrawler": true,
+          "supportBT": false,
+          "supportPodcast": false,
+          "supportScihub": false
+        },
+        "radar": [
+          {
+            "source": [
+              "www.nytimes.com/wirecutter",
+              "www.nytimes.com/wirecutter/reviews/:slug"
+            ]
+          }
+        ],
+        "name": "Wirecutter",
+        "maintainers": [
+          "IvanWng97"
+        ],
+        "description": "The official feed only carries the opening few paragraphs; this route returns the whole review, including the picks and their photos.",
+        "location": "wirecutter.ts",
+        "module": "() => import('@/routes/nytimes/wirecutter.ts')"
       }
     },
     "apiRoutes": {},
     "name": "The New York Times",
     "url": "nytimes.com",
+    "lang": "en"
+  },
+  "oaktree": {
+    "routes": {
+      "/insights": {
+        "path": "/insights",
+        "name": "Insights",
+        "url": "www.oaktreecapital.com/insights",
+        "maintainers": [
+          "argsno"
+        ],
+        "example": "/oaktree/insights",
+        "description": "Includes Howard Marks memos, market commentary, education and press mentions. Items are categorised by content type (`memos`, `press`, ...) and media type (`article`, `audio`, `video`), so both can be filtered with the common `filter_category` / `filterout_category` parameters. Full text is fetched from each insight page, while press items link to external websites. The latest 30 entries are returned by default, use the `limit` parameter for more.",
+        "categories": [
+          "finance"
+        ],
+        "radar": [
+          {
+            "source": [
+              "www.oaktreecapital.com/insights"
+            ]
+          }
+        ],
+        "location": "insights.ts",
+        "module": "() => import('@/routes/oaktree/insights.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "Oaktree Capital",
+    "url": "www.oaktreecapital.com",
+    "categories": [
+      "finance"
+    ],
     "lang": "en"
   },
   "obsidian": {
@@ -97275,6 +97784,43 @@
     "apiRoutes": {},
     "name": "普世社会科学研究所",
     "url": "www.pacilution.com"
+  },
+  "panasonic": {
+    "routes": {
+      "/firmware": {
+        "path": "/firmware",
+        "name": "Camera and lens firmware",
+        "categories": [
+          "program-update"
+        ],
+        "example": "/panasonic/firmware",
+        "maintainers": [
+          "fdkevin0"
+        ],
+        "features": {
+          "supportRadar": true
+        },
+        "radar": [
+          {
+            "source": [
+              "av.jpn.support.panasonic.com/support/global/cs/dsc/download/top.html",
+              "av.jpn.support.panasonic.com/support/global/cs/dsc/download/index4.html",
+              "av.jpn.support.panasonic.com/support/global/cs/dsc/download/index.html",
+              "av.jpn.support.panasonic.com/support/global/cs/dsc/download/index2.html",
+              "av.jpn.support.panasonic.com/support/global/cs/dsc/download/index5.html"
+            ],
+            "target": "/firmware"
+          }
+        ],
+        "description": "Latest listed firmware for camera bodies and interchangeable lenses, including LEICA DG. Historical releases and camera software updates are excluded. Use common parameters to filter models, for example `?filter_title=^DC-S5M2%20`, or lenses with `?filter_title=^(S-|H-)`. Intermediate releases can be missed if a newer version replaces them between polls.",
+        "location": "firmware.ts",
+        "module": "() => import('@/routes/panasonic/firmware.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "Panasonic",
+    "url": "av.jpn.support.panasonic.com",
+    "lang": "en"
   },
   "papers": {
     "routes": {
@@ -104234,6 +104780,31 @@
   },
   "reuters": {
     "routes": {
+      "/my-news": {
+        "path": "/my-news",
+        "categories": [
+          "traditional-media"
+        ],
+        "view": 0,
+        "example": "/reuters/my-news",
+        "features": {
+          "requireConfig": [
+            {
+              "name": "REUTERS_AUTH_TOKEN",
+              "optional": false,
+              "description": "Sign in to Reuters and open Browser Devtools to find `rt_token` from Local Storage."
+            }
+          ],
+          "requirePuppeteer": false
+        },
+        "name": "My News",
+        "maintainers": [
+          "dzx-dzx"
+        ],
+        "description": "The first page of the configured Reuters account's personalized My News feed. Requires a self-hosted instance with `REUTERS_AUTH_TOKEN` configured.",
+        "location": "my-news.ts",
+        "module": "() => import('@/routes/reuters/my-news.ts')"
+      },
       "/:category/:topic?": {
         "path": "/:category/:topic?",
         "categories": [
@@ -105296,51 +105867,55 @@
         "maintainers": [
           "nczitzk"
         ],
-        "example": "/samrdprc/xwdt/gzdt",
+        "example": "/samrdprc/gnxw",
         "parameters": {
           "id": {
-            "description": "栏目 id，默认为 `xwdt/gzdt`，即国内新闻，可在对应分类页 URL 中找到",
+            "description": "栏目 id，默认为 `gnxw`，即中心新闻，可在对应分类页 URL 中找到",
             "options": [
               {
-                "label": "新闻动态",
-                "value": "xwdt/gzdt"
+                "label": "中心新闻",
+                "value": "gnxw"
               },
               {
-                "label": "网站公告",
-                "value": "wzgg"
+                "label": "公告",
+                "value": "gsgg/gg"
               },
               {
                 "label": "汽车召回",
-                "value": "qczh"
+                "value": "zhxx/jdczh/jdczh"
               },
               {
                 "label": "消费品召回",
                 "value": "xfpzh"
               },
               {
-                "label": "技术报告",
-                "value": "yjgz/jsyj"
+                "label": "科技成果",
+                "value": "kxyj/kjcg"
               },
               {
-                "label": "SAC/TC463",
-                "value": "yjgz/sactc"
+                "label": "科技动态",
+                "value": "kxyj/kjdt"
               },
               {
-                "label": "研究动态",
-                "value": "yjgz/yjfx"
+                "label": "安全知识",
+                "value": "aqjy/aqzs"
               },
               {
-                "label": "安全教育",
-                "value": "aqjy"
+                "label": "消费提示",
+                "value": "aqjy/xfts"
               },
               {
                 "label": "国内法规",
-                "value": "flfg/gnfg"
+                "value": "fgbz/gnfg"
+              },
+              {
+                "label": "国外法规",
+                "value": "fgbz/gwfg"
               }
             ]
           }
         },
-        "description": "::: tip\n订阅 [网站公告](https://www.samrdprc.org.cn/wzgg/)，其源网址为 `https://www.samrdprc.org.cn/wzgg/`，请参考该 URL 指定部分构成参数，此时路由为 [`/samrdprc/wzgg`](https://rsshub.app/samrdprc/wzgg)。\n:::\n\n<details>\n  <summary>更多分类</summary>\n\n#### 网站首页\n\n| [新闻动态](https://www.samrdprc.org.cn/xwdt/gzdt/) | [网站公告](https://www.samrdprc.org.cn/wzgg/) | [汽车召回](https://www.samrdprc.org.cn/qczh/) | [消费品召回](https://www.samrdprc.org.cn/xfpzh/) |\n| -------------------------------------------------- | --------------------------------------------- | --------------------------------------------- | ------------------------------------------------ |\n| [xwdt/gzdt](https://rsshub.app/samrdprc/xwdt/gzdt) | [wzgg](https://rsshub.app/samrdprc/wzgg)      | [qczh](https://rsshub.app/samrdprc/qczh)      | [xfpzh](https://rsshub.app/samrdprc/xfpzh)       |\n\n#### 科学研究\n\n| [技术报告](https://www.samrdprc.org.cn/yjgz/jsyj/) | [SAC/TC463](https://www.samrdprc.org.cn/yjgz/sactc/) | [研究动态](https://www.samrdprc.org.cn/yjgz/yjfx/) |\n| -------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------- |\n| [yjgz/jsyj](https://rsshub.app/samrdprc/yjgz/jsyj) | [yjgz/sactc](https://rsshub.app/samrdprc/yjgz/sactc) | [yjgz/yjfx](https://rsshub.app/samrdprc/yjgz/yjfx) |\n\n#### 安全教育\n\n| [安全教育](https://www.samrdprc.org.cn/aqjy/) |\n| --------------------------------------------- |\n| [aqjy](https://rsshub.app/samrdprc/aqjy)      |\n\n#### 法律法规\n\n| [国内法规](https://www.samrdprc.org.cn/flfg/gnfg/) |\n| -------------------------------------------------- |\n| [flfg/gnfg](https://rsshub.app/samrdprc/flfg/gnfg) |\n\n</details>",
+        "description": "::: tip\n订阅 [公告](https://www.samrdprc.org.cn/gsgg/gg/index.html)，其源网址为 `https://www.samrdprc.org.cn/gsgg/gg/index.html`，请参考该 URL 指定部分构成参数，此时路由为 [`/samrdprc/gsgg/gg`](https://rsshub.app/samrdprc/gsgg/gg)。\n:::\n\n<details>\n  <summary>更多分类</summary>\n\n#### 新闻公告\n\n| [中心新闻](https://www.samrdprc.org.cn/gnxw/index.html) | [公告](https://www.samrdprc.org.cn/gsgg/gg/index.html) |\n| ------------------------------------------------------- | ------------------------------------------------------ |\n| [gnxw](https://rsshub.app/samrdprc/gnxw)                | [gsgg/gg](https://rsshub.app/samrdprc/gsgg/gg)         |\n\n#### 安全信息\n\n| [汽车召回](https://www.samrdprc.org.cn/zhxx/jdczh/jdczh/index.html) | [消费品召回](https://www.samrdprc.org.cn/xfpzh/index.html) |\n| ------------------------------------------------------------------- | ---------------------------------------------------------- |\n| [zhxx/jdczh/jdczh](https://rsshub.app/samrdprc/zhxx/jdczh/jdczh)    | [xfpzh](https://rsshub.app/samrdprc/xfpzh)                 |\n\n#### 科学研究\n\n| [科技成果](https://www.samrdprc.org.cn/kxyj/kjcg/index.html) | [科技动态](https://www.samrdprc.org.cn/kxyj/kjdt/index.html) |\n| ------------------------------------------------------------ | ------------------------------------------------------------ |\n| [kxyj/kjcg](https://rsshub.app/samrdprc/kxyj/kjcg)           | [kxyj/kjdt](https://rsshub.app/samrdprc/kxyj/kjdt)           |\n\n#### 安全教育\n\n| [安全知识](https://www.samrdprc.org.cn/aqjy/aqzs/index.html) | [消费提示](https://www.samrdprc.org.cn/aqjy/xfts/index.html) |\n| ------------------------------------------------------------ | ------------------------------------------------------------ |\n| [aqjy/aqzs](https://rsshub.app/samrdprc/aqjy/aqzs)           | [aqjy/xfts](https://rsshub.app/samrdprc/aqjy/xfts)           |\n\n#### 法规标准\n\n| [国内法规](https://www.samrdprc.org.cn/fgbz/gnfg/index.html) | [国外法规](https://www.samrdprc.org.cn/fgbz/gwfg/index.html) |\n| ------------------------------------------------------------ | ------------------------------------------------------------ |\n| [fgbz/gnfg](https://rsshub.app/samrdprc/fgbz/gnfg)           | [fgbz/gwfg](https://rsshub.app/samrdprc/fgbz/gwfg)           |\n\n</details>",
         "categories": [
           "government"
         ],
@@ -105361,67 +105936,74 @@
             "target": "/:id"
           },
           {
-            "title": "网站首页 - 新闻动态",
+            "title": "新闻公告 - 中心新闻",
             "source": [
-              "www.samrdprc.org.cn/xwdt/gzdt/"
+              "www.samrdprc.org.cn/gnxw/index.html"
             ],
-            "target": "/xwdt/gzdt"
+            "target": "/gnxw"
           },
           {
-            "title": "网站首页 - 网站公告",
+            "title": "新闻公告 - 公告",
             "source": [
-              "www.samrdprc.org.cn/wzgg/"
+              "www.samrdprc.org.cn/gsgg/gg/index.html"
             ],
-            "target": "/wzgg"
+            "target": "/gsgg/gg"
           },
           {
-            "title": "网站首页 - 汽车召回",
+            "title": "安全信息 - 汽车召回",
             "source": [
-              "www.samrdprc.org.cn/qczh/"
+              "www.samrdprc.org.cn/zhxx/jdczh/jdczh/index.html"
             ],
-            "target": "/qczh"
+            "target": "/zhxx/jdczh/jdczh"
           },
           {
-            "title": "网站首页 - 消费品召回",
+            "title": "安全信息 - 消费品召回",
             "source": [
-              "www.samrdprc.org.cn/xfpzh/"
+              "www.samrdprc.org.cn/xfpzh/index.html"
             ],
             "target": "/xfpzh"
           },
           {
-            "title": "科学研究 - 技术报告",
+            "title": "科学研究 - 科技成果",
             "source": [
-              "www.samrdprc.org.cn/yjgz/jsyj/"
+              "www.samrdprc.org.cn/kxyj/kjcg/index.html"
             ],
-            "target": "/yjgz/jsyj"
+            "target": "/kxyj/kjcg"
           },
           {
-            "title": "科学研究 - SAC/TC463",
+            "title": "科学研究 - 科技动态",
             "source": [
-              "www.samrdprc.org.cn/yjgz/sactc/"
+              "www.samrdprc.org.cn/kxyj/kjdt/index.html"
             ],
-            "target": "/yjgz/sactc"
+            "target": "/kxyj/kjdt"
           },
           {
-            "title": "科学研究 - 研究动态",
+            "title": "安全教育 - 安全知识",
             "source": [
-              "www.samrdprc.org.cn/yjgz/yjfx/"
+              "www.samrdprc.org.cn/aqjy/aqzs/index.html"
             ],
-            "target": "/yjgz/yjfx"
+            "target": "/aqjy/aqzs"
           },
           {
-            "title": "安全教育 - 安全教育",
+            "title": "安全教育 - 消费提示",
             "source": [
-              "www.samrdprc.org.cn/aqjy/"
+              "www.samrdprc.org.cn/aqjy/xfts/index.html"
             ],
-            "target": "/aqjy"
+            "target": "/aqjy/xfts"
           },
           {
-            "title": "法律法规 - 国内法规",
+            "title": "法规标准 - 国内法规",
             "source": [
-              "www.samrdprc.org.cn/flfg/gnfg/"
+              "www.samrdprc.org.cn/fgbz/gnfg/index.html"
             ],
-            "target": "/flfg/gnfg"
+            "target": "/fgbz/gnfg"
+          },
+          {
+            "title": "法规标准 - 国外法规",
+            "source": [
+              "www.samrdprc.org.cn/fgbz/gwfg/index.html"
+            ],
+            "target": "/fgbz/gwfg"
           }
         ],
         "view": 0,
@@ -105446,7 +106028,7 @@
           "supportPodcast": false,
           "supportScihub": false
         },
-        "description": "| 类型中文   | 召回类型 ID1 | 召回类型 ID2 |\n| ---------- | ------------ | ------------ |\n| 消费品召回 | xfpzh        | xfpgnzh      |\n| 汽车召回   | qczh         | gnzhqc       |",
+        "description": "| 类型中文     | 召回类型 ID1 | 召回类型 ID2 |\n| ------------ | ------------ | ------------ |\n| 消费品召回   | xfpzh        | xfpgnzh      |\n| 汽车召回     | qczh         | gnzhqc       |\n| 汽车召回公告 | qczh         | qczhgg1      |\n\n其他召回栏目（如摩托车召回）请使用栏目路由，例如 `/samrdprc/zhxx/jdczh/mtczh`。",
         "name": "召回信息",
         "maintainers": [
           "a180285"
@@ -105454,9 +106036,21 @@
         "radar": [
           {
             "source": [
-              "www.samrdprc.org.cn/:type1/:type2"
+              "www.samrdprc.org.cn/xfpzh/index.html"
             ],
-            "target": "/news/:type1/:type2"
+            "target": "/news/xfpzh/xfpgnzh"
+          },
+          {
+            "source": [
+              "www.samrdprc.org.cn/zhxx/jdczh/jdczh/index.html"
+            ],
+            "target": "/news/qczh/gnzhqc"
+          },
+          {
+            "source": [
+              "www.samrdprc.org.cn/fzlm/zhgg/qczhgg/index.html"
+            ],
+            "target": "/news/qczh/qczhgg1"
           }
         ],
         "location": "news.ts",
@@ -115851,7 +116445,7 @@
           "synchrone",
           "pseudoyu"
         ],
-        "description": "::: tip\nDue to Telegram restrictions, some channels involving pornography, copyright, and politics cannot be subscribed. You can confirm by visiting `https://t.me/s/:username`, it's recommended to deploy your own instance with telegram api configs (create your telegram application via `https://core.telegram.org/api/obtaining_api_id`, run this command `node ./lib/routes/telegram/scripts/get-telegram-session.mjs` to get `TELEGRAM_SESSION` and set it as Environment Variable).\nMTProto connections can use a SOCKS4/5 `PROXY_URI` (for example, `socks5://127.0.0.1:1080`) or the dedicated `TELEGRAM_PROXY_HOST`, `TELEGRAM_PROXY_PORT`, and `TELEGRAM_PROXY_SECRET` MTProxy settings, which take precedence. HTTP proxies only apply to the public web feed; use a SOCKS or MTProxy endpoint for authenticated MTProto feeds.\n\nWhen a reverse proxy removes a public URL prefix (for example, `/rss`), set its `X-Forwarded-Prefix` request header to that prefix so Telegram media links include it. Access-control `key` and `code` parameters are preserved in these media links.\n:::",
+        "description": "::: tip\nDue to Telegram restrictions, some channels involving pornography, copyright, and politics cannot be subscribed. You can confirm by visiting `https://t.me/s/:username`, it's recommended to deploy your own instance with telegram api configs (create your telegram application via `https://core.telegram.org/api/obtaining_api_id`, run this command `node ./lib/routes/telegram/scripts/get-telegram-session.mjs` to get `TELEGRAM_SESSION` and set it as Environment Variable).\nMTProto connections can use a SOCKS4/5 `PROXY_URI` (for example, `socks5://127.0.0.1:1080`) or the dedicated `TELEGRAM_PROXY_HOST`, `TELEGRAM_PROXY_PORT`, and `TELEGRAM_PROXY_SECRET` MTProxy settings, which take precedence. HTTP proxies only apply to the public web feed; use a SOCKS or MTProxy endpoint for authenticated MTProto feeds.\nWhen MTProto fails or gives no response within `REQUEST_TIMEOUT`, the route falls back to the public web feed. Cloudflare Workers deployments always use the public web feed.\n\nWhen a reverse proxy removes a public URL prefix (for example, `/rss`), set its `X-Forwarded-Prefix` request header to that prefix so Telegram media links include it. Access-control `key` and `code` parameters are preserved in these media links.\n:::",
         "location": "channel.ts",
         "module": "() => import('@/routes/telegram/channel.ts')"
       }
@@ -117691,6 +118285,38 @@
   },
   "theatlantic": {
     "routes": {
+      "/author/:id": {
+        "path": "/author/:id",
+        "categories": [
+          "traditional-media"
+        ],
+        "example": "/theatlantic/author/alan-taylor",
+        "parameters": {
+          "id": "Author ID, can be found in the author page URL"
+        },
+        "features": {
+          "requireConfig": false,
+          "requirePuppeteer": false,
+          "antiCrawler": false,
+          "supportBT": false,
+          "supportPodcast": false,
+          "supportScihub": false
+        },
+        "radar": [
+          {
+            "source": [
+              "www.theatlantic.com/author/:id"
+            ],
+            "target": "/author/:id"
+          }
+        ],
+        "name": "Author",
+        "maintainers": [
+          "pseudoyu"
+        ],
+        "location": "author.ts",
+        "module": "() => import('@/routes/theatlantic/author.ts')"
+      },
       "/:category": {
         "path": "/:category",
         "categories": [
@@ -128217,6 +128843,48 @@
     "url": "xsijishe.com",
     "lang": "zh-CN"
   },
+  "xsw": {
+    "routes": {
+      "/:bookId": {
+        "path": "/:bookId",
+        "categories": [
+          "reading"
+        ],
+        "example": "/xsw/17301350",
+        "parameters": {
+          "bookId": "书籍编号，见网址如 /17301350/ 中的数字"
+        },
+        "features": {
+          "requireConfig": false,
+          "requirePuppeteer": false,
+          "antiCrawler": false,
+          "supportBT": false,
+          "supportPodcast": false,
+          "supportScihub": false
+        },
+        "radar": [
+          {
+            "source": [
+              "m.xsw.tw/:bookId/"
+            ]
+          }
+        ],
+        "name": "章节目录",
+        "maintainers": [
+          "xbpk3t"
+        ],
+        "location": "index.ts",
+        "module": "() => import('@/routes/xsw/index.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "台湾小说网",
+    "url": "m.xsw.tw",
+    "categories": [
+      "reading"
+    ],
+    "lang": "zh-TW"
+  },
   "xueqiu": {
     "routes": {
       "/user_stock/:id": {
@@ -131369,6 +132037,102 @@
     "categories": [
       "university"
     ],
+    "lang": "zh-CN"
+  },
+  "zjnu": {
+    "routes": {
+      "/academic": {
+        "path": "/academic",
+        "categories": [
+          "university"
+        ],
+        "example": "/zjnu/academic",
+        "parameters": {},
+        "features": {
+          "requireConfig": false,
+          "requirePuppeteer": false,
+          "antiCrawler": false,
+          "supportBT": false,
+          "supportPodcast": false,
+          "supportScihub": false
+        },
+        "name": "学术动态",
+        "maintainers": [
+          "gushen610140"
+        ],
+        "location": "academic/index.ts",
+        "module": "() => import('@/routes/zjnu/academic/index.ts')"
+      },
+      "/general": {
+        "path": "/general",
+        "categories": [
+          "university"
+        ],
+        "example": "/zjnu/general",
+        "parameters": {},
+        "features": {
+          "requireConfig": false,
+          "requirePuppeteer": false,
+          "antiCrawler": false,
+          "supportBT": false,
+          "supportPodcast": false,
+          "supportScihub": false
+        },
+        "name": "综合新闻",
+        "maintainers": [
+          "gushen610140"
+        ],
+        "location": "general/index.ts",
+        "module": "() => import('@/routes/zjnu/general/index.ts')"
+      },
+      "/media": {
+        "path": "/media",
+        "categories": [
+          "university"
+        ],
+        "example": "/zjnu/media",
+        "parameters": {},
+        "features": {
+          "requireConfig": false,
+          "requirePuppeteer": false,
+          "antiCrawler": false,
+          "supportBT": false,
+          "supportPodcast": false,
+          "supportScihub": false
+        },
+        "name": "媒体视角",
+        "maintainers": [
+          "gushen610140"
+        ],
+        "location": "media/index.ts",
+        "module": "() => import('@/routes/zjnu/media/index.ts')"
+      },
+      "/news": {
+        "path": "/news",
+        "categories": [
+          "university"
+        ],
+        "example": "/zjnu/news",
+        "parameters": {},
+        "features": {
+          "requireConfig": false,
+          "requirePuppeteer": false,
+          "antiCrawler": false,
+          "supportBT": false,
+          "supportPodcast": false,
+          "supportScihub": false
+        },
+        "name": "浙师要闻",
+        "maintainers": [
+          "gushen610140"
+        ],
+        "location": "news/index.ts",
+        "module": "() => import('@/routes/zjnu/news/index.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "浙江师范大学",
+    "url": "www.zjnu.edu.cn",
     "lang": "zh-CN"
   },
   "zjol": {
@@ -155232,6 +155996,145 @@
     "name": "LINE",
     "url": "today.line.me",
     "lang": "en"
+  },
+  "lingowhale": {
+    "routes": {
+      "/channel/:id": {
+        "path": "/channel/:id",
+        "categories": [
+          "new-media"
+        ],
+        "example": "/lingowhale/channel/67cc08a19a4297b6148b297e",
+        "parameters": {
+          "id": "Channel ID, found in the `channel_id` query of the channel page URL"
+        },
+        "radar": [
+          {
+            "source": [
+              "lingowhale.com/channels"
+            ]
+          }
+        ],
+        "name": "频道",
+        "maintainers": [
+          "TonyRL"
+        ],
+        "url": "lingowhale.com",
+        "location": "channel.ts",
+        "module": "() => import('@/routes/lingowhale/channel.ts')"
+      },
+      "/hot/:type?": {
+        "path": "/hot/:type?",
+        "categories": [
+          "new-media"
+        ],
+        "example": "/lingowhale/hot/2",
+        "parameters": {
+          "type": {
+            "description": "Hot list type",
+            "options": [
+              {
+                "value": "1",
+                "label": "热门频道"
+              },
+              {
+                "value": "2",
+                "label": "热门话题"
+              },
+              {
+                "value": "3",
+                "label": "热门文章"
+              }
+            ],
+            "default": "2"
+          }
+        },
+        "radar": [
+          {
+            "source": [
+              "lingowhale.com/topics"
+            ]
+          }
+        ],
+        "name": "热门",
+        "maintainers": [
+          "TonyRL"
+        ],
+        "url": "lingowhale.com",
+        "location": "hot.ts",
+        "module": "() => import('@/routes/lingowhale/hot.ts')"
+      },
+      "/search/:keyword/:type?": {
+        "path": "/search/:keyword/:type?",
+        "categories": [
+          "new-media"
+        ],
+        "example": "/lingowhale/search/F1",
+        "parameters": {
+          "keyword": "Search keyword",
+          "type": {
+            "description": "Search type",
+            "options": [
+              {
+                "value": "1",
+                "label": "频道"
+              },
+              {
+                "value": "2",
+                "label": "话题"
+              },
+              {
+                "value": "3",
+                "label": "文章"
+              }
+            ],
+            "default": "1"
+          }
+        },
+        "radar": [
+          {
+            "source": [
+              "lingowhale.com/channels"
+            ]
+          }
+        ],
+        "name": "搜索",
+        "maintainers": [
+          "TonyRL"
+        ],
+        "url": "lingowhale.com",
+        "location": "search.ts",
+        "module": "() => import('@/routes/lingowhale/search.ts')"
+      },
+      "/topic/:id": {
+        "path": "/topic/:id",
+        "categories": [
+          "new-media"
+        ],
+        "example": "/lingowhale/topic/6ace33a60c047819650365b1",
+        "parameters": {
+          "id": "Topic ID, found in the `topic_id` query of the topic page URL"
+        },
+        "radar": [
+          {
+            "source": [
+              "lingowhale.com/topics"
+            ]
+          }
+        ],
+        "name": "话题",
+        "maintainers": [
+          "TonyRL"
+        ],
+        "url": "lingowhale.com",
+        "location": "topic.ts",
+        "module": "() => import('@/routes/lingowhale/topic.ts')"
+      }
+    },
+    "apiRoutes": {},
+    "name": "语鲸 LingoWhale",
+    "url": "lingowhale.com",
+    "lang": "zh-CN"
   },
   "linkedin": {
     "routes": {

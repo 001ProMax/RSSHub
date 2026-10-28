@@ -66,6 +66,9 @@
   "/8264/list/:id?": [
     "nczitzk"
   ],
+  "/10086/b2b/:type?": [
+    "TonyRL"
+  ],
   "/12306/:date/:from/:to/:type?": [
     "Fatpandac"
   ],
@@ -680,6 +683,9 @@
   "/hashnode/blog/:username": [
     "hnrainll"
   ],
+  "/hn.plus/konek/newest": [
+    "TungHaHuy"
+  ],
   "/hnu/careers": [
     "ningyougan"
   ],
@@ -1155,6 +1161,9 @@
   "/cts/:category": [
     "miles170"
   ],
+  "/cum.st/:service?/:id?/:type?": [
+    "gekangen"
+  ],
   "/dahecube/:type?": [
     "linbuxiao"
   ],
@@ -1438,6 +1447,9 @@
   ],
   "/mymusicsheet/user/sheets/:username/:iso?/:freeOnly?": [
     "Freddd13"
+  ],
+  "/nanhua/index-research/:category?": [
+    "pseudoyu"
   ],
   "/nanhua/report/:type1/:type2": [
     "TonyRL"
@@ -3551,6 +3563,9 @@
   "/crac/:type?": [
     "Misaka13514"
   ],
+  "/craigslist/:location/:type/:query?": [
+    "TonyRL"
+  ],
   "/creaders/headline": [
     "nczitzk"
   ],
@@ -4419,6 +4434,9 @@
   "/gab/user/:username": [
     "zphw"
   ],
+  "/game-wisdom/:category?": [
+    "mcdp-adk"
+  ],
   "/gameapps/": [
     "TonyRL"
   ],
@@ -4738,7 +4756,7 @@
   "/gzmtu/tsg": [
     "skyedai910"
   ],
-  "/hackernews/:section?/:type?/:value?": [
+  "/hackernews/:section?/:type?/:value?/:minComments?": [
     "nczitzk",
     "xie-dongping"
   ],
@@ -4963,6 +4981,9 @@
   ],
   "/hotukdeals/:type": [
     "DIYgod"
+  ],
+  "/hotukdeals/tag/:tag/:sort?": [
+    "zhgqthomas"
   ],
   "/howtoforge/": [
     "cnkmmk"
@@ -5750,6 +5771,12 @@
   "/lovelive-anime/news/:abbr?/:category?/:option?": [
     "axojhf",
     "zhaoweizhong"
+  ],
+  "/lowendtalk/discussion/:id": [
+    "nczitzk"
+  ],
+  "/lowendtalk/profile/:type/:username": [
+    "TonyRL"
   ],
   "/lrepacks/:category?": [
     "nczitzk"
@@ -6583,6 +6610,12 @@
     "pseudoyu",
     "dzx-dzx"
   ],
+  "/nytimes/wirecutter": [
+    "IvanWng97"
+  ],
+  "/oaktree/insights": [
+    "argsno"
+  ],
   "/obsidian/plugins": [
     "DIYgod"
   ],
@@ -6739,6 +6772,9 @@
   ],
   "/pacilution/latest": [
     "PrinOrange"
+  ],
+  "/panasonic/firmware": [
+    "fdkevin0"
   ],
   "/papers/query/:keyword{.+}?": [
     "Muyun99"
@@ -7253,6 +7289,9 @@
   ],
   "/resonac/products": [
     "valuex"
+  ],
+  "/reuters/my-news": [
+    "dzx-dzx"
   ],
   "/reuters/:category/:topic?": [
     "LyleLee",
@@ -8213,6 +8252,9 @@
     "nczitzk",
     "pseudoyu"
   ],
+  "/theatlantic/author/:id": [
+    "pseudoyu"
+  ],
   "/theatlantic/:category": [
     "IvanWng97",
     "pseudoyu"
@@ -9129,6 +9171,9 @@
     "akynazh",
     "AiraNadih"
   ],
+  "/xsw/:bookId": [
+    "xbpk3t"
+  ],
   "/xueqiu/user_stock/:id": [
     "hillerliao"
   ],
@@ -9411,6 +9456,18 @@
   ],
   "/zjgsu/xszq": [
     "nicolaszf"
+  ],
+  "/zjnu/academic": [
+    "gushen610140"
+  ],
+  "/zjnu/general": [
+    "gushen610140"
+  ],
+  "/zjnu/media": [
+    "gushen610140"
+  ],
+  "/zjnu/news": [
+    "gushen610140"
   ],
   "/zjol/paper/:id?": [
     "nczitzk"
@@ -11431,6 +11488,18 @@
   ],
   "/line/today/:edition?/:tab?": [
     "nczitzk"
+  ],
+  "/lingowhale/channel/:id": [
+    "TonyRL"
+  ],
+  "/lingowhale/hot/:type?": [
+    "TonyRL"
+  ],
+  "/lingowhale/search/:keyword/:type?": [
+    "TonyRL"
+  ],
+  "/lingowhale/topic/:id": [
+    "TonyRL"
   ],
   "/linkedin/company/:company_id/posts": [
     "saifazmi"
