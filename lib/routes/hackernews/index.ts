@@ -134,7 +134,8 @@ async function handler(ctx) {
                 pubDate: pubDate && !Number.isNaN(pubDate.getTime()) ? pubDate : undefined,
 
                 link: '',
-                origin: origin ? new URL(origin, rootUrl).href : undefined,
+                // A story link the URL parser rejects (e.g. an invalid IDN host) falls back to the discussion page instead of failing the feed
+                origin: origin ? URL.parse(origin, rootUrl)?.href : undefined,
                 onStory,
 
                 // Only a "N comments" link carries the count; other trailing links (e.g. an age like "22 days ago"

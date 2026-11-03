@@ -16,7 +16,7 @@
           deps = pkgs.fetchPnpmDeps {
             pname = "rsshub";
             src = ./.;
-            hash = "sha256-lkaU2IWBEZIPzwKa6RShUxWGX/6eA9MmyvoOF5J36sA=";
+            hash = "sha256-K+eBokYxZmshV/jhfo9fDaF33RBaAwUqsXhmcQYfJP4=";
             fetcherVersion = 4;
           };
         in
@@ -27,7 +27,7 @@
           src = ./.;
 
           nativeBuildInputs = with pkgs; [
-            nodejs_24
+            nodejs_26
             pnpm
             pnpmConfigHook
             git
@@ -82,7 +82,7 @@
           #!${pkgs.bash}/bin/bash
           export NODE_ENV=production
           export NODE_OPTIONS='--max-http-header-size=32768'
-          exec ${pkgs.nodejs_22}/bin/node $out/lib/rsshub/dist/index.mjs "\$@"
+          exec ${pkgs.nodejs_26}/bin/node $out/lib/rsshub/dist/index.mjs "\$@"
           EOF
           chmod +x $out/bin/rsshub
           runHook postInstall
