@@ -2,12 +2,12 @@ import { load } from 'cheerio';
 import pMap from 'p-map';
 
 import InvalidParameterError from '@/errors/types/invalid-parameter';
+import { createJslFetch } from '@/routes/ichunqiu/jsl';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
-import { parseDate } from '@/utils/parse-date';
-import { getPlaywrightPage, type Page } from '@/utils/playwright';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 const baseUrl = 'https://www.mps.gov.cn';
 const sections = {
@@ -21,7 +21,7 @@ export const route: Route = {
     name: '政策文件与解读',
     categories: ['government'],
     maintainers: ['DIYgod'],
-    features: { requirePuppeteer: true },
+    features: { antiCrawler: true },
     parameters: { section: 'documents（政策文件，默认）或 interpretations（政策解读）' },
     radar: [
         { source: ['www.mps.gov.cn/n6557558/index.html'], target: '/policy/documents' },
@@ -30,20 +30,22 @@ export const route: Route = {
     handler,
 };
 
-function getItem(item: DataItem, page: Page) {
+function getItem(item: DataItem, fetchPage: (url: string) => Promise<string>) {
+    // only follow links on the site itself
+    if (!isOnSite(item.link, 'mps.gov.cn')) {
+        return item;
+    }
     return cache.tryGet(item.link!, async () => {
-        await page.goto(item.link!, { waitUntil: 'domcontentloaded' });
-        await page.waitForSelector('#ztdx, #UCAP-CONTENT, .pages_content');
-        const response = await page.content();
+        const response = await fetchPage(item.link!);
         const $ = load(response);
         const content = $('#ztdx, #UCAP-CONTENT, .pages_content').first();
-        content.find('script, style, .btn, button').remove();
+        content.find('style, .btn, button').remove();
         const date = $('meta[name="PubDate"]').attr('content');
         return {
             ...item,
-            title: $('.bTitle').first().text() || $('meta[name="ArticleTitle"]').attr('content') || item.title,
+            title: $('.bTitle').text() || $('meta[name="ArticleTitle"]').attr('content') || item.title,
             description: content.html(),
-            pubDate: date ? timezone(parseDate(date.replaceAll(/\s+/g, ' ')), 8) : item.pubDate,
+            pubDate: date ? parseDate(date.replaceAll(/\s+/g, ' '), 8) : item.pubDate,
             author: $('meta[name="ContentSource"]').attr('content'),
         };
     });
@@ -56,33 +58,22 @@ async function handler(ctx) {
     }
     const { column, name } = sections[section as keyof typeof sections];
     const link = `${baseUrl}/${column}/index.html`;
-    const { page, destroy } = await getPlaywrightPage(link, {
-        closeTimeout: 0,
-        onBeforeLoad: async (page) => {
-            await page.route('**/*', (route) => (['document', 'script'].includes(route.request().resourceType()) ? route.continue() : route.abort()));
-        },
-    });
-    try {
-        await page.waitForSelector('.list li a');
-        const response = await page.content();
-        const $ = load(response);
-        const requestedLimit = getRouteLimit(ctx, 20);
-        const candidateLimit = ctx.req.query('sorted') === 'false' ? requestedLimit : Math.max(20, requestedLimit);
-        const items = $('.list li')
-            .toArray()
-            .slice(0, candidateLimit)
-            .map((element): DataItem => {
-                const row = $(element);
-                const anchor = row.find('a[href]');
-                const publishedDate = row.find('span').text();
-                return {
-                    title: anchor.text(),
-                    link: new URL(anchor.attr('href')!, link).href,
-                    pubDate: publishedDate ? timezone(parseDate(publishedDate, 'YYYY-MM-DD'), 8) : undefined,
-                };
-            });
-        return { title: `${name} - 中华人民共和国公安部`, link, language: 'zh-CN' as const, item: await pMap(items, (item) => getItem(item, page), { concurrency: 1 }) };
-    } finally {
-        await destroy();
-    }
+    const fetchPage = createJslFetch();
+    const response = await fetchPage(link);
+    const $ = load(response);
+    const requestedLimit = getRouteLimit(ctx, 20);
+    const candidateLimit = ctx.req.query('sorted') === 'false' ? requestedLimit : Math.max(20, requestedLimit);
+    const items = $('.list li')
+        .toArray()
+        .slice(0, candidateLimit)
+        .map((element): DataItem => {
+            const row = $(element);
+            const anchor = row.find('a[href]');
+            return {
+                title: anchor.text(),
+                link: new URL(anchor.attr('href')!, link).href,
+                pubDate: parseDate(row.find('span').text(), 'YYYY-MM-DD', 8),
+            };
+        });
+    return { title: `${name} - 中华人民共和国公安部`, link, language: 'zh-CN' as const, item: await pMap(items, (item) => getItem(item, fetchPage), { concurrency: 3 }) };
 }

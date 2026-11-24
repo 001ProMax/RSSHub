@@ -1,6 +1,7 @@
 import { load } from 'cheerio';
 import type { Node } from 'oxc-parser';
 
+import { renderYoutube } from '@/routes/youtube/utils';
 import { evaluateScriptData } from '@/utils/evaluate-script';
 import ofetch from '@/utils/ofetch';
 import { parseScriptSource } from '@/utils/parse-js';
@@ -45,7 +46,7 @@ export const getItem = async (item) => {
             break;
 
         case 'video': {
-            const video = $('video[data-account][data-player][data-video-id]').first();
+            const video = $('video[data-account][data-player][data-video-id]');
             const account = video.attr('data-account');
             const player = video.attr('data-player');
             const videoId = video.attr('data-video-id');
@@ -54,7 +55,7 @@ export const getItem = async (item) => {
                 description.append($('<p>').text(asset.about || asset.intro));
             }
             if (account && player && videoId) {
-                const embed = new URL(`https://players.brightcove.net/${account}/${player}_${video.attr('data-embed') || 'default'}/index.html`);
+                const embed = new URL(`https://players.brightcove.net/${account}/${player}_${video.attr('data-embed')}/index.html`);
                 embed.searchParams.set('videoId', videoId);
                 description.append($('<iframe>').attr('src', embed.href).attr('allowfullscreen', ''));
             } else {
@@ -81,9 +82,10 @@ const renderArticle = (asset, link: string) => {
             return;
         }
 
-        const placeholder = asset.bodyPlaceholders[id!];
+        const placeholder = asset.bodyPlaceholders[id];
         switch (placeholder?.type) {
             case 'callout':
+            case 'domainListing':
             case 'relatedStory':
                 $el.replaceWith('');
                 break;
@@ -122,7 +124,7 @@ const renderArticle = (asset, link: string) => {
 
             case 'youtube': {
                 const videoId = new URL(placeholder.data.url).searchParams.get('v');
-                $el.replaceWith(videoId ? `<iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>` : `<a href="${placeholder.data.url}">Watch on YouTube</a>`);
+                $el.replaceWith(videoId ? renderYoutube(true, videoId) : `<a href="${placeholder.data.url}">Watch on YouTube</a>`);
                 break;
             }
 

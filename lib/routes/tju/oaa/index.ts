@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 import { finishArticleItem } from '@/utils/wechat-mp';
 
 const oaa_base_url = 'http://oaa.tju.edu.cn/';
@@ -14,7 +13,7 @@ const getArticle = async (link: string) => {
     try {
         const response = await got(link);
         const $ = load(response.data);
-        return { description: $('.v_news_content').html() ?? undefined };
+        return { description: $('.v_news_content').html() };
     } catch {
         // Keep the source listing when an article detail is unavailable.
         return {};
@@ -73,11 +72,7 @@ async function handler(ctx) {
             subtitle = '新闻动态';
             path = 'xwdt.htm';
     }
-    const response = await got(oaa_base_url + path, {
-        headers: {
-            Referer: oaa_base_url,
-        },
-    });
+    const response = await got(oaa_base_url + path);
     const $ = load(response.data);
     const list = $('.notice_l > ul > li > dl > dt')
         .toArray()
@@ -87,7 +82,7 @@ async function handler(ctx) {
             return {
                 title: $('h2', item).text(),
                 link: type === 'in-site' ? oaa_base_url + href : href,
-                pubDate: timezone(parseDate($('.fl_01_r_time', item).text(), 'DDYYYY-MM'), 8),
+                pubDate: parseDate($('.fl_01_r_time', item).text(), 'DDYYYY-MM', 8),
                 type,
             };
         });

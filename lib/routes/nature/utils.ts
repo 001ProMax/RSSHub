@@ -1,21 +1,10 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 import { CookieJar } from 'tough-cookie';
 
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function copyElements<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, element) => cloneNode(element, true));
-    const root = new Document(copy.toArray());
-    copy.each((_, element) => {
-        element.parent = root;
-    });
-    return copy;
-}
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.nature.com';
 
@@ -65,20 +54,19 @@ const getArticleList = (html): DataItem[] =>
         .toArray()
         .map((item) => {
             const $item = html(item);
-            const publishedAt = $item.find('.c-meta time').attr('datetime');
             return {
                 title: $item.find('a').text(),
                 link: baseUrl + $item.find('a').attr('href'),
-                pubDate: publishedAt ? timezone(parseDate(publishedAt, 'YYYY-MM-DD'), 0) : undefined,
+                pubDate: parseDate($item.find('.c-meta time').attr('datetime'), 'YYYY-MM-DD', 0),
             };
         });
 
 const getArticle = async (item: DataItem) => {
     const detail = await cache.tryGet(`nature:article:v4:${item.link}`, async () => {
         const detail: Pick<DataItem, 'doi' | 'author' | 'pubDate' | 'category' | 'description'> = {};
-        const response = await ofetch.raw(item.link!, { responseType: 'text' });
+        const response = await ofetch.raw(item.link!);
 
-        const $ = load(response._data ?? '');
+        const $ = load(response._data);
 
         if (new URL(response.url).pathname.startsWith('/immersive/')) {
             if ($('script[data-test=dataLayer]').length) {
@@ -100,8 +88,8 @@ const getArticle = async (item: DataItem) => {
                 }
             }
 
-            const $article = copyElements($('main'));
-            $article.find('header, nav, button, input, script, style').remove();
+            const $article = $('main');
+            $article.find('header, nav, button, input, style').remove();
             $article.find('[href], [src], [poster]').each((_, element) => {
                 const $element = $(element);
                 for (const attribute of ['href', 'src', 'poster']) {
@@ -122,10 +110,8 @@ const getArticle = async (item: DataItem) => {
             }
             detail.author = meta.mainEntity.author.map((author) => author.name.replace(', ', ' ')).join(', ');
             detail.category = meta.mainEntity.keywords;
-            if (meta.mainEntity.datePublished) {
-                const publishedAt = meta.mainEntity.datePublished;
-                detail.pubDate = parseDate(/^\d{4}-\d{2}-\d{2}$/.test(publishedAt) ? `${publishedAt}T00:00:00Z` : publishedAt);
-            }
+            const publishedAt = meta.mainEntity.datePublished;
+            detail.pubDate = parseDate(/^\d{4}-\d{2}-\d{2}$/.test(publishedAt) ? `${publishedAt}T00:00:00Z` : publishedAt);
 
             fixFigure($);
 

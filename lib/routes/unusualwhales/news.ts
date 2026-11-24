@@ -1,6 +1,6 @@
 import type { Data, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const apiBase = 'https://phx.unusualwhales.com';
 
@@ -36,7 +36,7 @@ async function handler(): Promise<Data> {
         link: item.url,
         guid: item.id,
         author: item.source,
-        pubDate: item.created_at ? parseDate(item.created_at) : undefined,
+        pubDate: parseDate(item.created_at),
         category: item.tickers,
     }));
 

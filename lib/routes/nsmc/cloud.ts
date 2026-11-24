@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const products = {
     'geos-col-irx': { name: '全球静止卫星 - 长波红外通道增强', xml: 'GEOS/GEOS_COL_IRX.xml', video: 'GEOS/COL/IRX/VIDEO/GEOS.COL.IRX.GBAL' },
@@ -40,7 +40,6 @@ async function handler(ctx) {
         throw new Error('The satellite image index did not contain an observation time and image URL.');
     }
     const videoUrl = `https://img.nsmc.org.cn/CLOUDIMAGE/${selected.video}.${hours}h.mp4`;
-    const poster = new URL(imageUrl, 'https://img.nsmc.org.cn').href;
     const link = 'https://www.nsmc.org.cn/nsmc/cn/image/index.html';
     return {
         title: `${selected.name} - ${hours} 小时云图视频`,
@@ -52,7 +51,7 @@ async function handler(ctx) {
                 link: videoUrl,
                 guid: `${videoUrl}#${timestamp}`,
                 pubDate: parseDate(timestamp.replace(' (UTC)', 'Z')),
-                description: `<video controls poster="${poster}" src="${videoUrl}"></video>`,
+                description: `<video controls poster="${imageUrl}" src="${videoUrl}"></video>`,
                 enclosure_url: videoUrl,
                 enclosure_type: 'video/mp4',
             },

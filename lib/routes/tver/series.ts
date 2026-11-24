@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/series/:id',
@@ -35,8 +35,8 @@ const commonHeaders = {
 };
 interface EpisodeDetails {
     description?: string;
-    viewStatus?: {
-        startAt?: number;
+    viewStatus: {
+        startAt: number;
     };
 }
 interface SeriesEpisodes {
@@ -52,13 +52,6 @@ interface SeriesEpisodes {
             }>;
         }>;
     };
-}
-function getPublicationDate(startAt: number | undefined) {
-    if (typeof startAt !== 'number' || !Number.isFinite(startAt) || startAt <= 0) {
-        return;
-    }
-    const date = parseDate(startAt, 'X');
-    return Number.isFinite(date.getTime()) ? date : undefined;
 }
 async function handler(ctx: Context): Promise<Data> {
     const { id } = ctx.req.param();
@@ -103,7 +96,7 @@ async function handler(ctx: Context): Promise<Data> {
                 link: `https://tver.jp/episodes/${i.content.id}`,
                 image: `https://statics.tver.jp/images/content/thumbnail/episode/xlarge/${i.content.id}.jpg`,
                 description: episode.description,
-                pubDate: getPublicationDate(episode.viewStatus?.startAt),
+                pubDate: parseDate(episode.viewStatus.startAt, 'X'),
             };
         },
         { concurrency: 3 }

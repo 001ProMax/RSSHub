@@ -9,7 +9,7 @@ import ofetch from '@/utils/ofetch';
 
 export const HOST = 'https://www.homes.co.jp';
 /** 都道府県 / 市区町村 slugs as the site spells them in its area paths (tokyo, minato-city). */
-export const SLUG = /^[a-z\d_-]+$/;
+const SLUG = /^[a-z\d_-]+$/;
 export const DEFAULT_LIMIT = 20;
 
 export const checkSlugs = (slugs: Record<string, string>) => {
@@ -27,7 +27,7 @@ export const checkSlugs = (slugs: Record<string, string>) => {
  * That page is named as what it is rather than parsed as "no listings"; the route does not try
  * to get past the challenge.
  */
-export const fetchHomesPage = async (url: string): Promise<string> => {
+const fetchHomesPage = async (url: string): Promise<string> => {
     const res = await ofetch.raw(url, { responseType: 'text' });
     if (res.headers.get('x-amzn-waf-action') !== null || (res.status === 202 && !res._data)) {
         throw new HomesChallenged(url);
@@ -168,7 +168,7 @@ export const parseHomesChintaiList = (html: string): ListedUnit[] => {
  * (「情報公開日：2026/09/24」) rather than as a labelled cell. A date that is not found is left out
  * rather than set to null, so a page with no field at all comes back empty and is never cached.
  */
-export const parseHomesDetail = (html: string, scope = 'body'): Record<string, string | null> => {
+export const parseHomesDetail = (html: string, scope = 'body') => {
     const $ = load(html);
     const raw = collectPairs($, scope);
     const text = $('body').text();

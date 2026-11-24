@@ -2,7 +2,8 @@ import type { Context } from 'hono';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/cqzr',
@@ -15,23 +16,21 @@ export const route: Route = {
 };
 
 function parsePubDate(value?: string, format = 'YYYY-MM-DD') {
-    if (!value?.trim()) {
+    if (!value) {
         return;
     }
-    const date = parseDate(`${value} +08:00`, `${format} Z`);
-    return Number.isFinite(date.getTime()) ? date : undefined;
+    return parseDate(`${value} +08:00`, `${format} Z`);
 }
 
 async function handler(ctx: Context) {
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isFinite(requestedLimit) && requestedLimit >= 1 ? Math.floor(requestedLimit) : 10;
+    const limit = getRouteLimit(ctx, 10);
     const response = await ofetch('https://trade.tpre.cn/up/biz/project/anmuas/equity-trading/page', {
         query: {
             systemCode: 'PROPERTY_RIGHT_TRANSFER',
             projectInformation: '',
             current: 1,
             size: limit,
-            _unique: Date.now(),
+            _unique: Temporal.Now.instant().epochMilliseconds,
         },
         headers: {
             Accept: 'application/json, text/plain, */*',

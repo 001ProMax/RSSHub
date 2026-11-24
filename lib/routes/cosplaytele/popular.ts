@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { compareDates, parseDate } from '@/utils/time';
 
 import { loadArticle } from './article';
 import { SUB_NAME_PREFIX, SUB_URL } from './const';
@@ -78,26 +78,17 @@ async function handler(ctx) {
     const $ = load(data.widget);
     const posts = $('.wpp-list li')
         .toArray()
-        .map((post) => {
-            const dateText = $(post)
-                .find('.wpp-date')
-                .text()
-                .match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})/)?.[0];
-            return {
-                link: $(post).find('.wpp-post-title').attr('href'),
-                pubDate: dateText ? parseDate(dateText) : undefined,
-            };
-        })
-        .filter((post) => post.link !== undefined);
-    const datesAvailable = posts.every((post) => post.pubDate && !Number.isNaN(post.pubDate.getTime()));
-    if (sorted && datesAvailable) {
-        posts.sort((a, b) => b.pubDate!.getTime() - a.pubDate!.getTime());
+        .map((post) => ({
+            link: $(post).find('.wpp-post-title').attr('href'),
+            pubDate: parseDate($(post).find('.wpp-date').text().replace('posted on ', '')),
+        }));
+    if (sorted) {
+        posts.sort((a, b) => compareDates(b.pubDate, a.pubDate));
     }
-    const selectedPosts = !sorted || datesAvailable ? posts.slice(0, limit) : posts;
 
     return {
         title,
         link: url,
-        item: await pMap(selectedPosts, (post) => cache.tryGet(post.link!, () => loadArticle(post.link)), { concurrency: 3 }),
+        item: await pMap(posts.slice(0, limit), (post) => cache.tryGet(post.link!, () => loadArticle(post.link)), { concurrency: 3 }),
     };
 }

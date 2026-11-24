@@ -1,7 +1,6 @@
 import type { Data, DataItem, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import type { HomePostItem, HupuApiResponse, NewsDataItem } from './types';
 import { isHomePostItem } from './types';
@@ -29,14 +28,6 @@ const categories = {
 const isCategory = (key: string): key is keyof typeof categories => Object.hasOwn(categories, key);
 
 type PagePropsData = Partial<Record<(typeof categories)[keyof typeof categories]['data'], Array<HomePostItem | NewsDataItem>>>;
-
-const parsePublishTime = (value?: string): Date | undefined => {
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {
-        return;
-    }
-    const date = parseDate(value, 'YYYY-MM-DD HH:mm:ss', true);
-    return Number.isFinite(date.getTime()) ? timezone(date, 8) : undefined;
-};
 
 export const route: Route = {
     path: '/:category?',
@@ -100,7 +91,7 @@ export const route: Route = {
                   } satisfies DataItem)
                 : ({
                       title: item.title,
-                      pubDate: parsePublishTime(item.publishTime),
+                      pubDate: parseDate(item.publishTime, 8),
                       link: item.link.replace(/bbs\.hupu.com/, 'm.hupu.com/bbs'),
                       guid: item.tid,
                   } satisfies DataItem)

@@ -1,7 +1,7 @@
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const PATH_LIST = {
     早报: 'ifanrnews',
@@ -38,11 +38,6 @@ export const route: Route = {
     description: '支持分类：早报、评测、糖纸众测、产品',
 };
 
-function parseTimestamp(value: number | string) {
-    const date = value ? parseDate(value, 'X') : undefined;
-    return date && Number.isFinite(date.getTime()) ? date : undefined;
-}
-
 async function handler(ctx) {
     const name = ctx.req.param('name');
     if (!Object.hasOwn(PATH_LIST, name)) {
@@ -69,7 +64,7 @@ async function handler(ctx) {
                 title: item.post_title,
                 description,
                 link: item.post_url,
-                pubDate: parseTimestamp(item.published_at),
+                pubDate: parseDate(item.published_at, 'X'),
                 author: item.created_by.name,
             };
         })

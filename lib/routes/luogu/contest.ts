@@ -1,11 +1,11 @@
 import { load } from 'cheerio';
-import MarkdownIt from 'markdown-it';
 import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
+import MarkdownIt from '@/utils/markdown-it';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { getPageData } from './utils';
 
@@ -67,7 +67,7 @@ export const route: Route = {
 
 async function handler() {
     const link = `${baseUrl}/contest/list`;
-    const response = await ofetch(link, { responseType: 'text' });
+    const response = await ofetch(link);
     const $ = load(response);
     const data = getPageData<{ contests: { result: Contest[] } }>($);
     const contests = data.contests.result;
@@ -77,7 +77,7 @@ async function handler() {
         async (item) => {
             const link = `${baseUrl}/contest/${item.id}`;
             const description = await cache.tryGet(link, async () => {
-                const response = await ofetch(link, { responseType: 'text' });
+                const response = await ofetch(link);
                 const { contest } = getPageData<{ contest: { description: string } }>(response);
                 return md.render(contest.description);
             });

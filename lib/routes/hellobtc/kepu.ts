@@ -5,7 +5,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.hellobtc.com';
 
@@ -81,9 +81,7 @@ async function handler(ctx) {
 
                 const published = detailResponse.data.match(/\bvar\s+ct\s*=\s*["'](\d+)["']/)?.[1];
                 item.pubDate = published ? parseDate(published, 'X') : undefined;
-                item.description = content('#js_content')
-                    .html()!
-                    .replaceAll(/(<img.*?)data-src(.*?>)/g, '$1src$2');
+                item.description = content('#js_content').html();
 
                 return item;
             }),

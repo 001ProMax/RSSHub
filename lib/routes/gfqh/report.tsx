@@ -7,8 +7,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://rd.gfqh.cn/RDInformation';
 
@@ -50,9 +49,9 @@ async function handler(ctx) {
         .map((element) => {
             const item = $(element);
             return {
-                title: item.find('.article-title').text().trim(),
+                title: item.find('.article-title').text(),
                 link: `${baseUrl}/article/${item.attr('onclick')?.match(/article\/(\d+)/)?.[1]}`,
-                pubDate: timezone(parseDate(item.find('.article-publish-date').text().trim()), 8),
+                pubDate: parseDate(item.find('.article-publish-date').text(), 8),
             };
         });
 
@@ -64,13 +63,13 @@ async function handler(ctx) {
                 const detail = load(detailResponse);
                 const attachments = detail('.attachment-item')
                     .toArray()
-                    .map((element) => ({ title: detail(element).find('.attachment-title').text().trim(), url: detail(element).attr('data-url') }));
+                    .map((element) => ({ title: detail(element).find('.attachment-title').text(), url: detail(element).attr('data-url') }));
 
                 return {
                     ...item,
                     category: detail('.future-daily-report span:not(:has(span))')
                         .toArray()
-                        .map((element) => detail(element).text().trim()),
+                        .map((element) => detail(element).text()),
                     description: renderToString(
                         <>
                             {raw(detail('.article-content').html() ?? '')}

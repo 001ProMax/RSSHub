@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -154,8 +154,7 @@ async function handler(ctx) {
                     item.description =
                         renderDescription({
                             description:
-                                (content('div[data-component="FeatureMedia"]').html() || '') +
-                                (content('#body div[data-component="LayoutContainer"] div').first().html() || content('[class*="ArticleRender_article"]').first().html() || ''),
+                                (content('div[data-component="FeatureMedia"]').html() || '') + (content('#body div[data-component="LayoutContainer"] div').first().html() || content('[class*="ArticleRender_article"]').html() || ''),
                         }) + item.description;
 
                     item.category = content('meta[property="article:tag"]')

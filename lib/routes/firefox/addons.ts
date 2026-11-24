@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 type LocalizedText = string | Record<string, string> | null;
 
@@ -60,7 +60,7 @@ async function handler(ctx) {
                 title: version,
                 description: getLocalizedText(versionInfo.release_notes),
                 link,
-                pubDate: versionInfo.file.created ? parseDate(versionInfo.file.created) : undefined,
+                pubDate: parseDate(versionInfo.file.created),
                 guid: version,
                 author: info.authors.map((author) => author.name).join(', '),
                 category: info.categories,

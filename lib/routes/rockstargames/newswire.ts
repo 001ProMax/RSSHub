@@ -1,16 +1,10 @@
-import dayjs from 'dayjs';
-import timezone from 'dayjs/plugin/timezone.js';
-import utc from 'dayjs/plugin/utc.js';
 import { escapeAttribute, escapeText } from 'entities';
 import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/newswire',
@@ -208,12 +202,12 @@ async function handler() {
             const description = await cache.tryGet(`rockstargames:newswire-body:v3:${link}`, async () => {
                 const { post: article } = await graphql(postQuery, { id_hash: post.id, locale });
                 const { subtitle, tina } = article ?? {};
-                const videoIds = [...new Set(collectVideoIds(tina?.payload?.content))];
+                const videoIds = collectVideoIds(tina?.payload?.content);
                 const videos = new Map(
                     await pMap(
                         videoIds,
                         async (id) => {
-                            const video = await cache.tryGet(`rockstargames:video:v1:${locale}:${id}`, async (): Promise<Video | undefined> => (await graphql(videoQuery, { id, locale })).video ?? undefined);
+                            const video = await cache.tryGet(`rockstargames:video:v1:${locale}:${id}`, async (): Promise<Video | undefined> => (await graphql(videoQuery, { id, locale })).video);
                             return [id, video] as const;
                         },
                         { concurrency: 3 }
@@ -226,7 +220,7 @@ async function handler() {
                 title: post.title,
                 link,
                 // timestamps carry no timezone and are always rockstar's local time (new york), regardless of locale
-                pubDate: post.created ? dayjs(parseDate(post.created, 'M/D/YY, h:mm A')).tz('America/New_York', true).toDate() : undefined,
+                pubDate: parseDate(post.created, 'M/D/YY, h:mm A', 'America/New_York'),
                 category: [...(post.primary_tags ?? []), ...(post.secondary_tags ?? [])].map((tag) => tag.name),
                 description,
             };

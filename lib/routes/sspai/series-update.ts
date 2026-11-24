@@ -1,8 +1,8 @@
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/series/:id',
@@ -48,7 +48,7 @@ async function handler(ctx) {
                 description,
                 author: seriesInfo.data.data.author.nickname,
                 link: `https://sspai.com/post/${item.id}`,
-                pubDate: item.released_at ? parseDate(item.released_at * 1000) : undefined,
+                pubDate: parseDate(item.released_at * 1000),
             };
         })
     );

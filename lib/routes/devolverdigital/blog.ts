@@ -1,9 +1,8 @@
 import { load } from 'cheerio';
 
 import type { DataItem, Route } from '@/types';
-import { parseDate } from '@/utils/parse-date';
 import { getPlaywrightPage } from '@/utils/playwright';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog',
@@ -57,17 +56,13 @@ async function fetchPage() {
             .map((content) => {
                 const $post = $(content).parent();
                 const $title = $post.find('h1');
-                const link = $post.find('a[href^="https://www.devolverdigital.com/propaganda/"]').attr('href');
-                if (!link) {
-                    throw new Error('Devolver Digital article permalink was not found');
-                }
                 parsePostImages($, content);
                 return {
                     title: $title.text(),
-                    link,
+                    link: $post.find('a[href^="https://www.devolverdigital.com/propaganda/"]').attr('href'),
                     category: [$title.prev().children().first().text()],
                     author: $title.next().text().replace(/^By /, ''),
-                    pubDate: timezone(parseDate($title.prev().children().last().text(), 'MMMM D, YYYY'), 0),
+                    pubDate: parseDate($title.prev().children().last().text(), 'MMMM D, YYYY', 0),
                     description: $(content).html(),
                 };
             });

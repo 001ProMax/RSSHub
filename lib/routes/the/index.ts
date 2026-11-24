@@ -6,14 +6,14 @@ import pMap from 'p-map';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
 const baseUrl = 'https://river.to/occasus';
 
-export const handler = async (ctx): Promise<Data> => {
+const handler = async (ctx): Promise<Data> => {
     const { filter } = ctx.req.param();
     const limit = getRouteLimit(ctx, 40);
 
@@ -49,14 +49,10 @@ async function fetchArticleBody(item: DataItem, pageUrl: string): Promise<DataIt
     const detail = await cache.tryGet(`the:article:${link}`, async () => {
         const { data: response } = await got(link);
         const $ = load(response);
-        const body = $('.postArticle--full > .postArticle-content > .section--body > .section-content').first();
-        if (!body.length) {
-            return {};
-        }
-        body.find('style, script, .uiScale, .streamItem--postPreview .postArticle--short > .u-flex, img.graf-image__placeholder').remove();
-        body.find('h1.graf--title').first().remove();
-        body.find('img').removeAttr('onload onerror');
-        return { description: body.html() || undefined };
+        const body = $('.postArticle--full > .postArticle-content > .section--body > .section-content');
+        body.find('style, .uiScale, .streamItem--postPreview .postArticle--short > .u-flex, img.graf-image__placeholder').remove();
+        body.find('h1.graf--title').remove();
+        return { description: body.html() };
     });
 
     return { ...item, description: detail.description || item.description };
@@ -119,8 +115,8 @@ function findArticleLink($: CheerioAPI, block: Cheerio<Element>): string | undef
 }
 
 function findArticleImage(block: Cheerio<Element>): { src: string; alt?: string } | undefined {
-    const image = block.find('img.graf-image__main').not('.avatar-image img').first();
-    const src = image.attr('src') || block.find('img.graf-image--src').not('.avatar-image img').attr('data-srcset');
+    const image = block.find('img.graf-image__main').not('.avatar-image img');
+    const src = image.attr('src');
     return src ? { src, alt: image.attr('alt') } : undefined;
 }
 

@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const host = 'https://downloads.ifi-audio.com';
 
@@ -57,7 +57,7 @@ async function handler(ctx) {
     const releaseDate = $('li[data-category=firmware]:first .release-date')
         .text()
         .replace(/^Release date:\s*/, '');
-    const pubDate = releaseDate ? parseDate(`${releaseDate} +00:00`, 'MMMM D, YYYY Z', true) : undefined;
+    const pubDate = releaseDate ? parseDate(`${releaseDate} +00:00`, 'MMMM D, YYYY Z') : undefined;
     latestFirmware.children('h4, .release-date, .platforms').remove();
     return {
         title: 'iFi audio Download Hub',
@@ -66,8 +66,8 @@ async function handler(ctx) {
         item: [
             {
                 title: latestTitle,
-                pubDate: pubDate && !Number.isNaN(pubDate.getTime()) ? pubDate : undefined,
-                description: latestFirmware.html() ?? undefined,
+                pubDate,
+                description: latestFirmware.html(),
                 link: latestDownloadLink,
                 guid: latestDownloadLink ?? `ifi-audio:${id}:${latestTitle}`,
             },

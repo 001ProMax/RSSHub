@@ -2,8 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/earthquake',
@@ -39,17 +38,13 @@ async function handler() {
             const hktDate = $item.find('HKTDate').text();
             const hktTime = $item.find('HKTTime').text();
             const eventId = $item.find('EventId').text();
-            const pubDate = hktDate && hktTime ? timezone(parseDate(hktDate + hktTime, 'YYYYMMDDHHmm'), 8) : undefined;
-            if (!eventId) {
-                throw new Error('The Hong Kong Observatory earthquake source is missing an event ID.');
-            }
             const latAndLon = '經緯:[' + $item.find('Lat').text() + ',' + $item.find('Lon').text() + ']';
             return {
                 title: `[震級:${degree}] [地點:${city}]`,
                 link,
                 guid: `hko-earthquake-${eventId}`,
                 description: `${cityString}, ${latAndLon}`,
-                pubDate: pubDate && !Number.isNaN(pubDate.getTime()) ? pubDate : undefined,
+                pubDate: parseDate(hktDate + hktTime, 'YYYYMMDDHHmm', 8),
             };
         });
 

@@ -5,8 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?',
@@ -34,14 +33,10 @@ async function handler(ctx: Context) {
         .map((item): DataItem => {
             const $item = $(item);
             const a = $item.find('.newslisttitlex a');
-            const date = $item
-                .find('.wapnewsdate')
-                .text()
-                .match(/\d{4}-\d{1,2}-\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?/)?.[0];
             return {
                 title: a.text(),
                 link: new URL(a.attr('href')!, currentUrl).href,
-                pubDate: date ? timezone(parseDate(date), 8) : undefined,
+                pubDate: parseDate($item.find('.wapnewsdate').text(), 8),
                 description: $item.find('.newslisttitlexx').text(),
             };
         });

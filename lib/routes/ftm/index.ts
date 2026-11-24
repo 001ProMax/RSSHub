@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -29,17 +29,13 @@ async function handler(ctx) {
 
     const $ = load(response);
 
-    let list = $('.article-card')
+    const list = $('.article-card')
         .toArray()
         .map((e): DataItem => ({
             link: $(e).attr('href'),
             title: $(e).find('h2').text(),
-        }));
-    const limit = getRouteLimit(ctx);
-    // Detail publication times can refine the calendar dates displayed on the list.
-    if (limit !== undefined && ctx.req.query('sorted') === 'false') {
-        list = list.slice(0, limit);
-    }
+        }))
+        .slice(0, getRouteLimit(ctx));
 
     const items = await pMap(
         list,

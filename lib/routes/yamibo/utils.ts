@@ -4,18 +4,16 @@ import { escapeAttribute } from 'entities';
 
 import { config } from '@/config';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const bbsOrigin = 'https://bbs.yamibo.com';
 
-export function getDate(value: string | undefined): Date | undefined {
+export function getDate(value: string | undefined): Temporal.Instant | undefined {
     if (!value) {
         return;
     }
 
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? timezone(date, 8) : undefined;
+    return parseDate(value, 8);
 }
 
 type ThreadOptions = { ordertype?: string };
@@ -51,7 +49,6 @@ function getEditingPanels($item: Cheerio<Element>) {
 
 export function getUpdated($item: Cheerio<Element>) {
     const calendar = getEditingPanels($item)
-        .first()
         .text()
         .match(/\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}/)?.[0];
     return getDate(calendar);

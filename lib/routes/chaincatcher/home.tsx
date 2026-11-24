@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.chaincatcher.com';
 
@@ -24,10 +24,10 @@ async function handler() {
     const response = await ofetch<{
         result: number;
         message: string;
-        data: { items: Array<{ title: string; url: string; content: string; releaseTimeStamp: number; keywords?: string }> };
+        data: { items: Array<{ title: string; url: string; content: string; releaseTimeStamp: number; keywords: string | null }> };
     }>('https://api.chaincatcher.com/v1/open-api/news-flash', {
-        responseType: 'json',
         query: { page: 1, size: 20, lang: 'zh-CN' },
+        responseType: 'json',
     });
     if (!response.result) {
         throw new Error(`ChainCatcher API: ${response.message}`);
@@ -37,7 +37,7 @@ async function handler() {
         link: item.url,
         description: item.content,
         pubDate: parseDate(item.releaseTimeStamp),
-        category: item.keywords?.split(',').filter(Boolean),
+        category: item.keywords?.split(','),
     }));
 
     return {

@@ -2,7 +2,7 @@ import NotFoundError from '@/errors/types/not-found';
 import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -97,7 +97,7 @@ async function handler(ctx) {
                     videoUrl: picked ? item.clip.uri.replace('/videos', '') : item.uri.replace('/videos', ''),
                     vdescription: videoDescription ? videoDescription.replaceAll('\n', '<br>') : '',
                 }),
-                pubDate: !picked && !cat && item.created_time ? parseDate(item.created_time) : undefined,
+                pubDate: !picked && !cat ? parseDate(item.created_time) : undefined,
                 link: `https://vimeo.com${picked ? item.clip.uri.replace('videos/', '') : item.uri.replace('videos/', '')}`,
                 author: profileData.name,
             };

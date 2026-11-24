@@ -4,10 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-import { selectItems } from '../utils';
+import { parseDate } from '@/utils/time';
 
 const siteUrl = 'https://xxgk.dhu.edu.cn';
 const baseUrl = 'https://xxgk.dhu.edu.cn/1737/list.htm';
@@ -44,12 +41,12 @@ async function handler() {
             return {
                 title: colsTitle.text(),
                 link: new URL(colsTitle.attr('href')!, siteUrl).href,
-                pubDate: timezone(parseDate($item.find('.cols_meta').text(), 'YYYY-MM-DD', 'zh-cn'), 8),
+                pubDate: parseDate($item.find('.cols_meta').text(), 'YYYY-MM-DD', 8),
             };
         });
 
     const items = await pMap(
-        selectItems(list),
+        list,
         (item) =>
             cache.tryGet(item.link, async () => {
                 // Some article bodies are restricted to the university network.

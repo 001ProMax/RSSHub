@@ -1,9 +1,8 @@
-import MarkdownIt from 'markdown-it';
-
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import MarkdownIt from '@/utils/markdown-it';
+import { parseDate } from '@/utils/time';
 
 const md = MarkdownIt({
     html: true,
@@ -201,13 +200,13 @@ async function handler() {
                 title: `每日一题-${question.translatedTitle}${diffEmoji}`,
                 link: questionUrl,
                 description: question.translatedContent,
-                pubDate: data.todayRecord[0].date ? parseDate(`${data.todayRecord[0].date}T00:00:00Z`) : undefined,
+                pubDate: parseDate(`${data.todayRecord[0].date}T00:00:00Z`),
             },
             ...articleContent.map((art, i) => ({
                 title: art.title,
                 link: new URL(`solution/${art.slug}`, questionUrl).href,
                 description: md.render(handleText(art.content)),
-                pubDate: articles[i].node.createdAt ? parseDate(articles[i].node.createdAt) : undefined,
+                pubDate: parseDate(articles[i].node.createdAt),
                 author: art.author.username,
             })),
         ],

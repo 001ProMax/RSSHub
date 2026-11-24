@@ -6,8 +6,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.uber.com';
 const engineeringUrl = `${baseUrl}/us/en/blog/engineering`;
@@ -115,14 +115,10 @@ function getArticle(item: ArticleSummary): Promise<DataItem> {
         const $content = $('[data-block-id="LongFormContent"] [data-testid="content"]');
         // The header contains duplicate publication labels for responsive layouts.
         const published = $header.find('[data-baseweb="typo-labellarge"]').first().text();
-        const authors = [
-            ...new Set(
-                $('[data-block-id="ArticleAuthor"] [data-testid="authors-grid"] [role="img"][aria-label]')
-                    .toArray()
-                    .map((author) => $(author).attr('aria-label'))
-                    .filter((author): author is string => Boolean(author))
-            ),
-        ];
+        const authors = $('[data-block-id="ArticleAuthor"] [data-testid="authors-grid"] [role="img"][aria-label]')
+            .toArray()
+            .map((author) => $(author).attr('aria-label'))
+            .filter((author): author is string => Boolean(author));
         const categories = $('[data-block-id="ArticleCategories"] [data-baseweb="tag"] [title]')
             .toArray()
             .map((tag) => $(tag).attr('title'))
@@ -132,7 +128,7 @@ function getArticle(item: ArticleSummary): Promise<DataItem> {
             ...item,
             title: $header.find('h1').text() || item.title,
             description: $content.html() ?? $('meta[name="description"]').attr('content'),
-            pubDate: published ? parseDate(published) : undefined,
+            pubDate: published ? parseDate(published, 'MMMM D, YYYY') : undefined,
             author: authors.join(', ') || undefined,
             category: categories.length > 0 ? categories : undefined,
             image: $('meta[property="og:image"]').attr('content'),

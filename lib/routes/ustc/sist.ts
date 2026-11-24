@@ -5,8 +5,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const map = new Map([
     ['tzgg', { title: '中国科学技术大学信息科学技术学院 - 通知公告', id: '5142' }],
@@ -57,8 +56,7 @@ async function handler(ctx) {
             const title = $item.find('.card-title > a').attr('title');
             let link = $item.find('.card-title > a').attr('href');
             link = link!.startsWith('/') ? host + link : link;
-            const published = $item.find('time').text().replace('发布时间：', '').trim();
-            const pubDate = published ? timezone(parseDate(published, 'YYYY-MM-DD'), 8) : undefined;
+            const pubDate = parseDate($item.find('time').text().replace('发布时间：', ''), 'YYYY-MM-DD', 8);
             return {
                 title: title!,
                 pubDate,
@@ -68,16 +66,15 @@ async function handler(ctx) {
     items = await pMap(
         items,
         async (item) => {
-            const details = await cache.tryGet<Pick<DataItem, 'description' | 'pubDate' | 'author'>>(`ustc:sist:detail:${item.link}`, async () => {
-                const details: Pick<DataItem, 'description' | 'pubDate' | 'author'> = {};
+            const details = await cache.tryGet<Pick<DataItem, 'description'>>(`ustc:sist:detail:${item.link}`, async () => {
+                const details: Pick<DataItem, 'description'> = {};
                 try {
                     const response = await got(item.link);
                     const $detail = load(response.data);
                     $detail('.wp_articlecontent [pdfsrc]').each((_, el) => {
                         const attachment = $detail(el);
                         const title = attachment.attr('sudyfile-attr')?.match(/'title':'(.+?)'/)?.[1] ?? 'PDF';
-                        const attachmentUrl1 = new URL(attachment.attr('pdfsrc')!, item.link!).href;
-                        attachment.replaceWith($detail('<a>').attr('href', attachmentUrl1).text(title));
+                        attachment.replaceWith($detail('<a>').attr('href', attachment.attr('pdfsrc')).text(title));
                     });
                     details.description = $detail('div.wp_articlecontent').html();
                 } catch {
@@ -85,7 +82,7 @@ async function handler(ctx) {
                 }
                 return details;
             });
-            return { ...item, ...details, pubDate: details.pubDate ?? item.pubDate };
+            return { ...item, ...details };
         },
         { concurrency: 3 }
     );

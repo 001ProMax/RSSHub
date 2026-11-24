@@ -1,7 +1,7 @@
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -30,8 +30,8 @@ async function handler(ctx) {
     const items = data.map((item) => ({
         title: item.title.rendered,
         description: item.content.rendered,
-        pubDate: parseGmtDate(item.date_gmt),
-        updated: parseGmtDate(item.modified_gmt),
+        pubDate: parseDate(`${item.date_gmt}Z`),
+        updated: parseDate(`${item.modified_gmt}Z`),
         link: item.link,
     }));
 
@@ -41,8 +41,4 @@ async function handler(ctx) {
         link: baseUrl,
         item: items,
     };
-}
-
-function parseGmtDate(value?: string): Date | undefined {
-    return value && Number.isFinite(parseDate(value, 'YYYY-MM-DDTHH:mm:ss', true).getTime()) ? parseDate(`${value}Z`) : undefined;
 }

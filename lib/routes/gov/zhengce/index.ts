@@ -4,9 +4,9 @@ import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 export const route: Route = {
     path: '/:category{.+}?',
@@ -80,7 +80,8 @@ export async function handler(ctx) {
                   };
               });
 
-    items = items.filter((item) => /https?:\/\/www\.gov\.cn\/zhengce.*content_\d+\.htm/.test(item.link!));
+    // only follow links on the site itself
+    items = items.filter((item) => isOnSite(item.link, 'www.gov.cn') && /^\/zhengce.*content_\d+\.htm/.test(new URL(item.link!).pathname));
     // Detail metadata refines the list's calendar dates, so keep the source's
     // first page until core sorts it unless native ordering is requested.
     if (ctx.req.query('sorted') === 'false' && limit !== undefined) {
@@ -94,7 +95,7 @@ export async function handler(ctx) {
 
                 const content = load(detailResponse);
 
-                const processElementText = (el) => content(el).text().split(/：/).pop()!.trim() || content(el).next().text().trim();
+                const processElementText = (el) => content(el).text().split(/：/).pop()!.trim() || content(el).next().text();
 
                 const author = content('meta[name="author"]').prop('content');
 
@@ -121,24 +122,20 @@ export async function handler(ctx) {
                 const manuscriptId = content('meta[name="manuscriptId"]').prop('content');
 
                 item.title = content('meta[name="ArticleTitle"]').prop('content') || content('div.share-title').first().text() || item.title;
-                item.description = content('div.TRS_UEDITOR').first().html() || content('div#UCAP-CONTENT, td#UCAP-CONTENT').first().html();
+                item.description = content('div.TRS_UEDITOR').html() || content('div#UCAP-CONTENT, td#UCAP-CONTENT').html();
                 item.author = [agency, source, author].filter(Boolean).join('/');
                 item.category = [...new Set([subject, column, ...keywords].filter(Boolean))];
-                item.guid = manuscriptId ? `gov-zhengce-${manuscriptId}` : item.link;
-                const published = content('meta[name="firstpublishedtime"]').prop('content');
-                const modified = content('meta[name="lastmodifiedtime"]').prop('content');
-                item.pubDate = published ? timezone(parseDate(published, 'YYYY-MM-DD-HH:mm:ss'), 8) : undefined;
-                item.updated = modified ? timezone(parseDate(modified, 'YYYY-MM-DD-HH:mm:ss'), 8) : undefined;
+                item.guid = `gov-zhengce-${manuscriptId}`;
+                item.pubDate = parseDate(content('meta[name="firstpublishedtime"]').prop('content'), 'YYYY-MM-DD-HH:mm:ss', 8);
+                item.updated = parseDate(content('meta[name="lastmodifiedtime"]').prop('content'), 'YYYY-MM-DD-HH:mm:ss', 8);
 
                 return item;
             })
         )
     );
 
-    const imageSrc = $('img.wordlogo').prop('src');
-    const iconSrc = $('link[rel~="icon"]').prop('href');
-    const image = imageSrc ? new URL(imageSrc, rootUrl).href : undefined;
-    const icon = iconSrc ? new URL(iconSrc, rootUrl).href : undefined;
+    const image = new URL($('img.wordlogo').prop('src')!, rootUrl).href;
+    const icon = new URL($('link[rel~="icon"]').prop('href')!, rootUrl).href;
     const subtitle = $('meta[name="lanmu"]').prop('content');
     const author = $('div.header_logo a[aria-label]').prop('aria-label');
 

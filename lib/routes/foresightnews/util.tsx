@@ -6,8 +6,8 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import type { DataItem } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const constants = {
     labelHot: '热门',
@@ -51,7 +51,7 @@ const processItems = async (apiUrl, ctx: Context, ...parameters) => {
     const buffer = Buffer.from(response.data?.list ?? response.data, 'base64');
     const nativeItems = JSON.parse(String(zlib.inflateSync(buffer)));
 
-    let items: DataItem[] = (nativeItems?.list ?? nativeItems).map((item) => {
+    const items: DataItem[] = (nativeItems?.list ?? nativeItems).map((item) => {
         const sourceType = item.source_type ?? (item.source_link ? (item.column?.title ? 'article' : 'news') : item.event_type ? 'event' : constants.defaultType);
 
         item = item.source_type ? item[item.source_type] : item;
@@ -69,7 +69,6 @@ const processItems = async (apiUrl, ctx: Context, ...parameters) => {
         ].filter((v, index, self) => v && self.indexOf(v) === index);
 
         const link = new URL(`${params[sourceType]}/detail/${item.id}`, rootUrl).href;
-        const pubDate = item.published_at ? parseDate(item.published_at * 1000) : undefined;
 
         return {
             title: item.title,
@@ -94,19 +93,10 @@ const processItems = async (apiUrl, ctx: Context, ...parameters) => {
             author: item.column?.title ?? item.author?.username,
             category: categories,
             guid: `foresightnews-${sourceType}#${item.id}`,
-            pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
+            pubDate: item.published_at ? parseDate(item.published_at * 1000) : undefined,
             updated: item.last_update_at ? parseDate(item.last_update_at * 1000) : undefined,
         };
     });
-
-    const nativeOrder = ctx.req.query('sorted') === 'false';
-    const allDated = items.every((item) => item.pubDate instanceof Date && Number.isFinite(item.pubDate.getTime()));
-    if (!nativeOrder && allDated) {
-        items = items.toSorted((a, b) => +new Date(b.pubDate!) - +new Date(a.pubDate!));
-    }
-    if (nativeOrder || allDated) {
-        items = items.slice(0, limit);
-    }
 
     return { items, info };
 };

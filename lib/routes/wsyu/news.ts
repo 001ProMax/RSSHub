@@ -5,8 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 
 const baseUrl = 'http://www.wsyu.edu.cn';
 
@@ -21,8 +20,7 @@ const parseSourceDate = (raw?: string) => {
         return;
     }
     const normalized = raw.trim().replaceAll(/\s+/g, ' ');
-    const parsed = parseDate(normalized, normalized.length === 10 ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm:ss', true);
-    return Number.isNaN(parsed.getTime()) ? undefined : timezone(parsed, 8);
+    return parseDateStrict(normalized, normalized.length === 10 ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm:ss', 8);
 };
 
 const fetchArticle = async (link: string): Promise<Pick<DataItem, 'description' | 'author' | 'pubDate'>> => {
@@ -30,20 +28,24 @@ const fetchArticle = async (link: string): Promise<Pick<DataItem, 'description' 
     const $ = load(data);
     const internalBody = $('.wp_articlecontent');
     const body = internalBody.length ? internalBody : $('#detailContent');
-    const authors: string[] = [];
-    if (internalBody.length) {
-        body.find('p').each((_, element) => {
-            const paragraph = $(element);
-            const text = paragraph.text().replaceAll(/\s+/g, ' ').trim();
-            const writer = text.match(/^(?:教工通讯员|学生通讯员|通讯员|记者)\s+(\S.*)$/);
-            if (writer) {
-                authors.push(writer[1]);
-                paragraph.remove();
-            } else if (/^编辑\s+\S/.test(text)) {
-                paragraph.remove();
-            }
-        });
-    }
+    const authors = internalBody.length
+        ? body
+              .find('p')
+              .toArray()
+              .flatMap((element) => {
+                  const paragraph = $(element);
+                  const text = paragraph.text().replaceAll(/\s+/g, ' ').trim();
+                  const writer = text.match(/^(?:教工通讯员|学生通讯员|通讯员|记者)\s+(\S.*)$/);
+                  if (writer) {
+                      paragraph.remove();
+                      return [writer[1]];
+                  }
+                  if (/^编辑\s+\S/.test(text)) {
+                      paragraph.remove();
+                  }
+                  return [];
+              })
+        : [];
     const sourceDate = internalBody.length
         ? $('.arti_info')
               .text()
@@ -53,7 +55,7 @@ const fetchArticle = async (link: string): Promise<Pick<DataItem, 'description' 
               .match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/)?.[0];
     const pubDate = parseSourceDate(sourceDate);
     return {
-        ...(body.length && { description: body.html() ?? undefined }),
+        ...(body.length && { description: body.html() }),
         ...(authors.length && { author: authors.join(', ') }),
         ...(pubDate && { pubDate }),
     };
@@ -87,7 +89,7 @@ async function handler(ctx: Context) {
         throw new Error(`Unsupported news type: ${type}`);
     }
     const link = baseUrl + config.url;
-    const { data } = await got(link, { headers: { Referer: baseUrl } });
+    const { data } = await got(link);
     const $ = load(data);
     const list = $('.news_title a')
         .slice(0, 10)
@@ -98,7 +100,7 @@ async function handler(ctx: Context) {
             return {
                 title: anchor.attr('title') ?? anchor.text(),
                 link: new URL(anchor.attr('href')!, link).href,
-                description: card.find('.news_text a').html() || undefined,
+                description: card.find('.news_text a').html(),
                 pubDate: parseSourceDate(card.find('.news_date').text()),
             };
         });

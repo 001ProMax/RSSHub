@@ -8,13 +8,12 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category = 23 } = ctx.req.param();
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0 ? requestedLimit : 30;
+    const limit = getRouteLimit(ctx, 30);
 
     const baseUrl = 'https://lol.qq.com';
     const apiBaseUrl = 'https://apps.game.qq.com';
@@ -54,14 +53,14 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
         const processedItem: DataItem = {
             title,
-            pubDate: pubDate ? timezone(parseDate(pubDate), 8) : undefined,
+            pubDate: pubDate ? parseDate(pubDate, 8) : undefined,
             link: linkUrl ? new URL(linkUrl, baseUrl).href : undefined,
             author: authors,
             guid,
             id: guid,
             image,
             banner: image,
-            updated: updated ? timezone(parseDate(updated), 8) : undefined,
+            updated: updated ? parseDate(updated, 8) : undefined,
             language,
         };
 
@@ -109,7 +108,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                     const processedItem: DataItem = {
                         title,
                         description,
-                        pubDate: pubDate ? timezone(parseDate(pubDate), 8) : undefined,
+                        pubDate: pubDate ? parseDate(pubDate, 8) : undefined,
                         link: linkUrl ? new URL(linkUrl, baseUrl).href : undefined,
                         author: authors,
                         guid,
@@ -120,7 +119,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                         },
                         image,
                         banner: image,
-                        updated: updated ? timezone(parseDate(updated), 8) : undefined,
+                        updated: updated ? parseDate(updated, 8) : undefined,
                         language,
                     };
 

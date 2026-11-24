@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -57,7 +57,7 @@ async function handler(ctx) {
         }),
         author: item.nick_name,
         guid: `imiker-${item.id}`,
-        pubDate: item.add_time_timestamp !== undefined && item.add_time_timestamp !== null ? parseDate(item.add_time_timestamp * 1000) : undefined,
+        pubDate: parseDate(item.add_time_timestamp * 1000),
         upvotes: item.count?.vote_count ?? 0,
         comments: item.count?.answer_count ?? 0,
     }));

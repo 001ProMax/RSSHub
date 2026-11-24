@@ -4,7 +4,7 @@ import pMap from 'p-map';
 
 import type { DataItem } from '@/types';
 import got from '@/utils/got';
-import md5 from '@/utils/md5';
+import { md5 } from '@/utils/hash';
 
 const rootUrl = 'https://www.iyingdi.com';
 const infoUrL = 'https://api.iyingdi.com/web/post/info';
@@ -43,7 +43,7 @@ const ProcessFeed = async (cache, articleList) => {
 const ProcessForm = (form, type?) => {
     const key = type ? '8a11ed3712b699e749185674f1dc20b4' : 'b8d5b38577b8bb382b0c783b474b95f9';
     form.key = key;
-    form.timestamp = Math.floor(Date.now() / 1000);
+    form.timestamp = Math.floor(Temporal.Now.instant().epochMilliseconds / 1000);
     form.sign = md5(new URLSearchParams(form).toString());
     delete form.key;
     return form;

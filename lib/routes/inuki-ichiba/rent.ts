@@ -157,13 +157,13 @@ const enrich = async (card: ListCard): Promise<ListingExtra> => {
     return mergeDetail(card.extra, detail);
 };
 
-export const handler = async (ctx): Promise<Data> => {
+const handler = async (ctx): Promise<Data> => {
     const pref: string | undefined = ctx.req.param('pref');
     const prefecture = pref === undefined ? undefined : PREFECTURES.find((p) => p.slug === pref || p.code === pref);
     if (pref !== undefined && !prefecture) {
         throw new Error(`Unknown prefecture "${pref}", expected one of ${PREFECTURES.map((p) => p.slug).join(', ')}`);
     }
-    const limit = Math.min(getRouteLimit(ctx, PAGE_SIZE) ?? PAGE_SIZE, PAGE_SIZE);
+    const limit = Math.min(getRouteLimit(ctx, PAGE_SIZE), PAGE_SIZE);
     // `sort=id` is the 新着順 option of the search results page.
     const listUrl = prefecture ? `${HOST}/rent/search-results?location%5B${prefecture.code}%5D%5Bprefecture%5D=${prefecture.code}&sort=id` : `${HOST}/sp_rent/1`;
 

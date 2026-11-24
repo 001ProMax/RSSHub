@@ -5,7 +5,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/ccs/:type?',
@@ -69,8 +69,7 @@ export const route: Route = {
                 const $link = $item.find('a');
                 const link = new URL($link.attr('href') || '', configTarget.url).href;
 
-                const date = $item.find('.spani').text();
-                const pubDate = date ? parseDateInTimezone(date, 8) : undefined;
+                const pubDate = parseDate($item.find('.spani').text(), 8);
                 const title = $link.text();
 
                 const metadata = { title, link, pubDate };

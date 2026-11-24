@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/hr/:category?',
@@ -41,30 +41,24 @@ async function getArticle(item: DataItem) {
     const article = await cache.tryGet(`pku:hr:article:v2:${item.link}`, async () => {
         const response = await got(item.link!);
         const $ = load(response.data);
-        const date = $('meta[name="PubDate"]').attr('content');
         return {
             description: $('.gp-article').html(),
-            pubDate: date ? parseDate(`${date.replace(' ', 'T')}+08:00`) : undefined,
+            pubDate: parseDate(`${$('meta[name="PubDate"]').attr('content')!.replace(' ', 'T')}+08:00`),
         };
     });
-    return { ...item, ...article, pubDate: article.pubDate ?? item.pubDate };
+    return { ...item, ...article };
 }
 
 async function handler(ctx) {
     const category = ctx.req.param('category')?.replaceAll('-', '/');
-    const currentUrl = category ? new URL(`${category}/index.htm`, rootUrl).href : rootUrl;
+    const currentUrl = category ? `${rootUrl}${category}/index.htm` : rootUrl;
     const response = await got(currentUrl);
     const $ = load(response.data);
     const list = $(category ? 'ul.talentUl > li' : 'ul.mode1Ul > li')
         .toArray()
-        .flatMap((element): DataItem[] => {
+        .map((element): DataItem => {
             const $item = $(element);
-            const href = $item.find('a').attr('href');
-            if (!href) {
-                return [];
-            }
-            const date = $item.find('.date2').text().trim();
-            return [{ title: $item.find('p').text(), link: new URL(href, currentUrl).href, pubDate: date ? parseDate(`${date}T00:00:00Z`) : undefined }];
+            return { title: $item.find('p').text(), link: new URL($item.find('a').attr('href')!, currentUrl).href };
         });
 
     return {

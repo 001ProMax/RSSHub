@@ -1,6 +1,6 @@
 import type { DataItem, Route } from '@/types';
-import { parseDate } from '@/utils/parse-date';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog',
@@ -33,7 +33,7 @@ async function handler() {
         title: item.title!,
         description: item.content,
         author: item.creator,
-        pubDate: item.pubDate ? parseDate(item.pubDate) : undefined,
+        pubDate: parseDate(item.pubDate!),
         link: item.link,
         guid: item.guid,
     }));

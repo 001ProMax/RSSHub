@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const handler = async (ctx) => {
     const baseUrl = 'https://calif.io';
@@ -20,11 +20,11 @@ const handler = async (ctx) => {
         .map((element): DataItem => {
             const article = $(element);
             const link = new URL(article.attr('href')!, baseUrl).href;
-            const date = article.find('p').first().text().trim();
+            const date = article.find('p').first().text();
 
             return {
-                title: article.find('h2').text().trim(),
-                description: article.find('h2').next('p').text().trim(),
+                title: article.find('h2').text(),
+                description: article.find('h2').next('p').text(),
                 link,
                 pubDate: date ? parseDate(date, 'MMMM D, YYYY') : undefined,
             };
@@ -40,28 +40,32 @@ const handler = async (ctx) => {
                 const header = article.find('h1').parent();
                 const metadata = header.find('h1').nextAll('div').first();
                 const structuredData: { datePublished?: string; author?: { name?: string } } = JSON.parse(detail('script[type="application/ld+json"]:contains("TechArticle")').text() || '{}');
-                const content = article.is(':has(> p):not(:has(h1))') ? article : article.find('#subscribe').prev('div');
-                if (!content.text().trim()) {
+                const standaloneArticles = article.filter(':not(:has(h1)):has(> p, > .doc-section)');
+                const content = standaloneArticles.length ? standaloneArticles : article.find('#subscribe').prev('div');
+                const byline = content.find('.writeup-byline').first().text().trim();
+                const author = structuredData.author?.name || metadata.find('p').first().text() || byline.replace(/^by\s+/i, '');
+                content.find('.writeup-byline, button.copy-btn').remove();
+                const contentText = content.text();
+                if (!contentText.trim()) {
                     throw new Error(`Unable to extract Calif article content from ${item.link}: the page layout may have changed.`);
                 }
-                const contentHtml = content.html()!;
-                const author = structuredData.author?.name || metadata.find('p').first().text().trim();
-                const date = metadata.find('p').eq(1).text().trim();
+                const contentHtml = detail.html(content.contents());
+                const date = metadata.find('p').eq(1).text();
 
                 return {
                     ...item,
-                    title: article.find('h1').text().trim() || item.title,
+                    title: article.find('h1').text() || item.title,
                     description: contentHtml,
                     content: {
                         html: contentHtml,
-                        text: content.text(),
+                        text: contentText,
                     },
-                    author: author || undefined,
+                    author,
                     pubDate: structuredData.datePublished ? parseDate(structuredData.datePublished) : date ? parseDate(date, 'MMMM D, YYYY') : item.pubDate,
                     category: metadata
                         .find('a[href^="/research/"]')
                         .toArray()
-                        .map((tag) => detail(tag).text().trim()),
+                        .map((tag) => detail(tag).text()),
                 };
             }),
         { concurrency: 3 }

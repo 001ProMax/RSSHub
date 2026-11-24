@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/jwgg',
@@ -43,8 +42,7 @@ async function handler() {
             const anchor = element.find('a[href]');
             const title = anchor.attr('title') || anchor.text();
             const link = new URL(anchor.attr('href')!, url).href;
-            const date = element.find('.span').text();
-            const pubDate = date ? timezone(parseDate(date, 'YYYY-MM-DD'), 8) : undefined;
+            const pubDate = parseDate(element.find('.span').text(), 'YYYY-MM-DD', 8);
 
             return {
                 title,

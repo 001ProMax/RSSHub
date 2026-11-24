@@ -2,8 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/doulist/:id',
@@ -68,22 +67,16 @@ async function handler(ctx) {
             }
 
             if (!link) {
-                const itemId = $(item).attr('id');
-                if (!itemId) {
-                    throw new Error('Douban returned a doulist entry without a source link or entry ID.');
-                }
-                link = `${url}#${encodeURIComponent(itemId)}`;
+                link = `${url}#${$(item).attr('id')}`;
                 title ||= $(item).find('div.bd').text();
                 description ||= $(item).find('div.bd').html() || '';
             }
-
-            const date = $(item).find('div.ft div.actions time').text();
 
             const single = {
                 title,
                 link,
                 description,
-                pubDate: date ? timezone(parseDate(date), 8) : undefined,
+                pubDate: parseDate($(item).find('div.ft div.actions time').text(), 8),
             };
             return single;
         });

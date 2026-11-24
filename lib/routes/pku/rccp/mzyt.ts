@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.rccp.pku.edu.cn/mzyt/';
 
@@ -43,21 +43,7 @@ async function handler() {
             .map((item) => ({
                 title: $(item).find('a').text(),
                 description: '',
-                pubDate: $(item)
-                    .find('span')
-                    .first()
-                    .text()
-                    .match(/\d{4}-\d{2}-\d{2}/)?.[0]
-                    ? parseDate(
-                          `${
-                              $(item)
-                                  .find('span')
-                                  .first()
-                                  .text()
-                                  .match(/\d{4}-\d{2}-\d{2}/)![0]
-                          }T00:00:00Z`
-                      )
-                    : undefined,
+                pubDate: parseDate(`${$(item).find('span').text().slice(1, -1)}T00:00:00Z`),
                 link: baseUrl + $(item).find('a').attr('href'),
             })),
     };

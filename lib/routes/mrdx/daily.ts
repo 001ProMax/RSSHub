@@ -1,16 +1,12 @@
 import { load } from 'cheerio';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc.js';
 import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { formatDate, parseDate } from '@/utils/time';
 
 import { getElementChildrenInnerText } from './utils';
-
-dayjs.extend(utc);
 
 export const route: Route = {
     path: '/today',
@@ -37,7 +33,7 @@ export const route: Route = {
 };
 
 async function handler() {
-    const dateFormatted = dayjs().utcOffset(8).format('YYYYMMDD');
+    const dateFormatted = formatDate(Temporal.Now.instant(), 'YYYYMMDD', 8);
 
     const baseUrl = `http://mrdx.cn/content/${dateFormatted}`;
     const link = `${baseUrl}/Page01BC.htm`;
@@ -77,8 +73,8 @@ async function handler() {
                 // The publisher and publication date are separated by repeated spaces.
                 const [author, pubDate] = getElementChildrenInnerText($('.shijian')[0])
                     .split(' ')
-                    .filter((item) => item !== '')
-                    .map((item) => item.trim());
+                    .map((item) => item.trim())
+                    .filter((item) => item !== '');
 
                 const content = $('.contenttext');
                 const metadata = content.children('table').filter((_, element) => $(element).text().includes('稿件来源'));
@@ -87,7 +83,7 @@ async function handler() {
                     .match(/稿件来源[：:]\s*新华每日电讯\s*([^\n]+)/)?.[1]
                     ?.trim();
                 metadata.remove();
-                content.find('script, style, meta').remove();
+                content.find('style, meta').remove();
                 const byline = content
                     .children('div')
                     .contents()

@@ -1,7 +1,7 @@
 import { config } from '@/config';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/post/:postid',
@@ -59,17 +59,8 @@ async function handler(ctx) {
             description: item.content_rendered,
             link: `${pageUrl}#r_${item.id}`,
             author: item.member.username,
-            pubDate: parsePublicationDate(item.created),
+            pubDate: parseDate(item.created, 'X'),
         })),
         allowEmpty: true,
     };
-}
-
-function parsePublicationDate(value?: number) {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        return;
-    }
-
-    const date = parseDate(value, 'X');
-    return Number.isFinite(date.getTime()) ? date : undefined;
 }

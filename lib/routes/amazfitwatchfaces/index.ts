@@ -8,13 +8,13 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 import { renderDescription } from './templates/description';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { device, sort, searchParams } = ctx.req.param();
     if (!isValidHost(device)) {
         throw new InvalidParameterError('Invalid device');

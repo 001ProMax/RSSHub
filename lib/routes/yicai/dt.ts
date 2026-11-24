@@ -5,8 +5,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 import { getVideo } from './utils';
@@ -16,14 +16,6 @@ const columns = {
     report: 3,
     visualization: 4,
 };
-
-function getPublicationDate(value?: string | number): Date | undefined {
-    if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-}
 
 type ArticleDetails = Pick<DataItem, 'author' | 'description'>;
 
@@ -147,8 +139,8 @@ async function handler(ctx) {
             author: item.creatername,
             category: [item.channelrootname, item.channelname, item.NewsTypeName].filter(Boolean),
             guid: `yicai-dt-${item.newsid}`,
-            pubDate: getPublicationDate(item.utc_createdate),
-            updated: getPublicationDate(item.utc_lastdate),
+            pubDate: parseDate(item.utc_createdate),
+            updated: parseDate(item.utc_lastdate),
             enclosure_url: enclosureUrl,
             enclosure_type: video?.type,
             upvotes: item.newsscore ?? 0,

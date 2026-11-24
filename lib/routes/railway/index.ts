@@ -5,7 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog',
@@ -18,8 +18,7 @@ export const route: Route = {
 };
 
 async function handler(ctx: Context) {
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isFinite(requestedLimit) && Math.floor(requestedLimit) > 0 ? Math.floor(requestedLimit) : 10;
+    const limit = Number.parseInt(ctx.req.query('limit') || '10');
 
     const items = await fetchArticles(limit);
 
@@ -48,17 +47,14 @@ const fetchArticles = async (limit: number): Promise<DataItem[]> => {
             const pubDate = $(element).find('pubDate').text();
             const link = $(element).find('link').text();
 
-            const resolvedValue1 = await cache.tryGet(`railway:blogs:v2:${id}`, () => fetchArticleDetails(link));
-            {
-                const { content } = resolvedValue1;
-                return {
-                    guid: id,
-                    title,
-                    link,
-                    pubDate: parseDate(pubDate),
-                    description: content,
-                };
-            }
+            const { content } = await cache.tryGet(`railway:blogs:v2:${id}`, () => fetchArticleDetails(link));
+            return {
+                guid: id,
+                title,
+                link,
+                pubDate: parseDate(pubDate),
+                description: content,
+            };
         },
         { concurrency: 3 }
     );

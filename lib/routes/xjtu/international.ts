@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/international/:subpath{.+}',
@@ -50,9 +50,6 @@ async function handler(ctx) {
 
                 const $Des = load(resp.data);
                 const description = $Des('div.ctnCont').html();
-                if (!description?.trim()) {
-                    throw new Error(`Unable to find article content at ${item.link}`);
-                }
 
                 return { description };
             });

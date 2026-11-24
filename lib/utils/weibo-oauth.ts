@@ -4,7 +4,7 @@ import { config } from '@/config';
 import ConfigNotFoundError from '@/errors/types/config-not-found';
 import RejectError from '@/errors/types/reject';
 import cache from '@/utils/cache';
-import md5 from '@/utils/md5';
+import { md5 } from '@/utils/hash';
 
 const stateTtl = 600;
 const statePrefix = 'weibo:oauth:state:';
@@ -33,7 +33,7 @@ export const createWeiboOAuthState = async (ctx: Context, feature: string | numb
         feature: String(feature),
         routeParams,
         accessScope: md5(`weibo:oauth:${config.accessKey}`),
-        expiresAt: Date.now() + stateTtl * 1000,
+        expiresAt: Temporal.Now.instant().epochMilliseconds + stateTtl * 1000,
     };
     await cache.globalCache.set(statePrefix + nonce, state, stateTtl);
     return nonce;
@@ -57,8 +57,7 @@ export const consumeWeiboOAuthState = async (nonce: string | undefined): Promise
         state.accessScope !== md5(`weibo:oauth:${config.accessKey}`) ||
         typeof state.feature !== 'string' ||
         (state.routeParams !== undefined && typeof state.routeParams !== 'string') ||
-        !Number.isFinite(state.expiresAt) ||
-        state.expiresAt <= Date.now()
+        state.expiresAt <= Temporal.Now.instant().epochMilliseconds
     ) {
         return;
     }

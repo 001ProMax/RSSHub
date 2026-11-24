@@ -1,11 +1,12 @@
-import { type CheerioAPI, load } from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 

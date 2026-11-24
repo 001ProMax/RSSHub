@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const host = 'https://news.zjnu.edu.cn';
 
@@ -35,14 +34,14 @@ async function handler() {
         .map((item) => {
             const $item = $(item);
             const a = $item.find('.Article_Title a');
-            const href = a.attr('href')?.trim();
+            const href = a.attr('href');
             if (!href) {
                 return null;
             }
             return {
                 title: a.attr('title') || a.text(),
                 link: new URL(href, host).href,
-                pubDate: timezone(parseDate($item.find('div.ex_fields>span.Article_PublishDate').text(), 'YYYY-MM-DD'), 8),
+                pubDate: parseDate($item.find('div.ex_fields>span.Article_PublishDate').text(), 'YYYY-MM-DD', 8),
             };
         })
         .filter((item) => item !== null);
@@ -54,7 +53,7 @@ async function handler() {
                 const $detail = load(detail);
                 return {
                     ...item,
-                    description: $detail('div.Article_Content').html() ?? '',
+                    description: $detail('div.Article_Content').html(),
                     author: $detail('.info_xx .Article_Author').text() || undefined,
                 };
             })

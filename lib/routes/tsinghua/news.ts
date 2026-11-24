@@ -4,18 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function parseNewsDate(sourceDate: string, format: string) {
-    if (!sourceDate) {
-        return;
-    }
-    const date = parseDate(sourceDate, format);
-    if (Number.isFinite(date.valueOf())) {
-        return timezone(date, 8);
-    }
-}
+import { parseDate } from '@/utils/time';
 
 async function fetchArticleDetails(link: string): Promise<Pick<DataItem, 'description' | 'pubDate' | 'author'>> {
     if (!link.startsWith('https://www.tsinghua.edu.cn/info/')) {
@@ -37,7 +26,7 @@ async function fetchArticleDetails(link: string): Promise<Pick<DataItem, 'descri
             const metadata = text.match(/^(供稿|编辑|审核)[：:]([^\n]+)$/);
             if (metadata) {
                 if (metadata[1] === '供稿') {
-                    contributor = metadata[2].trim();
+                    contributor = metadata[2];
                 }
                 paragraph.remove();
             }
@@ -45,8 +34,8 @@ async function fetchArticleDetails(link: string): Promise<Pick<DataItem, 'descri
     });
 
     return {
-        description: main.html() || undefined,
-        pubDate: parseNewsDate($('.sj p').text().trim(), 'YYYY年MM月DD日 HH:mm:ss'),
+        description: main.html(),
+        pubDate: parseDate($('.sj p').text(), 'YYYY年MM月DD日 HH:mm:ss', 8),
         author: reporter || contributor,
     };
 }
@@ -155,11 +144,12 @@ async function handler(ctx) {
             .map((item) => {
                 const $item = $(item);
                 const sj = $item.find('.sj');
+                const day = sj.find('p').text();
 
                 return {
                     title: $item.find('.bt').text(),
                     link: new URL($item.attr('href')!, baseUrl).href?.replace('http://', 'https://'),
-                    pubDate: parseNewsDate(`${sj.find('span').text().trim()}.${sj.find('p').text().trim()}`, 'YYYY.MM.DD'),
+                    pubDate: day ? parseDate(`${sj.find('span').text()}.${day}`, 'YYYY.MM.DD', 8) : undefined,
                 };
             }),
         ...(firstArticleLink
@@ -167,7 +157,7 @@ async function handler(ctx) {
                   {
                       title: $('.qhrw2_first .bt').text(),
                       link: new URL(firstArticleLink, link).href.replace('http://', 'https://'),
-                      pubDate: parseNewsDate(`${$('.qhrw2_first .sj span').text().trim()}.${$('.qhrw2_first .sj p').text().trim()}`, 'YYYY.MM.DD'),
+                      pubDate: parseDate(`${$('.qhrw2_first .sj span').text()}.${$('.qhrw2_first .sj p').text()}`, 'YYYY.MM.DD', 8),
                   },
               ]
             : []),

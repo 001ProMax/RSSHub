@@ -4,11 +4,11 @@ import type { Data, DataItem, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx): Promise<Data> => {
+const handler = async (ctx): Promise<Data> => {
     const feed = await parser.parseURL('https://feed.iplaysoft.com');
     const limit = getRouteLimit(ctx, 20);
 
@@ -31,7 +31,7 @@ export const handler = async (ctx): Promise<Data> => {
                 title: item.title,
                 description,
                 link: item.link,
-                author: item.author ?? item.creator,
+                author: item.creator,
                 pubDate: parseDate(item.pubDate),
             };
         })

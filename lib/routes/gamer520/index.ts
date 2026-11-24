@@ -5,8 +5,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?/:order?',
@@ -76,14 +76,14 @@ async function handler(ctx: Context): Promise<Data> {
 
     const items: DataItem[] = data.map((item) => {
         const $ = load(item.content.rendered, null, false);
-        $('script, style').remove();
+        $('style').remove();
         return {
             guid: `gamer520:${item.id}`,
             title: item.title.rendered,
             link: item.guid.rendered,
             pubDate: parseDate(item.date_gmt + 'Z'),
             updated: parseDate(item.modified_gmt + 'Z'),
-            category: item.categories?.map((c) => categories.find((ca) => ca.id === c)?.name ?? '').filter((c) => c !== '') ?? [],
+            category: item.categories?.map((c) => categories.find((ca) => ca.id === c)?.name ?? '').filter((c) => c !== ''),
 
             description: $.html(),
         };

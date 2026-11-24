@@ -3,9 +3,9 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 type CommunityTopic = { id: number; title: string; slug: string; tags?: string[] };
 type CommunitySearchPost = { id: number; topic_id: number };
@@ -58,7 +58,7 @@ async function handler(ctx) {
                         link: `${rootUrl}/t/${topic.slug}/${post.topic_id}`,
                         description: detail.cooked,
                         pubDate: parseDate(detail.created_at),
-                        author: detail.name || detail.username,
+                        author: detail.username,
                         category: topic.tags,
                     };
                 }),
@@ -69,10 +69,10 @@ async function handler(ctx) {
         const { data } = await got(feedUrl);
         const feed = await parser.parseString(data);
         items = feed.items.slice(0, limit).map((item) => ({
-            title: item.title ?? '',
+            title: item.title,
             link: item.link,
             description: item.content,
-            pubDate: item.isoDate ? parseDate(item.isoDate) : undefined,
+            pubDate: item.isoDate,
             author: item.creator,
             guid: item.guid,
         }));

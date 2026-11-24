@@ -8,12 +8,12 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const limit = getRouteLimit(ctx, 30);
 
     const baseUrl = 'https://www.ltaaa.cn';
@@ -52,7 +52,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
             const processedItem: DataItem = {
                 title,
                 description,
-                pubDate: pubDateStr ? parseDateInTimezone(pubDateStr, 8) : undefined,
+                pubDate: pubDateStr ? parseDate(pubDateStr, 8) : undefined,
                 link: linkUrl ? new URL(linkUrl, baseUrl).href : undefined,
                 author: authors,
                 content: {
@@ -82,7 +82,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
                 const pubDateStr: string | undefined = $$('i.icon-time').next().text().trim();
                 const categoryEls: Element[] = $$('span.keywords a').toArray();
-                const categories: string[] = [...new Set(categoryEls.map((el) => $$(el).text()).filter(Boolean))];
+                const categories: string[] = categoryEls.map((el) => $$(el).text()).filter(Boolean);
                 const authorEls: Element[] = $$('i.icon-user').first().nextAll('a').toArray();
                 const authors: DataItem['author'] = authorEls.map((authorEl) => {
                     const $$authorEl: Cheerio<Element> = $$(authorEl);
@@ -96,7 +96,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
                 $$('div.post-tip').each((_, el) => {
                     const $$el: Cheerio<Element> = $$(el);
-                    const content: string = $$el.html() ?? '';
+                    const content = $$el.html();
 
                     if (content) {
                         $$el.replaceWith(`<h1>${content}</h1>`);
@@ -112,7 +112,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                 const processedItem: DataItem = {
                     title,
                     description,
-                    pubDate: pubDateStr ? parseDateInTimezone(pubDateStr, 8) : undefined,
+                    pubDate: pubDateStr ? parseDate(pubDateStr, 8) : undefined,
                     category: categories,
                     author: authors,
                     content: {

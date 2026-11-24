@@ -4,7 +4,7 @@ import { renderToString } from 'hono/jsx/dom/server';
 import type { Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const actionMap = {
     pub_pst: 'Published a post: ',
@@ -64,9 +64,9 @@ async function handler(ctx) {
         return {
             title: `${actionMap[post.action]} ${title}`,
             description,
-            author: posts.result.aux.uinf[postData.uid]?.nickname ?? postData.uid,
+            author: posts.result.aux.uinf[postData.uid].nickname,
             pubDate: parseDate(post.cdate),
-            updated: postData.udate ? parseDate(postData.udate) : undefined,
+            updated: parseDate(postData.udate),
             link: `${baseUrl}/post/${post.activity.pstid}`,
         };
     });

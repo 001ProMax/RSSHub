@@ -4,8 +4,7 @@ import { config } from '@/config';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 
 export const route: Route = {
     path: '/chatgpt/release-notes',
@@ -30,7 +29,7 @@ async function handler() {
     const cacheIn = await cache.tryGet(
         `openai:chatgpt:release-notes:v4:${articleUrl}`,
         async () => {
-            const response = await ofetch(articleUrl, { allowH2: false, responseType: 'text' });
+            const response = await ofetch(articleUrl, { allowH2: false });
 
             const $ = load(response);
             const articleContent = $('.article-content');
@@ -49,13 +48,10 @@ async function handler() {
                     const text = $h1.text().trim();
 
                     const dateMatch = text.match(/(\w+\s+\d+(?:st|nd|rd|th)?,?\s+\d{4})/i);
-                    let pubDate: Date | undefined;
+                    let pubDate: Temporal.Instant | undefined;
                     if (dateMatch) {
                         const dateStr = dateMatch[1].replaceAll(/(\d)(st|nd|rd|th)\b/gi, '$1').replace(/,\s*/, ' ');
-                        const parsedDate = timezone(parseDate(dateStr, ['MMMM D YYYY', 'MMM D YYYY'], 'en', true), 0);
-                        if (!Number.isNaN(parsedDate.getTime())) {
-                            pubDate = parsedDate;
-                        }
+                        pubDate = parseDateStrict(dateStr, ['MMMM D YYYY', 'MMM D YYYY'], 0);
                     }
 
                     const $nextSiblings = $h1.nextUntil('h1');
@@ -72,7 +68,7 @@ async function handler() {
                     const description = content;
 
                     return {
-                        guid: `${articleUrl}#${pubDate ? pubDate.getTime() : text}`,
+                        guid: `${articleUrl}#${pubDate ? pubDate.epochMilliseconds : text}`,
                         title,
                         link: articleUrl,
                         pubDate,
@@ -80,16 +76,7 @@ async function handler() {
                     };
                 });
 
-            const guidCounts = new Map<string, number>();
-            for (const item of items) {
-                guidCounts.set(item.guid!, (guidCounts.get(item.guid!) ?? 0) + 1);
-            }
-
-            return {
-                feedTitle,
-                feedDesc,
-                items: items.map((item) => ((guidCounts.get(item.guid!) ?? 0) > 1 ? { ...item, guid: `${item.guid}-${encodeURIComponent(item.title!)}` } : item)),
-            };
+            return { feedTitle, feedDesc, items };
         },
         config.cache.routeExpire,
         false

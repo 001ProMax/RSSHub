@@ -2,8 +2,7 @@ import { load } from 'cheerio';
 
 import type { Data, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/dev',
@@ -19,7 +18,7 @@ export const route: Route = {
     },
     name: 'なろう小説 API の更新履歴',
     url: 'dev.syosetu.com',
-    maintainers: ['SnowAgar25'],
+    maintainers: ['Tsuyumi25'],
     handler,
     radar: [
         {
@@ -46,12 +45,12 @@ async function handler(): Promise<Data> {
     const contents = logContainer
         .find('dd')
         .toArray()
-        .map((element) => $(element).html() ?? '');
+        .map((element) => $(element).html());
 
     const updates = dates
         .map((date, index) => ({
             date,
-            content: contents[index] ?? '',
+            content: contents[index],
         }))
         .filter((update) => update.content);
 
@@ -62,7 +61,7 @@ async function handler(): Promise<Data> {
         item: updates.map((update) => ({
             title: update.date,
             description: update.content,
-            pubDate: update.date ? timezone(parseDate(update.date, 'YYYY/MM/DD'), 9) : undefined,
+            pubDate: parseDate(update.date, 'YYYY/MM/DD', 9),
             guid: `syosetu:dev:${update.date}`,
         })),
     };

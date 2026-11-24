@@ -10,9 +10,8 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 import { renderDescription } from './templates/description';
@@ -28,14 +27,13 @@ const documentMimeTypes = {
 };
 
 function parsePublicationDate(value?: string) {
-    if (!value?.trim()) {
+    if (!value) {
         return;
     }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 8);
+    return parseDate(value, 8);
 }
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { id = 'tzgg' } = ctx.req.param();
     if (!isValidHost(id)) {
         throw new InvalidParameterError('Invalid id');
@@ -96,7 +94,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                 const pubDateStr: string | undefined = $$('span.arti_update').text().split(/：/).pop()?.trim();
 
                 let processedItem: Partial<DataItem> = {
-                    title: title || undefined,
+                    title,
                     description,
                     pubDate: parsePublicationDate(pubDateStr),
                     content: {

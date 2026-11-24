@@ -1,19 +1,17 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 import pMap from 'p-map';
 
 import NotFoundError from '@/errors/types/not-found';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/forum/:id?',
     categories: ['bbs'],
-    example: '/right/forum/31',
+    example: '/right/forum/171',
     parameters: { id: '板块 id，可在板块页 URL 中找到，默认为新手入门及其它(硬件)' },
     features: {
         requireConfig: false,
@@ -41,7 +39,7 @@ async function handler(ctx) {
     });
 
     const $ = load(response.data);
-    const errorMessage = copyNodes($('.alert_error'));
+    const errorMessage = $('.alert_error');
     errorMessage.find('script').remove();
     const sourceError = errorMessage.text().trim();
     if (sourceError) {
@@ -80,7 +78,7 @@ async function handler(ctx) {
                 return {
                     author: content('.authi').first().text(),
                     description: content('.t_f').first().html(),
-                    pubDate: timezone(parseDate(content('.authi em').first().text().replace('发表于 ', '')), 8),
+                    pubDate: parseDate(content('.authi em').first().text().replace('发表于 ', ''), 8),
                     category: content('.ptg a')
                         .toArray()
                         .map((a) => content(a).text()),
@@ -96,13 +94,4 @@ async function handler(ctx) {
         link: currentUrl,
         item: items,
     };
-}
-
-function copyNodes<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, node) => cloneNode(node, true));
-    const root = new Document(copy.toArray());
-    for (const node of copy) {
-        node.parent = root;
-    }
-    return copy;
 }

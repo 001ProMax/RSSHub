@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const categories = {
     nba: 'NBA',
@@ -41,9 +41,7 @@ export const route: Route = {
 };
 async function handler(ctx) {
     const category = ctx.req.param('category') ?? 'nba';
-    const requestedLimit = ctx.req.query('limit');
-    const parsedLimit = requestedLimit && /^\d+$/.test(requestedLimit) ? Number(requestedLimit) : NaN;
-    const limit = Number.isSafeInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : 100;
+    const limit = getRouteLimit(ctx, 100);
     const rootUrl = 'https://news.zhibo8.cc';
     let list: Array<
         DataItem & {
@@ -52,7 +50,7 @@ async function handler(ctx) {
     >;
     let currentUrl: string;
     let response;
-    if (isOneOf(category, ['nba', 'zuqiu'])) {
+    if (category === 'nba' || category === 'zuqiu') {
         currentUrl = `${rootUrl}/${category}/more.htm`;
         response = await got(currentUrl);
         const $ = load(response.data);
@@ -65,7 +63,7 @@ async function handler(ctx) {
                 return {
                     title: a.text(),
                     link: `https:${a.attr('href')}`,
-                    pubDate: timezone(parseDate($item.find('span.postTime').text()), 8),
+                    pubDate: parseDate($item.find('span.postTime').text(), 8),
                     category: $item.attr('data-label')!.split(',').filter(Boolean),
                 };
             });
@@ -76,7 +74,7 @@ async function handler(ctx) {
         list = response.data.data.list.map((item) => ({
             title: item.title,
             link: `https:${item.url}`,
-            pubDate: timezone(parseDate(item.createtime), 8),
+            pubDate: parseDate(item.createtime, 8),
         }));
     }
     const items = await pMap(
@@ -85,7 +83,7 @@ async function handler(ctx) {
             const detail = await cache.tryGet(`${item.link}:description`, async () => {
                 const res = await got(item.link);
                 const content = load(res.data);
-                return { description: content('div.content').html() ?? undefined };
+                return { description: content('div.content').html() };
             });
             return { ...item, ...detail };
         },
@@ -96,9 +94,4 @@ async function handler(ctx) {
         link: currentUrl,
         item: items,
     };
-}
-
-function isOneOf<const T>(value: unknown, values: readonly T[]): value is T {
-    const candidates: readonly unknown[] = values;
-    return candidates.includes(value);
 }

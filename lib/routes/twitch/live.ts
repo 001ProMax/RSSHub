@@ -1,7 +1,7 @@
 import type { DataItem, Route } from '@/types';
 import { ViewType } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 // https://github.com/streamlink/streamlink/blob/master/src/streamlink/plugins/twitch.py#L286
 const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
@@ -24,14 +24,6 @@ export const route: Route = {
     maintainers: ['hoilc'],
     handler,
 };
-
-function getPublicationDate(value: string | undefined) {
-    if (typeof value !== 'string' || !value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-}
 
 async function handler(ctx) {
     const login = ctx.req.param('login');
@@ -120,7 +112,7 @@ async function handler(ctx) {
             author: displayName,
             category: realtimeStreamTagListData.user.stream.freeformTags.map((item) => item.name),
             description: `<img style="max-width: 100%;" src="https://static-cdn.jtvnw.net/previews-ttv/live_user_${login}.jpg">`,
-            pubDate: getPublicationDate(streamMetadataData.user.stream.createdAt),
+            pubDate: parseDate(streamMetadataData.user.stream.createdAt),
             guid: streamMetadataData.user.stream.id,
             link: `https://www.twitch.tv/${login}`,
         });

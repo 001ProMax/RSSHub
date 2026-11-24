@@ -1,7 +1,7 @@
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
-import { parseDate } from '@/utils/parse-date';
 import { getPlaywrightPage } from '@/utils/playwright';
+import { parseDate } from '@/utils/time';
 
 import utils from './utils';
 
@@ -51,7 +51,7 @@ async function handler(ctx) {
     try {
         await page.route('**/*', (route) => {
             const request = route.request();
-            request.resourceType() === 'document' || request.resourceType() === 'script' ? route.continue() : route.abort();
+            return request.resourceType() === 'document' || request.resourceType() === 'script' ? route.continue() : route.abort();
         });
         await page.setExtraHTTPHeaders({
             referer: `https://www.dcard.tw/f/${section}`,

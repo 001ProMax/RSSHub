@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { renderQuestionDescription } from './templates/question-description';
 
@@ -123,7 +123,7 @@ async function handler() {
                 description: rssData.description + question.content,
                 link: rssData.link,
                 category: details.topicTags.map((item) => item.name),
-                pubDate: question.date ? parseDate(`${question.date}T00:00:00Z`) : undefined,
+                pubDate: parseDate(`${question.date}T00:00:00Z`),
             },
         ],
     };

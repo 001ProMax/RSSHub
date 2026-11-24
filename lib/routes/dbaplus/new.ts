@@ -8,13 +8,13 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 import { renderDescription } from './templates/description';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { id = '9' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
 
@@ -56,7 +56,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
             const processedItem: DataItem = {
                 title,
                 description,
-                pubDate: pubDateStr ? timezone(parseDate(pubDateStr), 8) : undefined,
+                pubDate: parseDate(pubDateStr, 8),
                 link: linkUrl,
                 author: authors.length ? authors : undefined,
                 content: {
@@ -74,29 +74,29 @@ export const handler = async (ctx: Context): Promise<Data> => {
     items = await pMap(
         items,
         (item) => {
-            if (!item.link) {
+            // only follow links on the site itself
+            if (!isOnSite(item.link, 'dbaplus.cn')) {
                 return item;
             }
 
-            return cache.tryGet(item.link, async (): Promise<DataItem> => {
+            return cache.tryGet(item.link!, async (): Promise<DataItem> => {
                 const detailResponse = await ofetch(item.link!);
                 const $$: CheerioAPI = load(detailResponse);
 
                 const title: string = $$('h2.title').text();
-                const article = $$('div.new-detailed').first();
-                article.find('script, style').remove();
-                const description = article.html() ?? item.description;
+                const article = $$('div.new-detailed');
+                const description = article.html();
                 const pubDateStr: string | undefined = $$('span.time').first().text();
                 const authorEls: Element[] = $$('span.user').toArray();
                 const authors: DataItem['author'] = authorEls.map((authorEl) => ({ name: $$(authorEl).text().trim() })).filter((author) => author.name);
                 const processedItem: DataItem = {
                     title,
                     description,
-                    pubDate: pubDateStr ? timezone(parseDate(pubDateStr), 8) : item.pubDate,
+                    pubDate: parseDate(pubDateStr, 8),
                     author: authors.length ? authors : undefined,
                     content: {
                         html: description,
-                        text: article.length ? article.text() : undefined,
+                        text: article.text(),
                     },
                     language,
                 };

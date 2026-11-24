@@ -4,7 +4,7 @@ import { config } from '@/config';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { getAcwScV2ByArg1 } from '../5eplay/utils';
 
@@ -60,12 +60,8 @@ const parseItems = async (cookie: string, item: ArticleItem) => {
             },
         });
         const content = load(response);
-        const description = content('article').html();
-        if (!description) {
-            throw new Error(`No article body was found at ${item.link}.`);
-        }
         return {
-            description,
+            description: content('article').html(),
             category: content('.badge-tag')
                 .toArray()
                 .map((item) => content(item).text()),

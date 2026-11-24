@@ -5,7 +5,7 @@ import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/weekly',
@@ -40,7 +40,7 @@ async function handler() {
         link: 'https://www.cngal.org/weeklynews',
         item: await Promise.all(
             response.data.map(async (item) => {
-                const detail = await cache.tryGet<{ pubishTime?: string }>(`cngal:weekly:publication:${item.id}`, async () => {
+                const detail = await cache.tryGet<{ pubishTime: string }>(`cngal:weekly:publication:${item.id}`, async () => {
                     const detailResponse = await got(`https://api.cngal.org/api/articles/GetArticleView/${item.id}`);
                     return { pubishTime: detailResponse.data.pubishTime };
                 });
@@ -48,7 +48,7 @@ async function handler() {
                 return {
                     title: item.name,
                     description: renderDescription(item),
-                    pubDate: detail.pubishTime ? parseDate(detail.pubishTime) : undefined,
+                    pubDate: parseDate(detail.pubishTime),
                     updated: parseDate(item.lastEditTime),
                     link: `https://www.cngal.org/articles/index/${item.id}`,
                 };

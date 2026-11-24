@@ -1,7 +1,7 @@
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.abmedia.io';
 const postsAPIUrl = `${rootUrl}/wp-json/wp/v2/posts`;
@@ -36,8 +36,7 @@ export const route: Route = {
 };
 
 async function handler(ctx) {
-    const requestedLimit = getRouteLimit(ctx, 10);
-    const limit = Math.min(Math.max(requestedLimit, 1), 100);
+    const limit = Math.min(getRouteLimit(ctx, 10), 100);
     const url = `${postsAPIUrl}?per_page=${limit}`;
 
     const response = await got.get(url);

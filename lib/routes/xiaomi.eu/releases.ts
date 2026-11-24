@@ -5,7 +5,7 @@ import { config } from '@/config';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { compareDates, parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/releases',
@@ -54,7 +54,7 @@ async function handler() {
 
     const list = lists
         .flat()
-        .toSorted((a, b) => parseDate(b.updated).valueOf() - parseDate(a.updated).valueOf())
+        .toSorted((a, b) => compareDates(parseDate(b.updated), parseDate(a.updated)))
         .slice(0, 20);
 
     const items = await pMap(
@@ -64,8 +64,6 @@ async function handler() {
                 const detailResponse = await ofetch(item.link);
                 const $$ = load(detailResponse);
                 const floors = $$('.bbWrapper');
-                const date = $$('time').attr('datetime');
-                const pubDate = date?.trim() ? parseDate(date) : undefined;
 
                 return {
                     description: floors
@@ -73,7 +71,7 @@ async function handler() {
                         .toArray()
                         .map((el) => $$(el).html())
                         .join(''),
-                    pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
+                    pubDate: parseDate($$('time').attr('datetime')!),
                 };
             });
             return { ...item, ...detail };

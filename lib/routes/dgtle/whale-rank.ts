@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/whale/rank/:type/:rule',
@@ -50,8 +50,8 @@ async function handler(ctx: Context) {
 
     const items = response.items.map((item) => ({
         title: item.content,
-        pubDate: item.created_at ? parseDate(item.created_at, 'X') : undefined,
-        updated: item.updated_at ? parseDate(item.updated_at, 'X') : undefined,
+        pubDate: parseDate(item.created_at, 'X'),
+        updated: parseDate(item.updated_at, 'X'),
         author: item.author.username,
         description: `<img src=${item.attachment.pic_url.split('?', 1)[0]} />`,
         link: item.attachment.pic_url.split('?', 1)[0],

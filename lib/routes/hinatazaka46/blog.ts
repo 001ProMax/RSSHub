@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.hinatazaka46.com';
 
@@ -63,14 +62,6 @@ export const route: Route = {
 | 2         | 潮 紗理菜    |`,
 };
 
-function parsePublicationDate(value?: string) {
-    if (!value?.trim()) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 9);
-}
-
 async function handler(ctx) {
     const id = ctx.req.param('id') ?? 'all';
     const page = ctx.req.param('page') ?? '0';
@@ -95,7 +86,7 @@ async function handler(ctx) {
             return {
                 title: content.find('.c-blog-article__title').text(),
                 link: content.find('.c-button-blog-detail').attr('href'),
-                pubDate: parsePublicationDate(content.find('.c-blog-article__date').text()),
+                pubDate: parseDate(content.find('.c-blog-article__date').text(), 'YYYY.MM.DD HH:mm', 9),
                 author: content.find('.c-blog-article__name').text(),
                 description: content.find('.c-blog-article__text').html(),
             };

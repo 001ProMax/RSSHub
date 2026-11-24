@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/article/:type?',
@@ -41,7 +41,7 @@ async function handler(ctx) {
             pageSize: 100,
         }),
     });
-    if (!response.data.success || !Array.isArray(response.data.data)) {
+    if (!response.data.success) {
         throw new Error('The article API did not return a successful article list.');
     }
     const { data } = response.data;
@@ -53,12 +53,7 @@ async function handler(ctx) {
             title: item.title,
             link: item.url,
             author: item.recommenderName,
-            pubDate: isOneOf(item.updateAt, [undefined, null]) || item.updateAt === '' ? undefined : parseDate(item.updateAt),
+            pubDate: item.updateAt ? parseDate(item.updateAt) : undefined,
         })),
     };
-}
-
-function isOneOf<const T>(value: unknown, values: readonly T[]): value is T {
-    const candidates: readonly unknown[] = values;
-    return candidates.includes(value);
 }

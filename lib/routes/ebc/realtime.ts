@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/realtime/:category?',
@@ -52,9 +52,8 @@ async function handler(ctx) {
     const feed = $('div.list > a')
         .toArray()
         .map((item) => new URL($(item).attr('href') ?? '', 'https://news.ebc.net.tw').href);
-    const candidates = feed;
     const items = await pMap(
-        candidates,
+        feed,
         (url) =>
             cache.tryGet(url, async () => {
                 const response = await got(url);

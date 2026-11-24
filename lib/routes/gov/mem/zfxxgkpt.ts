@@ -3,9 +3,8 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/gk/zfxxgkpt/fdzdgknr',
@@ -58,11 +57,10 @@ async function handler(ctx) {
                 return null;
             }
             const link = new URL(href, iframeUrl).href;
-            const pubDate = $(item).find('.fbsj').text();
             return {
                 title: aLabel.contents().first().text(),
                 link,
-                pubDate: pubDate ? timezone(parseDate(pubDate), 8) : undefined,
+                pubDate: parseDate($(item).find('.fbsj').text(), 8),
             };
         })
         .filter((item) => item !== null);
@@ -84,8 +82,8 @@ async function handler(ctx) {
                 return {
                     ...item,
                     description,
-                    author: author || undefined,
-                    category: category || undefined,
+                    author,
+                    category,
                 };
             })
         )

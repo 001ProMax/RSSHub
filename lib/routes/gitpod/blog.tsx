@@ -3,9 +3,9 @@ import { load } from 'cheerio';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
 import parser from '@/utils/rss-parser';
+import { compareDates, parseDate } from '@/utils/time';
 
 import { rootUrl } from './utils';
 
@@ -36,36 +36,32 @@ export const route: Route = {
 async function handler(ctx) {
     const limit = getRouteLimit(ctx, 10);
     const feed = await parser.parseString(await ofetch(`${rootUrl}/stories/feed`, { responseType: 'text' }));
-    const datedItems = feed.items.map((item) => ({ item, date: item.pubDate ? parseDate(item.pubDate).getTime() : NaN }));
-    const hasValidDates = datedItems.every(({ date }) => Number.isFinite(date));
-    if (ctx.req.query('sorted') !== 'false' && hasValidDates) {
-        datedItems.sort((a, b) => b.date - a.date);
+    const datedItems = feed.items.map((item) => ({ item, date: item.pubDate ? parseDate(item.pubDate) : undefined }));
+    if (ctx.req.query('sorted') !== 'false') {
+        datedItems.sort((a, b) => compareDates(b.date, a.date));
     }
-    const selectedItems = datedItems.slice(0, hasValidDates || ctx.req.query('sorted') === 'false' ? limit : Math.max(10, limit));
+    const selectedItems = datedItems.slice(0, limit);
     const items = await Promise.all(
-        selectedItems.map(async ({ item }): Promise<DataItem> => ({
+        selectedItems.map(async ({ item, date }): Promise<DataItem> => ({
             title: item.title!,
             link: item.link,
             guid: item.guid,
-            pubDate: item.pubDate ? parseDate(item.pubDate) : undefined,
+            pubDate: date,
             ...(await cache.tryGet(`gitpod:story:${item.link}`, async () => {
-                const html = await ofetch(item.link!, { responseType: 'text' });
+                const html = await ofetch(item.link!);
                 const $ = load(html);
-                const article = $('script[type="application/ld+json"]')
-                    .toArray()
-                    .map((e) => JSON.parse($(e).text()))
-                    .find((data) => data['@type'] === 'Article');
-                const content = $('section[class*="mdx-content"]');
+                const article = JSON.parse($('script[type="application/ld+json"]:contains("Article")').text());
+                const content = $('section[class^="mdx-content"]');
                 if (!content.length) {
                     throw new Error(`Ona story content was not found: ${item.link}`);
                 }
                 return {
-                    description: content.html() ?? undefined,
+                    description: content.html(),
                     author: $('section:has(h1) img[alt]')
                         .toArray()
                         .map((e) => $(e).attr('alt'))
                         .join(', '),
-                    image: article?.image ? new URL(article.image, item.link).href : undefined,
+                    image: article.image ? new URL(article.image, item.link).href : undefined,
                 };
             })),
         }))

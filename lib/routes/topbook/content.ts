@@ -4,7 +4,7 @@ import type { Context } from 'hono';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:id?',
@@ -39,14 +39,6 @@ function renderContent(content: string) {
     return $.html();
 }
 
-function parsePubDate(value?: string) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(`${value} +08:00`, 'YYYY-MM-DD HH:mm:ss Z');
-    return Number.isFinite(date.getTime()) ? date : undefined;
-}
-
 async function handler(ctx: Context) {
     const { id } = ctx.req.param();
 
@@ -57,7 +49,7 @@ async function handler(ctx: Context) {
         title: item.title,
         author: item.nickname,
         description: renderContent(item.content),
-        pubDate: parsePubDate(item.createTime),
+        pubDate: parseDate(`${item.createTime} +08:00`, 'YYYY-MM-DD HH:mm:ss Z'),
         link: `${rootUrl}/article/${item.articleId}`,
     }));
 

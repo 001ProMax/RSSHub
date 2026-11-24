@@ -1,22 +1,14 @@
 import { load } from 'cheerio';
 import { renderToString } from 'hono/jsx/dom/server';
-import { FetchError } from 'ofetch';
 
 import { config } from '@/config';
 import ConfigNotFoundError from '@/errors/types/config-not-found';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getPlaywrightPage } from '@/utils/playwright';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 const baseUrl = 'https://nhentai.net';
-
-function parsePublicationDate(value?: string) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
 
 const getCookie = async (username, password, cache) => {
     const loginUrl = 'https://nhentai.net/login/';
@@ -25,7 +17,7 @@ const getCookie = async (username, password, cache) => {
     const cachedCookie = await cache.get(cacheKey);
     if (cachedCookie) {
         const { cookie, time } = JSON.parse(cachedCookie);
-        const now = Date.now();
+        const now = Temporal.Now.instant().epochMilliseconds;
         if (now - time < 86400 * 3 * 1000) {
             // 不考虑缓存过期的话，有效期最多允许3天
             return cookie;
@@ -59,7 +51,7 @@ const getCookie = async (username, password, cache) => {
             cacheKey,
             JSON.stringify({
                 cookie: '',
-                time: Date.now(),
+                time: Temporal.Now.instant().epochMilliseconds,
             })
         );
         return '';
@@ -74,34 +66,26 @@ const getCookie = async (username, password, cache) => {
         cacheKey,
         JSON.stringify({
             cookie: userTokenCookie,
-            time: Date.now(),
+            time: Temporal.Now.instant().epochMilliseconds,
         })
     );
 
     return userTokenCookie;
 };
 
-// Reason: try ofetch first for speed, fall back to Playwright on 403 (anti-bot protection)
 const fetchPage = async (url: string): Promise<string> => {
-    try {
-        return await ofetch(url);
-    } catch (error: unknown) {
-        if (error instanceof FetchError && error.statusCode === 403) {
-            const { page, destroy } = await getPlaywrightPage(url, {
-                onBeforeLoad: async (page) => {
-                    const allowedTypes = new Set(['document', 'script', 'xhr', 'fetch']);
-                    await page.route('**/*', (route) => {
-                        const request = route.request();
-                        allowedTypes.has(request.resourceType()) ? route.continue() : route.abort();
-                    });
-                },
+    const { page, destroy } = await getPlaywrightPage(url, {
+        onBeforeLoad: async (page) => {
+            const allowedTypes = new Set(['document']);
+            await page.route('**/*', (route) => {
+                const request = route.request();
+                return allowedTypes.has(request.resourceType()) ? route.continue() : route.abort();
             });
-            const content = await page.content();
-            await destroy();
-            return content;
-        }
-        throw error;
-    }
+        },
+    });
+    const content = await page.content();
+    await destroy();
+    return content;
 };
 
 const getSimple = async (url) => {
@@ -113,7 +97,13 @@ const getSimple = async (url) => {
         .map((ele) => parseSimpleDetail($(ele)));
 };
 
-const getDetails = (cache, simples, limit) => Promise.all(simples.slice(0, limit).map((simple) => cache.tryGet(simple.link, () => getDetail(simple))));
+const getDetails = (cache, simples, limit) =>
+    Promise.all(
+        simples.slice(0, limit).map((simple) =>
+            // only follow links on the site itself
+            isOnSite(simple.link, 'nhentai.net') ? cache.tryGet(simple.link, () => getDetail(simple)) : simple
+        )
+    );
 
 const getTorrents = async (cache, simples, limit) => {
     if (!config.nhentai || !config.nhentai.username || !config.nhentai.password) {
@@ -125,7 +115,14 @@ const getTorrents = async (cache, simples, limit) => {
     }
     return getTorrentWithCookie(cache, simples, cookie, limit);
 };
-const getTorrentWithCookie = (cache, simples, cookie, limit) => Promise.all(simples.slice(0, limit).map((simple) => cache.tryGet(simple.link + 'download', () => getTorrent(simple, cookie))));
+const getTorrentWithCookie = (cache, simples, cookie, limit) =>
+    Promise.all(
+        simples
+            // only send the session cookie to the site itself
+            .filter((simple) => new URL(simple.link).origin === baseUrl)
+            .slice(0, limit)
+            .map((simple) => cache.tryGet(simple.link + 'download', () => getTorrent(simple, cookie)))
+    );
 
 const parseSimpleDetail = ($ele) => {
     const link = new URL($ele.attr('href'), baseUrl).href;
@@ -170,7 +167,7 @@ const getDetail = async (simple) => {
     return {
         ...simple,
         title: $('div#info > h2').text() || $('div#info > h1').text(),
-        pubDate: parsePublicationDate($('time').attr('datetime')),
+        pubDate: parseDate($('time').attr('datetime')!),
         description: renderDescription(galleryImgs.length, galleryImgs),
     };
 };

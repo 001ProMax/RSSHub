@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/whpj/:format?',
@@ -56,7 +56,7 @@ async function handler(ctx) {
 
             return {
                 title: formatTitle(format, { name, xhmr, xcmr, xhmc, xcmc, zs, content }),
-                pubDate: item.publishDate && item.publishTime ? parseDate(`${item.publishDate}T${item.publishTime}+08:00`) : undefined,
+                pubDate: parseDate(`${item.publishDate}T${item.publishTime}+08:00`),
                 description: content.replaceAll(/\s/g, '<br>'),
                 guid: `${name} ${item.publishDate} ${item.publishTime}`,
             };

@@ -5,8 +5,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/it/:type?',
@@ -41,7 +40,7 @@ async function handler(ctx) {
     const typelist = ['学院要闻', '学院公告', '学术活动'];
     const urlList = ['xyyw/list.htm', 'xygg/list.htm', 'xshd/list.htm'];
     const type = Number(ctx.req.param('type') ?? 0);
-    if (!Number.isSafeInteger(type) || type < 0 || type >= urlList.length) {
+    if (!Object.hasOwn(urlList, type)) {
         throw new InvalidParameterError('The notice type must be 0, 1, or 2');
     }
     const link = new URL(urlList[type], host).href;
@@ -56,7 +55,7 @@ async function handler(ctx) {
             return {
                 title: a.attr('title')!,
                 link: new URL(a.attr('href')!, host).href,
-                pubDate: timezone(parseDate($e.find('span.news_meta').text(), 'YYYY-MM-DD'), 8),
+                pubDate: parseDate($e.find('span.news_meta').text(), 'YYYY-MM-DD', 8),
             };
         });
 

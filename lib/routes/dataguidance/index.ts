@@ -3,8 +3,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     name: 'News',
@@ -33,7 +33,7 @@ async function handler(ctx) {
         title: item.title.en,
         link: `${rootUrl}${item.url}`,
         url: item.url,
-        pubDate: item.publishedOn ? parseDate(item.publishedOn) : undefined,
+        pubDate: parseDate(item.publishedOn),
     }));
     const baseUrl = 'https://www.dataguidance.com/api/v1/kb/content/articles/by_path?path=';
     items = await pMap(
@@ -45,7 +45,7 @@ async function handler(ctx) {
                 const detailResponse = await ofetch(detailUrl);
 
                 item.description = detailResponse.contentBody?.html.en.replaceAll('\n', '<br>');
-                item.category = detailResponse.topics?.map((topic) => topic.name?.en).filter(Boolean);
+                item.category = detailResponse.topics.map((topic) => topic.name.en);
                 delete item.url;
                 return item;
             }),

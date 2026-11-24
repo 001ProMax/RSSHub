@@ -6,10 +6,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-import { selectItems } from '../utils';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://gs.dhu.edu.cn';
 
@@ -50,21 +47,21 @@ async function handler(ctx: Context) {
     const $ = load(response);
     const list = $('.sub_list > li')
         .toArray()
-        .map((item): DataItem & { link: string; pubDate: Date } => {
+        .map((item): DataItem & { link: string; pubDate: Temporal.Instant | undefined } => {
             const $item = $(item);
             const a = $item.find('a').first();
             return {
                 title: a.attr('title')!,
                 link: new URL(a.attr('href')!, baseUrl).href,
-                pubDate: timezone(parseDate($item.find('span').text()), 8),
+                pubDate: parseDate($item.find('span').text(), 8),
             };
         });
 
     // item content
     const items = await pMap(
-        selectItems(list),
+        list,
         (item) =>
-            cache.tryGet(item.link!, async () => {
+            cache.tryGet(item.link, async () => {
                 const { data: response } = await got(item.link);
                 const $ = load(response);
                 item.description = $('.wp_articlecontent').html();

@@ -5,7 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/factpaper/:status?',
@@ -53,7 +53,7 @@ async function handler(ctx) {
         title: item.title,
         guid: item.proveId,
         link: `${rootUrl}/detail?id=${item.proveId}`,
-        pubDate: item.publishTime ? parseDate(`${item.publishTime.replace(' ', 'T')}+08:00`) : undefined,
+        pubDate: parseDate(`${item.publishTime.replace(' ', 'T')}+08:00`),
     }));
 
     const items = await pMap(

@@ -1,8 +1,8 @@
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const categories = {
     'zh-cn': {
@@ -85,8 +85,7 @@ async function handler(ctx) {
     if (!categories[location]?.[category]?.id) {
         throw new InvalidParameterError('Unknown location or category; use a documented combination.');
     }
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0 ? requestedLimit : 50;
+    const limit = getRouteLimit(ctx, 50);
 
     const params = {
         'zh-cn': `iPageSize=${limit}&iPage=1&sLangKey=zh-cn&isPreview=0&iChanId=${categories[location][category].id}`,
@@ -100,7 +99,7 @@ async function handler(ctx) {
         title: item.sTitle,
         description: item.sContent,
         link: `${categories[location].link}/${item.iInfoId}`,
-        pubDate: timezone(parseDate(item.dtStartTime), 8), // 使用 timezone 工具指定时区 (+8是北京时间)
+        pubDate: parseDate(item.dtStartTime, 8), // 使用 timezone 工具指定时区 (+8是北京时间)
         category: item.sCategoryName,
     }));
 

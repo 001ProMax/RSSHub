@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import { config } from '@/config';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export async function getNotifList() {
     const response = await got.get('https://scupi.scu.edu.cn/activities/notice', {
@@ -23,17 +23,17 @@ export async function getNotifList() {
             const imageElement = $(articleElement).find('.news-img img');
 
             const link = titleElement.attr('href');
-            const title = titleElement.attr('title') ?? titleElement.text();
+            const title = titleElement.attr('title');
             if (!link || !title) {
                 return [];
             }
-            const pubDate = timeElement.text().trim();
+            const pubDate = timeElement.text();
 
             return {
                 title,
                 link,
                 itunes_item_image: imageElement.attr('src'),
-                pubDate: parseDateInTimezone(pubDate, 8),
+                pubDate: parseDate(pubDate, 8),
             };
         });
 }
@@ -47,7 +47,7 @@ export async function getArticle(link: string) {
         });
         const html = response.body;
         const $ = load(html);
-        const articleContentElement = $('.post-content article').first();
+        const articleContentElement = $('.post-content article');
         const content = articleContentElement.html();
 
         return { description: content };

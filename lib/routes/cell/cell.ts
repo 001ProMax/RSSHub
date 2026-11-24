@@ -7,7 +7,7 @@ import type { Context } from 'hono';
 import NotFoundError from '@/errors/types/not-found';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/cell/:category',
@@ -50,7 +50,7 @@ async function handler(ctx: Context) {
                 title: $item.find(String.raw`dc\:title`).text(),
                 author: $item.find(String.raw`dc\:creator`).text(),
                 description: $item.find('description').text(),
-                category: section ? [section] : undefined,
+                category: [section],
                 link: address,
                 guid: address,
                 doi: $item.find(String.raw`dc\:identifier`).text(),

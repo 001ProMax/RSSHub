@@ -7,9 +7,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const typeMap = {
     ggtz: { url: 'https://www.hafu.edu.cn/index/ggtz.htm', root: 'https://www.hafu.edu.cn/', title: '河南财院 - 公告通知', parseFn: ggtzParse },
@@ -36,30 +35,12 @@ export const parseList = async (ctx, type) => {
 };
 
 function getPdfImages(source: string, articleUrl: string): string[] {
-    const imageData = source.match(/vsb_pdf_image_data\s*=\s*(\[[\s\S]*?\])\s*;/)?.[1];
+    const imageData = /vsb_pdf_image_data\s*=\s*(\[[\s\S]*?\])\s*;/.exec(source)?.[1];
     if (!imageData) {
         return [];
     }
-    let images: unknown;
-    try {
-        images = JSON.parse(imageData);
-    } catch {
-        return [];
-    }
-    if (!Array.isArray(images)) {
-        return [];
-    }
-    return images.flatMap((image) => {
-        if (typeof image !== 'string') {
-            return [];
-        }
-        try {
-            const imageUrl = new URL(image, articleUrl);
-            return ['https:', 'http:'].includes(imageUrl.protocol) ? [imageUrl.href] : [];
-        } catch {
-            return [];
-        }
-    });
+    const images: string[] = JSON.parse(imageData);
+    return images.map((image) => new URL(image, articleUrl).href);
 }
 
 async function tryGetFullText(link, type) {
@@ -111,7 +92,7 @@ function tryGetAttachments(articleData, articleBody, type, articleUrl) {
             .toArray()
             .map((item) => {
                 const element = articleData(item);
-                const anchor = element.is('a') ? element : element.find('a').first();
+                const anchor = element.is('a') ? element : element.find('a');
                 const href = anchor.attr('href');
                 if (!href) {
                     return '';
@@ -131,8 +112,7 @@ function parsePublicationDate(value: string | undefined, format: string) {
     if (!value) {
         return;
     }
-    const date = parseDate(value, format);
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 8);
+    return parseDate(value, format, 8);
 }
 
 async function getArticle(link: string, type: string) {
@@ -156,7 +136,6 @@ async function getArticle(link: string, type: string) {
         ...media,
         pubDate: parsePublicationDate(
             articleData('h1')
-                .first()
                 .next()
                 .text()
                 .match(/\d{4}-\d{2}-\d{2}/)?.[0],

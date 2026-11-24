@@ -2,6 +2,7 @@ import { createDecipheriv } from 'node:crypto';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/manga/update/:comicid',
@@ -62,7 +63,7 @@ const md5v2 = (data: Uint8Array) => {
         state = processBlock(buf.subarray(i, i + 64), state);
     }
     const hex = state.map((w) => w.toString(16).padStart(8, '0')).join('');
-    return Buffer.from([...hex].map((ch) => ALPHA62.codePointAt(ch.codePointAt(0)! % 62)!));
+    return Buffer.from(Array.from(hex, (ch) => ALPHA62.codePointAt(ch.codePointAt(0)! % 62)!));
 };
 
 /**
@@ -102,7 +103,11 @@ const b64V2Enc = (data: Uint8Array, variant: number) => {
 // https://s1.hdslb.com/bfs/manga-static/manga-pc/6732b1bf426cfc634293.wasm
 const genReqSign = (query: string, body: string, ts: number) => {
     const params = new URLSearchParams(query);
-    const keys = [...new Set(params.keys())].filter((k) => k !== 'ultra_sign').toSorted((a, b) => Number(a > b) - Number(a < b));
+    const keys = params
+        .keys()
+        .toArray()
+        .filter((k) => k !== 'ultra_sign')
+        .toSorted((a, b) => Number(a > b) - Number(a < b));
     const acc = keys.map((k) => k + params.getAll(k).join('')).join('');
     const bts = BigInt(ts);
     const h1 = md5v2(Buffer.from(acc + bts.toString(16)));
@@ -142,7 +147,6 @@ const genReqSign = (query: string, body: string, ts: number) => {
         0,
         0,
     ]);
-    // oxlint-disable-next-line unicorn/no-array-reduce
     buf[29] = buf.subarray(0, 28).reduce((x, y) => x ^ y, 0);
     const out = Buffer.from([buf[0], buf[1], 0, 0, 0, ...[22, 7, 17, 21, 16, 28, 15, 12, 4, 3, 14, 27, 10, 6, 11, 19, 24, 25, 26, 20, 23, 18, 8, 2].map((i) => buf[i])]);
     const hA = md5v2(Buffer.concat([out, Buffer.from([h1[7], h2[29]])]));
@@ -158,8 +162,7 @@ const genReqSign = (query: string, body: string, ts: number) => {
 
 const decryptBytesData = (bytesData: string, buvid3: string, comicId: string) => {
     const key = Buffer.from(
-        [...buvid3]
-            .filter((_, i) => i % 2 === 0)
+        Array.from(buvid3, (ch, i) => (i % 2 === 0 ? ch : ''))
             .join('')
             .slice(0, 18) +
             'web' +
@@ -182,7 +185,7 @@ async function handler(ctx) {
         comic_id: Number(comic_id),
     });
 
-    const ultraSign = genReqSign(query, body, Date.now());
+    const ultraSign = genReqSign(query, body, Temporal.Now.instant().epochMilliseconds);
 
     const response = await got({
         method: 'POST',
@@ -206,7 +209,7 @@ async function handler(ctx) {
             title: item.short_title === item.title ? item.short_title : `${item.short_title} ${item.title}`,
             author,
             description: `<img src="${item.cover}">`,
-            pubDate: new Date(item.pub_time + ' +0800'),
+            pubDate: parseDate(item.pub_time, 8),
             link: `https://manga.bilibili.com/mc${comic_id}/${item.id}`,
         })),
     };

@@ -5,8 +5,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/eea/:caty',
@@ -54,7 +53,7 @@ async function handler(ctx: Context) {
             return {
                 title: a.text(),
                 link: a.attr('href'),
-                pubDate: getPublicationDate($(item).find('span.time').text()),
+                pubDate: parseDate($(item).find('span.time').text(), 8),
             };
         });
 
@@ -68,7 +67,10 @@ async function handler(ctx: Context) {
                 const content = load(detailResponse);
                 item.description = content('div.article').html();
                 item.author = content('meta[name="ContentSource"]').attr('content');
-                item.pubDate = getPublicationDate(content('span.time').text()) ?? getPublicationDate(content('meta[name="PubDate"]').attr('content')) ?? item.pubDate;
+                const time = content('span.time').text();
+                if (time) {
+                    item.pubDate = parseDate(time, 8);
+                }
                 return item;
             })
         )
@@ -79,9 +81,4 @@ async function handler(ctx: Context) {
         link: currentUrl,
         item: items,
     };
-}
-
-function getPublicationDate(dateText: string | undefined) {
-    const date = dateText ? parseDate(dateText) : undefined;
-    return date && !Number.isNaN(date.getTime()) ? timezone(date, 8) : undefined;
 }

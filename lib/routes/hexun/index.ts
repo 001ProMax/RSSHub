@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const decoder = new TextDecoder('gbk');
 
@@ -57,10 +57,9 @@ async function handler() {
 
                 const $ = load(decoder.decode(response.data));
 
-                const published = $('meta[property="bytedance:published_time"], meta[name="bytedance:published_time"]').attr('content');
                 return {
                     description: $('.art_contextBox').html(),
-                    pubDate: published ? parseDate(published) : undefined,
+                    pubDate: parseDate($('meta[property="bytedance:published_time"]').attr('content')!),
                 };
             })),
         }),

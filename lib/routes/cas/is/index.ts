@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://is.cas.cn';
 const baseHostname = new URL(baseUrl).hostname;
@@ -41,7 +40,7 @@ async function handler(ctx) {
             return {
                 title: $item.find('.subpage-news-title').text(),
                 link: new URL($item.find('a').attr('href')!, currentUrl).href,
-                pubDate: timezone(parseDate($item.find('.subpage-news-date').text(), 'YYYY-MM-DD'), 8),
+                pubDate: parseDate($item.find('.subpage-news-date').text(), 'YYYY-MM-DD', 8),
             };
         });
 
@@ -55,7 +54,7 @@ async function handler(ctx) {
                 const response = await got(item.link);
                 const $ = load(response.data);
 
-                item.description = $('.TRS_Editor, .TRS_UEDITOR').first().html();
+                item.description = $('.TRS_Editor, .TRS_UEDITOR').html();
                 return item;
             })
         )

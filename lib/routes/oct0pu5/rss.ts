@@ -2,7 +2,7 @@ import Parser from 'rss-parser';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://oct0pu5.cn/';
 
@@ -45,7 +45,7 @@ async function handler() {
                 title: item.title,
                 link: item.link,
                 guid: item.guid,
-                description: item['content:encoded'] || item.content,
+                description: item['content:encoded'],
                 pubDate: item.pubDate ? parseDate(item.pubDate) : undefined,
                 category: item.categories,
             };

@@ -4,12 +4,12 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { language = 'zh' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
 
@@ -64,7 +64,7 @@ export const handler = async (ctx) => {
                 };
             });
             const description = (item.description ?? '') + (detail.description ?? '');
-            return { ...item, ...detail, description, content: { ...detail.content, html: description }, language };
+            return { ...item, ...detail, description, content: { ...detail.content, html: description } };
         },
         { concurrency: 3 }
     );

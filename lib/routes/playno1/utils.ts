@@ -12,9 +12,7 @@ const cookie = Cookie.fromJSON({
     domain: 'playno1.com',
     path: '/',
 });
-(async () => {
-    await cookieJar.setCookie(cookie!, 'http://www.playno1.com/');
-})();
+cookieJar.setCookieSync(cookie!, 'http://www.playno1.com/');
 
 const processArticle = (items: DataItem[], cache) =>
     pMap(
@@ -25,7 +23,7 @@ const processArticle = (items: DataItem[], cache) =>
                     cookieJar,
                 });
                 const content = load(detailResponse.data);
-                return { description: content('#article_content').html() ?? undefined };
+                return { description: content('#article_content').html() };
             });
             return { ...item, ...detail };
         },

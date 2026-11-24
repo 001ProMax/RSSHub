@@ -6,8 +6,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { HOST, LINK, NEW_LIST, OFFICIAL_PAGE_TYPE, POST_FULL, PRIVATE_IMG, PUBLIC_IMG } from './constant';
 import { getI18nGameInfo, getI18nType } from './utils';
@@ -62,9 +62,9 @@ const getPostContent = (list: PostListItem[], { language }) =>
                 if (res.data.retcode !== 0) {
                     throw new Error(`HoYoLAB article API returned ${res.data.retcode}: ${res.data.message}`);
                 }
-                const author = res?.data?.data?.post?.user?.nickname || '';
-                let content = res?.data?.data?.post?.post?.content || '';
-                if (content === language || !content) {
+                const author = res.data.data.post.user.nickname;
+                let content = res.data.data.post.post.content;
+                if (content === language) {
                     content = post.content;
                 }
                 const description = renderPostDescription({

@@ -5,7 +5,7 @@ import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { getClientVal, sign } from './utils';
 
@@ -119,7 +119,7 @@ async function handler(ctx) {
         title: audio.title,
         link: `${mobileBaseUrl}/v3/vod/2/${audio.h_audio_id}`,
         description: renderAudio(audio.play_url),
-        pubDate: audio.add_time ? parseDate(audio.add_time, 'X') : undefined,
+        pubDate: parseDate(audio.add_time, 'X'),
         itunes_item_image: radioCover,
         itunes_duration: audio.duration,
         enclosure_url: audio.play_url,

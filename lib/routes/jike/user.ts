@@ -4,8 +4,8 @@ import { escapeAttribute, escapeText } from 'entities';
 import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import got from '@/utils/got';
-
-import { parseCreatedAt } from './utils';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 export const route: Route = {
     path: '/user/:id',
@@ -36,6 +36,17 @@ export const route: Route = {
     handler,
 };
 
+const getLink = (id, type) => {
+    switch (type) {
+        case 'REPOST':
+            return `https://m.okjike.com/reposts/${id}`;
+        case 'MEDIUM':
+            return `https://www.okjike.com/medium/${id}`;
+        default:
+            return `https://m.okjike.com/originalPosts/${id}`;
+    }
+};
+
 async function handler(ctx) {
     const id = ctx.req.param('id');
 
@@ -51,17 +62,6 @@ async function handler(ctx) {
     const $ = load(html);
     const raw = $('[type = "application/json"]').html();
     const data = JSON.parse(raw ?? '').props.pageProps;
-
-    const getLink = (id, type) => {
-        switch (type) {
-            case 'REPOST':
-                return `https://m.okjike.com/reposts/${id}`;
-            case 'MEDIUM':
-                return `https://www.okjike.com/medium/${id}`;
-            default:
-                return `https://m.okjike.com/originalPosts/${id}`;
-        }
-    };
 
     const items = await Promise.all(
         data.posts.map(async (item) => {
@@ -142,7 +142,7 @@ async function handler(ctx) {
             const single = {
                 title: `${typeMap[item.type]}了: ${shortenTitle}`,
                 description: `${content}${linkTemplate}${imgTemplate}`.replace(/(?:<br>|\s)+$/, ''),
-                pubDate: parseCreatedAt(item.createdAt),
+                pubDate: parseDate(item.createdAt),
                 link: getLink(item.id, item.type),
                 _extra: repostContent && {
                     links: [
@@ -157,23 +157,26 @@ async function handler(ctx) {
             if (id === 'wenhao1996' && item.topic.id === '553870e8e4b0cafb0a1bef68') {
                 single.link = item.urlsInText[0].url;
 
-                const { data } = await got({
-                    method: 'get',
-                    url: single.link,
-                    headers: {
-                        Referer: `https://m.okjike.com/users/${id}`,
-                    },
-                });
-                const $$ = load(data);
-                $$('span.num,span.arrow').remove();
+                // only follow links on the site itself
+                if (isOnSite(single.link, 'okjike.com')) {
+                    const { data } = await got({
+                        method: 'get',
+                        url: single.link,
+                        headers: {
+                            Referer: `https://m.okjike.com/users/${id}`,
+                        },
+                    });
+                    const $$ = load(data);
+                    $$('span.num,span.arrow').remove();
 
-                single.title = `一觉醒来世界发生了什么 ${$$('title').text()}`;
+                    single.title = `一觉醒来世界发生了什么 ${$$('title').text()}`;
 
-                single.description = $$('div.container')
-                    .find('li.item')
-                    .toArray()
-                    .map((j) => `<a href="${$$(j).find('a').attr('href')}">${$$(j).find('a').text()}</a><br>`)
-                    .join('');
+                    single.description = $$('div.container')
+                        .find('li.item')
+                        .toArray()
+                        .map((j) => `<a href="${$$(j).find('a').attr('href')}">${$$(j).find('a').text()}</a><br>`)
+                        .join('');
+                }
             }
 
             return single;

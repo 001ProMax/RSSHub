@@ -4,15 +4,14 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { namespace } from './namespace';
 
 const getArticle = async (link: string) => {
     const response = await ofetch(link);
     const $ = load(response);
-    return { description: $('.newsD_con').first().html() ?? undefined };
+    return { description: $('.newsD_con').html() };
 };
 
 export const route: Route = {
@@ -48,7 +47,7 @@ export const route: Route = {
                 return {
                     title,
                     link,
-                    pubDate: timezone(parseDate(dateText), 8),
+                    pubDate: parseDate(dateText, 8),
                 };
             });
 

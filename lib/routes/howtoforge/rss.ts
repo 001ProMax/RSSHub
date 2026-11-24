@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -35,7 +35,7 @@ async function handler() {
             const pubDate = $item.find('pubDate').text();
             return {
                 link,
-                pubDate: pubDate ? parseDate(pubDate) : undefined,
+                pubDate: parseDate(pubDate),
                 title,
                 description,
             };

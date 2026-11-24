@@ -2,8 +2,8 @@ import { load } from 'cheerio';
 
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.cw.com.tw';
 
@@ -73,7 +73,7 @@ const parseItems = (list) =>
                 item.category = $('meta[name=keywords]').attr('content')!.split(',');
                 item.pubDate = parseDate(meta.datePublished);
                 item.author = Array.isArray(meta.author) ? meta.author : meta.author.name;
-                item.description = [$('.article__head .preface').html(), $('.article__head .article__img').html(), $('.article__content').html()].filter(Boolean).join('');
+                item.description = `${$('.article__head .preface').html()}${$('.article__head .article__img').html()}${$('.article__content').html()}`;
 
                 return item;
             })

@@ -3,8 +3,8 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 export const route: Route = {
     path: '/yjj/:path{.+}?',
@@ -47,19 +47,22 @@ async function handler(ctx) {
             const $item = $(item);
 
             const link = $item.attr('href');
-            const date = $item.next().text().trim();
-            const pubDate = date ? timezone(parseDate(date, ['YYYY.MM.DD', 'YYYY-MM-DD'], true), 8) : undefined;
 
             return {
                 title: $item.text(),
-                pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
-                link: link!.startsWith('http') ? link : `${rootUrl}${link}`,
+                pubDate: parseDateStrict($item.next().text(), ['YYYY.MM.DD', 'YYYY-MM-DD'], 8),
+                link: new URL(link!, currentUrl).href,
             };
         });
 
     items = await Promise.all(
         items.map((item) =>
             cache.tryGet(item.link!, async () => {
+                // only follow links on the site itself
+                if (!isOnSite(item.link, 'yjj.sh.gov.cn')) {
+                    return item;
+                }
+
                 const detailResponse = await got({
                     method: 'get',
                     url: item.link,
@@ -67,11 +70,10 @@ async function handler(ctx) {
 
                 const content = load(detailResponse.data);
 
-                const date = (content('meta[name="pubdate"]').attr('content') || content('meta[name="PubDate"]').attr('content'))?.replaceAll('∶', ':');
-                const pubDate = date ? timezone(parseDate(date, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm'], true), 8) : undefined;
+                const date = (content('meta[name="pubdate"]').prop('content') || content('meta[name="PubDate"]').prop('content')).replaceAll('∶', ':');
 
                 item.description = content('#ivs_content').html();
-                item.pubDate = pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : item.pubDate;
+                item.pubDate = parseDateStrict(date, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm'], 8);
 
                 return item;
             })

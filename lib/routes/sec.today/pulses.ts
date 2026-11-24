@@ -1,9 +1,8 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseRelativeDate } from '@/utils/parse-date';
+import { parseRelativeDate } from '@/utils/time';
 
 const host = 'https://sec.today';
 
@@ -34,9 +33,8 @@ async function handler() {
             const date = $item
                 .find('p.card-text.my-1 cite small')
                 .text()
-                .replace(/^\s*•\s*/, '')
-                .trim();
-            const description = copyNodes($item.find('p.card-text.my-1'));
+                .replace(/^\s*•\s*/, '');
+            const description = $item.find('p.card-text.my-1');
             description.find('cite').remove();
             description
                 .contents()
@@ -47,7 +45,7 @@ async function handler() {
                 description: description.html(),
                 title: $item.find('h5.card-title').text(),
                 author,
-                pubDate: date ? parseRelativeDate(date) : undefined,
+                pubDate: parseRelativeDate(date),
             };
         });
 
@@ -56,13 +54,4 @@ async function handler() {
         link,
         item: out,
     };
-}
-
-function copyNodes<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, node) => cloneNode(node, true));
-    const root = new Document(copy.toArray());
-    for (const node of copy) {
-        node.parent = root;
-    }
-    return copy;
 }

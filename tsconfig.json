@@ -5,11 +5,12 @@
         "moduleResolution": "bundler",
         "strict": true,
         "jsx": "react-jsx",
-        "jsxImportSource": "hono/jsx",
+        "jsxImportSource": "@/utils/jsx",
         "paths": {
             "@/*": ["./lib/*"]
         },
         "esModuleInterop": true,
+        "allowJs": true,
         "noImplicitAny": false,
         "outDir": "./dist",
         "skipLibCheck": true,

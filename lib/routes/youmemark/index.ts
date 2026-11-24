@@ -1,9 +1,8 @@
 import { load } from 'cheerio';
 
-import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDateStrict } from '@/utils/time';
 
 export const route: Route = {
     path: '/:userid',
@@ -33,21 +32,10 @@ Add \`?limit=<number>\` to the end of the route to limit the number of items. De
 :::`,
 };
 
-const parseBookmarkDate = (value: string) => {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value, 'YYYY-MM-DD', true);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-};
-
 async function handler(ctx): Promise<Data> {
     const userid = ctx.req.param('userid');
     const requestedLimit = ctx.req.query('limit');
     const limit = requestedLimit ? Number.parseInt(requestedLimit) : 10;
-    if (!Number.isFinite(limit) || limit < 1) {
-        throw new InvalidParameterError('limit must be a positive integer');
-    }
 
     const response = await ofetch(`https://youmemark.com/user/${userid}`);
 
@@ -80,7 +68,7 @@ async function handler(ctx): Promise<Data> {
                     title,
                     link,
                     description: content,
-                    pubDate: parseBookmarkDate(dateStr),
+                    pubDate: dateStr ? parseDateStrict(dateStr, 'YYYY-MM-DD') : undefined,
                     author: domain,
                     guid: link,
                 });

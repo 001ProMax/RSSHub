@@ -1,5 +1,4 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 import { decodeHTML } from 'entities';
 import type { Context } from 'hono';
 import pMap from 'p-map';
@@ -8,22 +7,12 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function copyElements<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, element) => cloneNode(element, true));
-    const root = new Document(copy.toArray());
-    copy.each((_, element) => {
-        element.parent = root;
-    });
-    return copy;
-}
+import { parseDate } from '@/utils/time';
 
 function extractSourceByline(value: string): string | undefined {
     for (const marker of value.matchAll(/来源[：:]/g)) {
         const tail = value.slice(marker.index + marker[0].length).trimStart();
-        const byline = tail.match(/^(.*?)(?:查看反馈|$)/);
+        const byline = /^(.*?)(?:查看反馈|$)/.exec(tail);
         if (byline) {
             return byline[1].trim();
         }
@@ -49,23 +38,23 @@ async function getItem(item: DataItem & { link: string }) {
     const detail = await cache.tryGet(item.link, async () => {
         const detailContent = await ofetch(item.link);
         let $ = load(detailContent);
-        const articleLink = $('.zhaiyao a[href]').first().attr('href');
+        const articleLink = $('.zhaiyao a[href]').attr('href');
         if (articleLink) {
             const articleContent = await ofetch(new URL(articleLink, item.link).href);
             $ = load(articleContent);
         }
-        const surveyContent = copyElements($('.jsurvey-td-xj-span').first());
+        const surveyContent = $('.jsurvey-td-xj-span').first();
         const surveyHeader = surveyContent.children('p').slice(0, 2);
         const surveyMetadata = surveyHeader.text();
-        surveyHeader.filter((_, paragraph) => $(paragraph).text().trim() === $('title').text().trim() || /^(?:时间|发布日期)[：:]\s*\d{4}-/.test($(paragraph).text().trim())).remove();
+        surveyHeader.filter((_, paragraph) => $(paragraph).text() === $('title').text() || /^(?:时间|发布日期)[：:]\s*\d{4}-/.test($(paragraph).text())).remove();
         const pubDate = $('meta[name="PubDate"]').attr('content') || surveyMetadata.match(/(?:时间|发布日期)[：:]\s*(\d{4}-\d{1,2}-\d{1,2})/)?.[1];
         const publishedTime = $('meta[name="firstpublishedtime"]').attr('content');
         const keywords = $('meta[name="Keywords"]').attr('content');
         return {
             title: $('meta[name="ArticleTitle"]').attr('content'),
-            description: $('#zoom').html() ?? $('.article_content, .wzy_con, #UCAP-CONTENT').first().html() ?? surveyContent.html() ?? undefined,
+            description: $('#zoom').html() ?? $('.article_content, .wzy_con, #UCAP-CONTENT').html() ?? surveyContent.html() ?? undefined,
             author: $('meta[name="ContentSource"]').attr('content') || extractSourceByline(surveyMetadata),
-            pubDate: pubDate ? timezone(parseDate(pubDate), 8) : publishedTime ? timezone(parseDate(publishedTime, 'YYYY-MM-DD-HH:mm:ss'), 8) : undefined,
+            pubDate: pubDate ? parseDate(pubDate, 8) : publishedTime ? parseDate(publishedTime, 'YYYY-MM-DD-HH:mm:ss', 8) : undefined,
             category: keywords?.split(/[,，\s]+/).filter(Boolean),
         };
     });
@@ -119,7 +108,7 @@ async function handler(ctx: Context) {
 
         return {
             title: $aTag.attr('title') || $aTag.text(),
-            pubDate: date ? timezone(parseDate(date[0]), 8) : undefined,
+            pubDate: date ? parseDate(date[0], 8) : undefined,
             link: new URL($aTag.attr('href')!, link).href,
         };
     });

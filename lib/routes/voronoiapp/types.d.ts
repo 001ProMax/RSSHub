@@ -1,11 +1,11 @@
-export interface Social {
+interface Social {
     website?: string;
     x?: string;
     linkedin?: string;
     instagram?: string;
 }
 
-export interface Author {
+interface Author {
     first_name: string;
     last_name: string;
     preferred_username: string;
@@ -90,8 +90,6 @@ export interface SearchPost {
     headline: string;
     description: string;
     category_id: number;
-    updated_at?: string;
-    preview_images: string[];
     link: string;
     author: Pick<Author, 'first_name' | 'last_name'>;
 }

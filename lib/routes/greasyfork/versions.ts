@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/scripts/:script/versions',
@@ -42,12 +42,11 @@ async function handler(ctx) {
             .map((item) => {
                 const $item = $(item);
                 const versionNumberLink = $item.find('.version-number a');
-                const date = $item.find('relative-time, gf-relative-time').attr('datetime');
 
                 return {
                     title: versionNumberLink.text(),
                     description: $item.find('.version-changelog').text().trim(),
-                    pubDate: date ? parseDate(date) : undefined,
+                    pubDate: parseDate($item.find('relative-time, gf-relative-time').attr('datetime')!),
                     link: versionNumberLink.attr('href'),
                 };
             }),

@@ -3,8 +3,8 @@ import { load } from 'cheerio';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 import { getSearchParams, rootUrl } from './utils';
@@ -20,7 +20,7 @@ const audioMimeTypes = {
     flac: 'audio/flac',
 };
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { id = '1103' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 20);
 

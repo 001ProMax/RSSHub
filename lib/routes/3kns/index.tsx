@@ -4,7 +4,7 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import type { Data, DataItem, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:filters?/:order?',
@@ -94,7 +94,7 @@ async function handler(ctx: Context): Promise<Data> {
             if (dateNode?.nodeType !== 3) {
                 throw new Error(`3kns: no release date text found for "${title}"`);
             }
-            const pubDate = dateNode.data.trim();
+            const pubDate = dateNode.data;
             return {
                 title,
                 link: new URL($item.find('.entry-media a').attr('href')!, baseUrl).href,

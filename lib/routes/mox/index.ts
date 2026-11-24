@@ -1,5 +1,4 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 import { escapeUTF8 } from 'entities/escape';
 import pMap from 'p-map';
 
@@ -31,10 +30,9 @@ async function getPage(url: string, cookie: string | undefined, redirects = 0): 
         throw new Error('Kmoe content must be requested from https://kxx.moe.');
     }
 
-    const response = await ofetch.raw<string, 'text'>(target.href, {
+    const response = await ofetch.raw<string>(target.href, {
         headers: cookie ? { cookie } : undefined,
         redirect: 'manual',
-        responseType: 'text',
     });
     if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get('location');
@@ -52,15 +50,6 @@ async function getPage(url: string, cookie: string | undefined, redirects = 0): 
     }
 
     return response._data ?? '';
-}
-
-function copyElements<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, element) => cloneNode(element, true));
-    const root = new Document(copy.toArray());
-    copy.each((_, element) => {
-        element.parent = root;
-    });
-    return copy;
 }
 
 export const route: Route = {
@@ -98,14 +87,14 @@ export const route: Route = {
 };
 
 function getDescription(content: string): string {
-    const description = content.match(/document\.getElementById\("div_desc_content"\)\.innerHTML\s*=\s*("(?:\\.|[^"\\])*")\s*;/s)?.[1];
+    const description = /document\.getElementById\("div_desc_content"\)\.innerHTML\s*=\s*("(?:\\.|[^"\\])*")\s*;/s.exec(content)?.[1];
     return description ? JSON.parse(description) : '';
 }
 
 async function handler(ctx) {
     const category = ctx.req.param('category') ?? '';
 
-    const currentUrl = `${rootUrl}${category ? `/l/${category}` : ''}`;
+    const currentUrl = `${rootUrl}${category ? `/l/${encodeURIComponent(category)}` : ''}`;
 
     const cookie = config.mox.cookie;
     const page = await getPage(currentUrl, cookie);
@@ -134,29 +123,24 @@ async function handler(ctx) {
         .filter((i) => i.guid);
 
     if (!items.length) {
-        items = $('script')
-            .toArray()
-            .flatMap((script) =>
-                Array.from(
-                    $(script)
-                        .text()
-                        .matchAll(/disp_divinfo\(\s*"div_info_"\s*\+\s*"\d+",([\s\S]*?)\);/g),
-                    (match) => {
-                        const values = Array.from(match[1].matchAll(/"(?:\\.|[^"\\])*"/g), (value) => JSON.parse(value[0]));
-                        const link = getItemLink(values[0], currentUrl);
-                        return link
-                            ? {
-                                  title: values[8],
-                                  author: values[9] || undefined,
-                                  link,
-                                  guid: new URL(link).pathname.split('/').pop(),
-                                  description: values[1] ? `<img src="${escapeUTF8(values[1])}">` : undefined,
-                              }
-                            : undefined;
-                    }
-                )
-            )
-            .filter((item) => item !== undefined);
+        items = Array.from(
+            $('script:contains("disp_divinfo")')
+                .text()
+                .matchAll(/disp_divinfo\(\s*"div_info_"\s*\+\s*"\d+",([\s\S]*?)\);/g),
+            (match) => {
+                const values = Array.from(match[1].matchAll(/"(?:\\.|[^"\\])*"/g), (value) => JSON.parse(value[0]));
+                const link = getItemLink(values[0], currentUrl);
+                return link
+                    ? {
+                          title: values[8],
+                          author: values[9],
+                          link,
+                          guid: new URL(link).pathname.split('/').pop(),
+                          description: values[1] ? `<img src="${escapeUTF8(values[1])}">` : undefined,
+                      }
+                    : undefined;
+            }
+        ).filter((item) => item !== undefined);
     }
 
     if (cookie) {
@@ -173,7 +157,7 @@ async function handler(ctx) {
                         .filter(Boolean)
                         .join('、');
 
-                    const categoryBlock = copyElements(content('.author .text_bglight').filter((_, element) => content(element).text().trimStart().startsWith('分類：')));
+                    const categoryBlock = content('.author .text_bglight').filter((_, element) => content(element).text().trimStart().startsWith('分類：'));
                     categoryBlock.find('.filesize').remove();
                     const category = categoryBlock
                         .children('font')

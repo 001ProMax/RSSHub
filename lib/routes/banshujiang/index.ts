@@ -7,12 +7,12 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category } = ctx.req.param();
     const limit = getRouteLimit(ctx, 20);
 
@@ -102,7 +102,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                     ...new Set(
                         $$('table tr')
                             .toArray()
-                            .filter((el) => ['语言：', '编程语言：', '移动开发：', '操作系统：', '数据库：', '开源软件：', '其他分类：'].includes($$(el).find('td').first().text().trim()))
+                            .filter((el) => ['语言：', '编程语言：', '移动开发：', '操作系统：', '数据库：', '开源软件：', '其他分类：'].includes($$(el).find('td').first().text()))
                             .map((el) => $$(el).find('td').last().text())
                             .filter(Boolean)
                     ),

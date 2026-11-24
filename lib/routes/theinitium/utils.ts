@@ -8,7 +8,7 @@ import type { Data } from '@/types';
 import cache from '@/utils/cache';
 import logger from '@/utils/logger';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 // Strip '-zh-hans' suffix from display names for cleanliness
 const stripLangSuffix = (name: string) => name.replace(/-zh-hans$/i, '');
@@ -184,8 +184,8 @@ export async function postsToItems(posts: GhostPost[]) {
                 category: categories,
                 description,
                 link: post.url,
-                pubDate: post.published_at ? parseDate(post.published_at) : undefined,
-                updated: post.updated_at ? parseDate(post.updated_at) : undefined,
+                pubDate: parseDate(post.published_at),
+                updated: parseDate(post.updated_at),
                 guid: post.uuid,
                 banner: post.feature_image,
             };
@@ -201,8 +201,8 @@ export const processFeed = async (model: string, ctx: Context): Promise<Data> =>
     const language = ctx.req.param('language') ?? '';
 
     let filter = '';
-    let listLink = '';
-    let feedName = '';
+    let listLink: string;
+    let feedName: string;
 
     switch (model) {
         case 'channel': {

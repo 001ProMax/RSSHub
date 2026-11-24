@@ -4,7 +4,7 @@ import { config } from '@/config';
 import type { Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 type NewsItem = {
     cid: string;
@@ -18,18 +18,13 @@ type NewsItem = {
     brief: string;
 };
 
-const parsePublicationDate = (value: number) => {
-    const date = Number.isFinite(value) && value > 0 ? parseDate(value, 'X') : undefined;
-    return date && Number.isFinite(date.getTime()) ? date : undefined;
-};
-
 const parseList = (list: NewsItem[]) =>
     list.map((item) => ({
         title: item.title,
         author: item.author,
         description: item.brief.trim().replaceAll('\n', '<br>'),
         link: `https://endfield.hypergryph.com/news/${item.cid}`,
-        pubDate: parsePublicationDate(item.displayTime),
+        pubDate: parseDate(item.displayTime, 'X'),
     }));
 
 export const route: Route = {

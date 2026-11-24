@@ -7,11 +7,10 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { id = 'yw' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
 
@@ -58,17 +57,12 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
                 const title: string = $$('div.detail-title').text();
                 const description = $$('div.detail-content').html();
-                const pubDateStr: string | undefined = $$('div.detail-info')
-                    .children('span')
-                    .filter((_, el) => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2})?$/.test($$(el).text()))
-                    .last()
-                    .text();
+                const pubDateStr: string | undefined = $$('div.detail-info').children('span').last().text();
                 const categories: string[] = $$('meta[name="keywords"]').attr('content')?.split(/,/) ?? [];
                 const authors: DataItem['author'] =
                     $$('div.detail-info')
                         .children('span')
                         .filter((_, el) => $$(el).text().startsWith('作者：'))
-                        .first()
                         .text()
                         .replace(/^作者：/, '') || $$('div.detail-info span').first().text().split(/：/).pop();
                 const upDatedStr: string | undefined = pubDateStr;
@@ -76,14 +70,14 @@ export const handler = async (ctx: Context): Promise<Data> => {
                 const processedItem: DataItem = {
                     title,
                     description,
-                    pubDate: pubDateStr ? timezone(parseDate(pubDateStr), 8) : undefined,
+                    pubDate: pubDateStr ? parseDate(pubDateStr, 8) : undefined,
                     category: categories,
                     author: authors,
                     content: {
                         html: description,
                         text: $$('div.detail-content').text(),
                     },
-                    updated: upDatedStr ? timezone(parseDate(upDatedStr), 8) : undefined,
+                    updated: upDatedStr ? parseDate(upDatedStr, 8) : undefined,
                 };
 
                 return processedItem;

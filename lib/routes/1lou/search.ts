@@ -2,15 +2,15 @@ import type { Context } from 'hono';
 
 import type { DataItem, Language, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { parseItems } from './util';
 
 const rootUrl = 'https://www.1lou.me';
 const apiUrl = 'https://www.1lou.me/search/api/search.php';
 
-export const handler = async (ctx: Context) => {
+const handler = async (ctx: Context) => {
     const { params } = ctx.req.param();
     const limit = getRouteLimit(ctx, 50);
 

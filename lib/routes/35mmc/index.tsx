@@ -8,8 +8,8 @@ import type { DataItem, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.35mmc.com';
 
@@ -80,8 +80,7 @@ export const route: Route = {
 
 async function handler(ctx) {
     const categorySlug = ctx.req.param('category');
-    const requestedLimit = getRouteLimit(ctx, 10);
-    const limit = Math.min(Math.max(requestedLimit, 1), 100);
+    const limit = Math.min(getRouteLimit(ctx, 10), 100);
 
     const category = categorySlug
         ? await cache.tryGet(`35mmc:category:${categorySlug}`, async () => {

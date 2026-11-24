@@ -1,20 +1,11 @@
-import MarkdownIt from 'markdown-it';
-
 import type { Data, Route } from '@/types';
+import MarkdownIt from '@/utils/markdown-it';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const md = MarkdownIt({
     html: true,
 });
-
-function getPublicationDate(value?: string) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
 
 export const route: Route = {
     path: '/developer/harmonyos/sample-code',
@@ -62,7 +53,7 @@ async function handler(): Promise<Data> {
         link: item.link,
         description: md.render(item.description),
         category: item.keywords,
-        pubDate: getPublicationDate(item.updateTime),
+        pubDate: parseDate(item.updateTime),
         author: 'HarmonyOS',
         id: item.id,
         image: item.effectPictureUrl,

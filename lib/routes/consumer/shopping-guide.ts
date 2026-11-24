@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/shopping-guide/:category?/:language?',
@@ -45,16 +44,15 @@ async function handler(ctx) {
         .map((item) => {
             const $item = $(item);
 
-            const info = $item
+            const [publishedAt, ...info] = $item
                 .find('.item-info li')
                 .toArray()
                 .map((item) => $(item).text().trim());
-            const publishedAt = info.shift();
             return {
                 title: $item.find('h2').text(),
                 description: $item.find('p').text().trim(),
                 link: `${rootUrl}${$item.attr('href')}`,
-                pubDate: publishedAt ? timezone(parseDate(publishedAt, 'YYYY-MM-DD'), 8) : undefined,
+                pubDate: parseDate(publishedAt, 'YYYY-MM-DD', 8),
                 category: info,
             };
         });
@@ -86,7 +84,7 @@ async function handler(ctx) {
     return {
         title: $('head title').text(),
         link: currentUrl,
-        language: ($('html').attr('lang') ?? (language === 'tc' ? 'zh-HK' : 'zh-CN')) as Language,
+        language: $('html').attr('lang') as Language,
         image: $('meta[property="og:image"]').attr('content'),
         logo: $('link[rel="apple-touch-icon"]').attr('href'),
         icon: $('link[rel="apple-touch-icon"]').attr('href'),

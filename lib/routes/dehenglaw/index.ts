@@ -4,14 +4,13 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { compareDates, parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 import { renderDescription } from './templates/description';
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { language = 'CN', category = 'paper' } = ctx.req.param();
     if (!isValidHost(language)) {
         throw new InvalidParameterError('Invalid language');
@@ -34,7 +33,6 @@ export const handler = async (ctx) => {
             const $item = $(item);
 
             const title = $item.find('h2').text();
-            const date = $item.find('span').text();
             const description = renderDescription({
                 intro: $item.find('div.deheng_newscontent p').text(),
             });
@@ -42,13 +40,13 @@ export const handler = async (ctx) => {
             return {
                 title,
                 description,
-                pubDate: date ? timezone(parseDate(date, 'YYYY/M/D'), 8) : undefined,
+                pubDate: parseDate($item.find('span').text(), 'YYYY/M/D', 8),
                 link: $item.find('a').prop('href'),
             };
         });
 
     if (ctx.req.query('sorted') !== 'false') {
-        items.sort((a, b) => +(b.pubDate ?? 0) - +(a.pubDate ?? 0));
+        items.sort((a, b) => compareDates(b.pubDate, a.pubDate));
     }
     items = items.slice(0, limit);
 

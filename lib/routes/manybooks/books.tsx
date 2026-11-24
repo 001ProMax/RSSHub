@@ -1,4 +1,5 @@
 import { load } from 'cheerio';
+import { raw } from 'hono/html';
 import { renderToString } from 'hono/jsx/dom/server';
 
 import InvalidParameterError from '@/errors/types/invalid-parameter';
@@ -33,31 +34,30 @@ export const route: Route = {
 export async function getBooks(link: string, selector: string) {
     const response = await ofetch(link);
     const $ = load(response);
-    const items = $(selector)
+    return $(selector)
         .find('article')
         .toArray()
         .map((element) => {
             const book = $(element);
             const title = book.find('.field--name-field-title a, .block-field-blocknodeebook-featuretitle a').first();
-            const image = book.find('img').first();
-            const imageUrl = image.attr('data-src') ?? image.attr('src');
+            const image = book.find('img');
+            const imageUrl = image.attr('src');
             return {
                 title: title.text(),
                 link: new URL(title.attr('href')!, link).href,
-                author: book.find('.field--name-field-author-er, .field--name-field-af-name').first().text() || undefined,
+                author: book.find('.field--name-field-author-er, .field--name-field-af-name').text(),
                 category: book
                     .find('.field--name-field-eb-genre a')
                     .toArray()
                     .map((tag) => $(tag).text()),
                 description: renderToString(
                     <>
-                        {imageUrl && <img src={new URL(imageUrl, link).href} alt="" />}
-                        <div dangerouslySetInnerHTML={{ __html: book.find('.field--name-body').html() ?? '' }} />
+                        <img src={imageUrl} alt="" />
+                        <div>{raw(book.find('.field--name-body').html() ?? '')}</div>
                     </>
                 ),
             };
         });
-    return new Map(items.map((item) => [item.link, item])).values().toArray();
 }
 
 async function handler(ctx) {

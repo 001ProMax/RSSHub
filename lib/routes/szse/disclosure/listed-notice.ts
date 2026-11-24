@@ -5,9 +5,8 @@ import type { Context } from 'hono';
 import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 function isValidDate(dateString: string): boolean {
     // Validate the YYYY-MM-DD format.
@@ -18,13 +17,13 @@ function isValidDate(dateString: string): boolean {
 
     // Reject impossible calendar dates, such as 2025-02-30.
     const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(year, month - 1, day); // Months are zero-indexed.
+    const date = Temporal.PlainDate.from({ year, month, day });
 
     // Ensure that the parsed date matches the input.
-    return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+    return date.year === year && date.month === month && date.day === day;
 }
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category = '' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 50);
     const query: string = ctx.req.param('query') ?? '';
@@ -83,16 +82,16 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
             let processedItem: DataItem = {
                 title,
-                pubDate: pubDate ? timezone(parseDate(pubDate), 8) : undefined,
+                pubDate: pubDate ? parseDate(pubDate, 8) : undefined,
                 link: new URL(linkUrl, baseUrl).href,
                 category: categories,
                 guid,
                 id: guid,
-                updated: updated ? timezone(parseDate(updated), 8) : undefined,
+                updated: updated ? parseDate(updated, 8) : undefined,
                 language,
             };
 
-            const enclosureUrl: string | undefined = item.attachPath ? new URL(`download${item.attachPath}`, staticBaseUrl).href : undefined;
+            const enclosureUrl: string | undefined = new URL(`download${item.attachPath}`, staticBaseUrl).href;
 
             if (enclosureUrl) {
                 const enclosureType = `application/${item.attachFormat}`;

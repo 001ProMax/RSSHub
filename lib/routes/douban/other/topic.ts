@@ -4,8 +4,8 @@ import { config } from '@/config';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import md5 from '@/utils/md5';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { md5 } from '@/utils/hash';
+import { parseDate } from '@/utils/time';
 
 import { getIpLocations } from '../ip-location';
 
@@ -34,7 +34,7 @@ async function handler(ctx) {
 
     const link = `https://www.douban.com/gallery/topic/${id}/?sort=${sort}`;
 
-    const api = `https://m.douban.com/rexxar/api/v2/gallery/topic/${id}/items?sort=${sort}&start=0&count=10&status_full_text=1`;
+    const api = `https://m.douban.com/rexxar/api/v2/gallery/topic/${encodeURIComponent(id)}/items?sort=${sort}&start=0&count=10&status_full_text=1`;
     const response = await got({
         method: 'GET',
         url: api,
@@ -110,7 +110,7 @@ async function handler(ctx) {
                 title,
                 link,
                 author,
-                pubDate: date ? parseDateInTimezone(date, 8) : undefined,
+                pubDate: date ? parseDate(date, 8) : undefined,
                 description,
             };
 

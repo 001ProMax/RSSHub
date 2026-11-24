@@ -5,9 +5,9 @@ import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import logger from '@/utils/logger';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -104,7 +104,7 @@ async function extractFullText(slug: string, buildId: string): Promise<{ descrip
         return {
             description: $.html(),
             imageUrl: article.imageUrl,
-            category: [...new Set([...article.categories, ...article.tags.map((tag) => (typeof tag === 'string' ? tag : tag.name))])],
+            category: [...new Set([...article.categories, ...article.tags.map((tag) => tag.name)])],
         };
     } catch (error) {
         logger.error('Error extracting full text from Blockworks:', error);

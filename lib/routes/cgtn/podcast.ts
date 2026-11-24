@@ -1,8 +1,7 @@
 import NotFoundError from '@/errors/types/not-found';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 async function getData(category, id) {
     const url = `https://radio.cgtn.com/downapiRES/radio/v1/program/historyList/programId${id}_category${category}_page1.json`;
@@ -12,7 +11,7 @@ async function getData(category, id) {
 
 function combDate(date, time) {
     // combine date and time, return a Date object
-    return timezone(parseDate(date + ' ' + time), 8);
+    return parseDate(date + ' ' + time, 8);
 }
 
 function getTitleSlug(title: string): string {
@@ -72,8 +71,8 @@ async function handler(ctx) {
     }));
     return {
         title: `中国环球电视网 CGTN Podcast - ${data.info}`,
-        link: `https://radio.cgtn.com/podcast/column/${category}/${getTitleSlug(data.data[0]?.programTitle ?? id)}/${id}`,
+        link: `https://radio.cgtn.com/podcast/column/${category}/${getTitleSlug(data.data[0].programTitle)}/${id}`,
         item: items,
-        description: String(data.info),
+        description: data.info,
     };
 }

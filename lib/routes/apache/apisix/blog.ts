@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 async function getArticles() {
     const url = 'https://apisix.apache.org/zh/blog/';
@@ -16,7 +16,7 @@ async function getArticles() {
             title: a.find('h3').text(),
             description: a.find('.desc').text(),
             link: new URL(a.attr('href')!, url).href,
-            pubDate: parseDate(date.trim(), 'YYYY年M月D日'),
+            pubDate: parseDate(date, 'YYYY年M月D日'),
             author: author?.trim(),
             category: a.find('.cover-fallback span').text() || undefined,
         };

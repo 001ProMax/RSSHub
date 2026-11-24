@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { toInstant } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog',
@@ -17,7 +17,7 @@ export const route: Route = {
 
 function extractDateFromURL(url: string) {
     const regex = /\d{4}-\d{2}-\d{2}/;
-    const match = url.match(regex);
+    const match = regex.exec(url);
     return match?.[0];
 }
 
@@ -63,10 +63,9 @@ async function handler() {
                 const articlePubDate = $('tr.added-on.field td.field-body').text();
 
                 item.author = author;
-                const pubDate = item.pubDate || articlePubDate;
-                item.pubDate = pubDate ? parseDate(pubDate) : undefined;
+                item.pubDate = toInstant(item.pubDate || articlePubDate);
                 $('div.document > h1.title, div.document > table.docinfo').remove();
-                item.description = $('div.document').first().html();
+                item.description = $('div.document').html();
 
                 return item;
             })

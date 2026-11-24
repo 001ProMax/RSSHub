@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 import { fetchArticle } from '@/utils/wechat-mp';
 
 export const route: Route = {
@@ -40,11 +40,10 @@ async function handler(ctx) {
         .map((item) => {
             const $item = $(item);
 
-            const published = $item.find('.time').text().trim();
             return {
                 title: $item.find('.tit').text(),
                 link: $item.find('a').attr('href'),
-                pubDate: published ? parseDate(`${published} +0000`, 'MM/DD/YYYY ZZ') : undefined,
+                pubDate: parseDate(`${$item.find('.time').text()} +0000`, 'MM/DD/YYYY ZZ'),
             };
         });
 

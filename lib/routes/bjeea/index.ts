@@ -4,12 +4,10 @@ import { FetchError } from 'ofetch';
 import pMap from 'p-map';
 
 import InvalidParameterError from '@/errors/types/invalid-parameter';
-import NotFoundError from '@/errors/types/not-found';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:type',
@@ -54,15 +52,11 @@ async function getArticle(item: DataItem & { link: string }) {
     try {
         const description = await cache.tryGet(`bjeea:article:${item.link}`, async () => {
             const response = await ofetch(item.link);
-            const content = load(response)('div.info-txt').html();
-            if (!content) {
-                throw new NotFoundError('The source did not provide article content.');
-            }
-            return content;
+            return load(response)('div.info-txt').html();
         });
         return { ...item, description };
     } catch (error) {
-        if (error instanceof FetchError || error instanceof NotFoundError) {
+        if (error instanceof FetchError) {
             return item;
         }
         throw error;
@@ -87,7 +81,7 @@ async function handler(ctx: Context) {
             const link = new URL($item.find('a').attr('href')!, baseUrl).href;
             return {
                 title,
-                pubDate: timezone(parseDate($item.find('span').text()), 8),
+                pubDate: parseDate($item.find('span').text(), 8),
                 link,
                 guid: link,
             };

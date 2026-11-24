@@ -4,8 +4,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const CATEGORY_MAP = {
     domestic: 'domestic',
@@ -61,7 +60,7 @@ async function handler(ctx) {
             title: $item.find('.item_title a').text(),
             author: $item.find('.item_source').text(),
             category: `${categoryTitle}新闻`,
-            pubDate: timezone(parseDate($item.find('.item_time').text()), 8),
+            pubDate: parseDate($item.find('.item_time').text(), 8),
             link: $item.find('li a').attr('href'),
         };
     });
@@ -70,13 +69,12 @@ async function handler(ctx) {
             cache.tryGet(entry.link!, async () => {
                 const { data: detail } = await got(entry.link!);
                 const $$ = load(detail);
-                const articleInfo = $$('.article_info, #chan_newsInfo').first();
+                const articleInfo = $$('.article_info, #chan_newsInfo');
                 const articleDate = articleInfo.find('.time').text();
                 return {
                     ...entry,
-                    title: $$('h1').text() || entry.title,
-                    description: $$('#js_article_content, #chan_newsDetail').first().html(),
-                    pubDate: articleDate ? timezone(parseDate(articleDate), 8) : entry.pubDate,
+                    description: $$('#js_article_content, #chan_newsDetail').html(),
+                    pubDate: articleDate ? parseDate(articleDate, 8) : entry.pubDate,
                     author:
                         articleInfo
                             .find('.source')

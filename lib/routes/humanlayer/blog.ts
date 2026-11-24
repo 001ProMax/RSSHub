@@ -4,15 +4,7 @@ import pMap from 'p-map';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-
-function getPublicationDate(value?: string) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog',
@@ -66,7 +58,7 @@ async function handler(): Promise<Data> {
                 link: `${baseUrl}${href}`,
                 author,
                 description,
-                pubDate: getPublicationDate(dateStr),
+                pubDate: parseDate(dateStr) ?? parseDate(dateStr, 'MMMM D, YYYY'),
                 category,
             };
         });
@@ -89,7 +81,7 @@ async function handler(): Promise<Data> {
                 return {
                     title: ogTitle,
                     description: content || ogDesc,
-                    pubDate: getPublicationDate(publishedTime),
+                    pubDate: publishedTime ? parseDate(publishedTime) : undefined,
                     author: ogAuthor,
                     banner: ogImage,
                 };

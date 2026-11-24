@@ -1,11 +1,10 @@
-import MarkdownIt from 'markdown-it';
-
 import type { Data, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import MarkdownIt from '@/utils/markdown-it';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://konek.hn.plus';
-const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true });
+const markdown = MarkdownIt({ html: false, linkify: true, breaks: true });
 
 interface Post {
     id: number;
@@ -45,10 +44,6 @@ async function handler(): Promise<Data> {
         },
         headers: { accept: 'application/json' },
     });
-
-    if (!Array.isArray(posts)) {
-        throw new TypeError('Konek /contents returned an unexpected response');
-    }
 
     return {
         title: 'Deep Web Konek - Newest',

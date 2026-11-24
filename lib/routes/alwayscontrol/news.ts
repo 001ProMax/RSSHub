@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 import { finishArticleItem } from '@/utils/wechat-mp';
 
 const baseUrl = 'https://www.alwayscontrol.com.cn';
@@ -39,7 +39,7 @@ async function handler(): Promise<Data> {
     // 获取新闻列表页面
     const response = await got(listUrl);
     const $ = load(response.data);
-    const image = $('header img').first().attr('src');
+    const image = $('header img').attr('src');
 
     // 解析新闻列表
     const list = $('div.grid > a')

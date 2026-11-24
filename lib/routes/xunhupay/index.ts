@@ -5,7 +5,7 @@ import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import buildData from '@/utils/common-config';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.xunhupay.com';
 
@@ -34,17 +34,9 @@ export const route: Route = {
 };
 
 async function fetchArticleContent(link: string): Promise<Pick<DataItem, 'description'>> {
-    const response = await ofetch(link, { responseType: 'text' });
+    const response = await ofetch(link);
     const $ = load(response);
-    return { description: $('.blogc-left > div.line24').first().html() ?? undefined };
-}
-
-function parseArticleDate(value?: string) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value, 'YYYY-MM-DD', true);
-    return Number.isNaN(date.getTime()) ? undefined : date;
+    return { description: $('.blogc-left > div.line24').html() };
 }
 
 async function handler() {
@@ -59,21 +51,18 @@ async function handler() {
             title: ($) => $('h5').text(),
             link: ($) => $('a').attr('href'),
             description: ($) => $('.content').text(),
-            pubDate: ($) => parseArticleDate($('.date').text()),
+            pubDate: ($) => parseDate($('.date').text(), 'YYYY-MM-DD'),
             guid: ($) => {
                 const href = $('a').attr('href');
-                return href ? Buffer.from(href).toString('base64') : undefined;
+                return href ? Buffer.from(href).toBase64() : undefined;
             },
         },
     });
     const items = await pMap(
         data.item,
         async (item) => {
-            if (!item.link) {
-                return item;
-            }
             const details = await cache.tryGet(`xunhupay:article:${item.link}`, () => fetchArticleContent(item.link!));
-            return { ...item, description: details.description ?? item.description };
+            return { ...item, description: details.description };
         },
         { concurrency: 3 }
     );

@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/xszq',
@@ -38,7 +37,7 @@ async function handler() {
             return {
                 title: a.text(),
                 link: new URL(a.attr('href')!, host).href,
-                pubDate: timezone(parseDate($item.find('.column-news-date').text()), 8),
+                pubDate: parseDate($item.find('.column-news-date').text(), 8),
             };
         });
 
@@ -50,11 +49,10 @@ async function handler() {
                 const $detail = load(detail);
                 const author = $detail('.arti-metas span')
                     .toArray()
-                    .map((span) => $detail(span).text().trim())
+                    .map((span) => $detail(span).text())
                     .find((text) => text.startsWith('作者：'))
-                    ?.replace(/^作者：/, '')
-                    .trim();
-                return { description: $detail('.wp_articlecontent').html(), author: author || undefined };
+                    ?.replace(/^作者：/, '');
+                return { description: $detail('.wp_articlecontent').html(), author };
             });
             return { ...item, ...detail };
         },

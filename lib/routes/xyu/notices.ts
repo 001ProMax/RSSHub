@@ -1,42 +1,32 @@
-import { type CheerioAPI, load } from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 import { fixArticleContent } from '@/utils/wechat-mp';
 
 function getWechatAuthor(content: CheerioAPI) {
-    const author = content('script')
-        .toArray()
-        .map((element) => {
-            try {
-                const literal = content(element)
-                    .text()
-                    .match(/\bvar\s+author\s*=\s*("(?:\\.|[^"\\])*")/)?.[1];
-                return literal ? JSON.parse(literal) : undefined;
-            } catch {
-                return;
-            }
-        })
-        .find((value) => typeof value === 'string' && value.trim());
+    const literal = content('script:contains("var author = ")')
+        .text()
+        .match(/\bvar\s+author\s*=\s*("(?:\\.|[^"\\])*")/)?.[1];
+    const author: string | undefined = literal ? JSON.parse(literal) : undefined;
 
-    return typeof author === 'string' ? author : content('#js_name').text().trim() || undefined;
+    return author?.trim() ? author : content('#js_name').text().trim();
 }
 
 function parseWechatPublication(content: string) {
-    const timestamp = content.match(/\bvar\s+ct\s*=\s*["'](\d+)["']\s*;/)?.[1];
+    const timestamp = /\bvar\s+ct\s*=\s*["'](\d+)["']\s*;/.exec(content)?.[1];
     if (!timestamp) {
         return;
     }
 
-    const date = parseDate(timestamp, 'X');
-    return Number.isFinite(date.getTime()) ? date : undefined;
+    return parseDate(timestamp, 'X');
 }
 
-async function fetchDetails(url: string): Promise<{ description?: string; pubDate?: Date; author?: string }> {
+async function fetchDetails(url: string): Promise<{ description?: string; pubDate?: Temporal.Instant; author?: string }> {
     try {
         const response = await ofetch(url);
         const $ = load(response);
@@ -45,18 +35,17 @@ async function fetchDetails(url: string): Promise<{ description?: string; pubDat
             return { description: fixArticleContent(wechatContent) || undefined, pubDate: parseWechatPublication(response), author: getWechatAuthor($) };
         }
 
-        const content = $('.v_news_content').first();
+        const content = $('.v_news_content');
         if (!content.length) {
             return {};
         }
 
         const attachments = $('form[name="_newscontent_fromname"] a[href*="DownloadAttachUrl"], .art-body a[href*="DownloadAttachUrl"]')
-            .filter((_, link) => !$(link).closest('.v_news_content').length)
             .toArray()
             .map((link) => `<li>${$.html(link)}</li>`)
             .join('');
 
-        return { description: `${content.html() ?? ''}${attachments ? `<ul>${attachments}</ul>` : ''}` || undefined };
+        return { description: `${content.html()}${attachments ? `<ul>${attachments}</ul>` : ''}` };
     } catch {
         return {};
     }
@@ -119,7 +108,7 @@ async function handler() {
                 title,
                 link: new URL(link, baseUrl).href,
                 description: description || undefined,
-                pubDate: timezone(parseDate(dateText, 'YYYY-MM-DD'), 8),
+                pubDate: parseDate(dateText, 'YYYY-MM-DD', 8),
             };
         })
         .filter((item) => item !== null);

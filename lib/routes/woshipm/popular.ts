@@ -2,7 +2,7 @@ import pMap from 'p-map';
 
 import type { DataItem, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { baseUrl, parseArticle } from './utils';
 
@@ -11,14 +11,6 @@ const rangeMap = {
     weekly: '周榜',
     monthly: '月榜',
 };
-
-function parsePublicationTime(value?: number) {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-        return;
-    }
-    const date = parseDate(value, 'x');
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
 
 const parseArticleResult = async (item: DataItem) => {
     const [result] = await Promise.allSettled([parseArticle(item)]);
@@ -63,7 +55,7 @@ async function handler(ctx) {
             title: item.articleTitle,
             description: item.articleSummary,
             link: `${baseUrl}/${item.type || 'ai'}/${item.id}.html`,
-            pubDate: parsePublicationTime(item.publishTime),
+            pubDate: parseDate(item.publishTime, 'x'),
             author: item.articleAuthor,
         };
     });

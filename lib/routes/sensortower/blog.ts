@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -59,10 +59,8 @@ async function handler(ctx) {
         url: currentUrl,
     });
 
-    const $ = load(response.data);
-    const data = JSON.parse($('#__NEXT_DATA__').text()).props.pageProps.pageData.page;
-    const links: string[] = data.contents.flatMap((content) => content.collection?.itemsConnection?.items?.map((item) => item.link?.href).filter(Boolean) ?? []);
-    const list = [...new Set(links)].map((link) => ({ link: new URL(link, currentUrl).href }));
+    const data = JSON.parse(response.data.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/)[1]).props.pageProps.pageData.page;
+    const list: Array<{ link: string }> = data.contents.flatMap((content) => content.collection.itemsConnection.items.map((item) => ({ link: new URL(item.link.href, currentUrl).href })));
 
     const items = await pMap(
         list,
@@ -76,19 +74,18 @@ async function handler(ctx) {
                 const content = load(detailResponse.data);
                 const detail = JSON.parse(content('#__NEXT_DATA__').text()).props.pageProps.pageData.page;
 
-                const imageUrl = detail.featuredMedia?.file?.url;
-                const image = imageUrl ? new URL(imageUrl, item.link).href : undefined;
+                const image = new URL(detail.featuredMedia.file.url, item.link).href;
 
                 return {
                     ...item,
                     image,
                     title: detail.title,
-                    author: detail.author?.name,
-                    pubDate: detail.pubDateIso ? parseDate(detail.pubDateIso) : undefined,
-                    category: [...(detail.tags?.map((tag) => tag.title) ?? []), ...(detail.category?.map((category) => category.title) ?? [])],
+                    author: detail.author.name,
+                    pubDate: parseDate(detail.pubDateIso),
+                    category: [...(detail.tags?.map((tag) => tag.title) ?? []), ...detail.category.map((category) => category.title)],
                     description: renderDescription({
                         image,
-                        description: content('main [data-testid="Text-root"]').first().html() ?? undefined,
+                        description: content('main [data-testid="Text-root"]').html() ?? undefined,
                     }),
                 };
             }),

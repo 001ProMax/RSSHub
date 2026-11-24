@@ -4,7 +4,7 @@ import type { Context } from 'hono';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://jwc.henu.edu.cn';
 
@@ -46,13 +46,10 @@ async function handler(ctx: Context) {
         title: $('title').text(),
         item: $('.article-list li')
             .toArray()
-            .map((elem): DataItem => {
-                const date = $('.article-date', elem).text();
-                return {
-                    link: new URL($('a', elem).attr('href')!, link).href,
-                    title: $('.article-title', elem).text(),
-                    pubDate: date ? parseDateInTimezone(date, 8) : undefined,
-                };
-            }),
+            .map((elem): DataItem => ({
+                link: new URL($('a', elem).attr('href')!, link).href,
+                title: $('.article-title', elem).text(),
+                pubDate: parseDate($('.article-date', elem).text(), 8),
+            })),
     };
 }

@@ -5,9 +5,9 @@ import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import logger from '@/utils/logger';
-import { parseDate } from '@/utils/parse-date';
+import { getRouteLimit } from '@/utils/route-limit';
 import parser from '@/utils/rss-parser';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/archives',
@@ -25,7 +25,7 @@ export const route: Route = {
     description: 'Enterprise Craftsmanship blog archives',
 };
 
-async function handler() {
+async function handler(ctx) {
     const rootUrl = 'https://enterprisecraftsmanship.com';
     const currentUrl = `${rootUrl}/archives`;
 
@@ -45,6 +45,7 @@ async function handler() {
     const dates = new Map(Object.entries(publishedDates));
 
     let items = $('.postIndexItem')
+        .slice(0, getRouteLimit(ctx, 20))
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
@@ -52,7 +53,7 @@ async function handler() {
             const link = new URL($item.find('.title a').attr('href')!, currentUrl).href;
             const dateStr = $item.find('.date').text().trim();
             const publishedDate = dates.get(link);
-            const pubDate = publishedDate ? parseDate(publishedDate) : dateStr ? timezone(parseDate(dateStr), 0) : undefined;
+            const pubDate = publishedDate ? parseDate(publishedDate) : parseDate(dateStr, 0);
 
             return {
                 title,
@@ -60,7 +61,6 @@ async function handler() {
                 pubDate,
             };
         });
-    const hasDates = items.every((item) => dates.has(item.link!) && item.pubDate && !Number.isNaN(parseDate(item.pubDate).getTime()));
 
     items = await pMap(
         items,
@@ -69,11 +69,6 @@ async function handler() {
                 try {
                     const detailResponse = await got(item.link);
                     const $detail = load(detailResponse.data);
-
-                    const published = $detail('.post-info time[datetime]').attr('datetime');
-                    if (published && !hasDates) {
-                        item.pubDate = parseDate(published.replace(/\sUTC$/, ''), 'YYYY-MM-DD HH:mm:ss ZZ');
-                    }
 
                     // Keep every article paragraph and section, excluding page metadata and subscription widgets.
                     item.description = $detail('.post > .paragraph, .post > .sect1')

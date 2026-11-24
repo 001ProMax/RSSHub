@@ -4,15 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-
-function getPublicationDate(value: string): Date | undefined {
-    if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {
-        return;
-    }
-    const date = parseDate(value, 'YYYY-MM-DD HH:mm:ss', true);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-}
+import { parseDate } from '@/utils/time';
 
 async function getPreviewItem(item: DataItem & { link: string }): Promise<DataItem> {
     const details = await cache.tryGet<Pick<DataItem, 'description'>>(item.link, async () => {
@@ -95,7 +87,7 @@ async function handler(ctx) {
                 title: a.attr('title')!,
                 guid,
                 link: guid,
-                pubDate: getPublicationDate(item.find('td:nth-of-type(5)').text()),
+                pubDate: parseDate(item.find('td:nth-of-type(5)').text()),
                 enclosure_url: torrentUrl ? new URL(torrentUrl, rootUrl).href : undefined,
                 enclosure_type: 'application/x-bittorrent',
             };

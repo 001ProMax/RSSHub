@@ -2,8 +2,8 @@ import { load } from 'cheerio';
 
 import type { DataItem, Language, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 import { rootUrl } from './utils';
 
@@ -33,7 +33,7 @@ export const route: Route = {
 
 async function handler() {
     const link = `${rootUrl}/docs/changelog`;
-    const [xml, html] = await Promise.all([ofetch(`${link}/rss.xml`, { responseType: 'text' }), ofetch(link, { responseType: 'text' })]);
+    const [xml, html] = await Promise.all([ofetch(`${link}/rss.xml`, { responseType: 'text' }), ofetch(link)]);
     const feed = await parser.parseString(xml);
     const $ = load(html);
     const items = feed.items.map((item): DataItem => {
@@ -50,7 +50,7 @@ async function handler() {
             title: item.title!,
             link: item.link,
             guid: item.guid,
-            description: content.html() ?? undefined,
+            description: content.html(),
             pubDate: item.pubDate ? parseDate(item.pubDate) : undefined,
         };
     });

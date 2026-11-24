@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { Data, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://ic.buaa.edu.cn';
 
@@ -42,12 +41,10 @@ async function handler(ctx): Promise<Data> {
     const { path = 'tzgg' } = ctx.req.param();
     const url = `${baseUrl}/${path}.htm`;
     const { title, list } = await getList(url);
-    const orderedList = list;
-    const entries = orderedList;
     return {
         title,
         link: url,
-        item: await getItems(entries),
+        item: await getItems(list),
         language: 'zh-CN',
     };
 }
@@ -69,7 +66,7 @@ async function getList(url: string) {
             return {
                 title: $link.find('h4').text(),
                 link: new URL(href, url).href,
-                pubDate: year ? timezone(parseDate(`${year}-${$item.find('.time big').text()}`, 'YYYY-MM-DD'), 8) : undefined,
+                pubDate: parseDate(`${year}-${$item.find('.time big').text()}`, 'YYYY-MM-DD', 8),
             };
         })
         .filter((item) => item !== undefined);

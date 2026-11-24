@@ -8,8 +8,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { fetchPhoto, fixDesc } from './utils';
 
@@ -80,12 +79,12 @@ async function handler(ctx: Context) {
             const dateString = $item
                 .find('span')
                 .text()
-                .match(/\d+\.\d+\.\d+/)?.[0];
+                .match(/\d+\.\d+\.\d+/)![0];
 
             return {
                 title: a.text(),
                 link: new URL(a.attr('href')!, rootUrl).href,
-                pubDate: dateString ? timezone(parseDate(dateString, 'YYYY.M.D'), 9) : undefined,
+                pubDate: parseDate(dateString, 'YYYY.M.D', 9),
             };
         });
 

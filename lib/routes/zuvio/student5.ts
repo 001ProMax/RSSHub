@@ -4,8 +4,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { apiUrl, getBoards, renderDesc, rootUrl, token } from './utils';
 
@@ -25,14 +24,6 @@ export const route: Route = {
     name: '校園話題',
     maintainers: ['TonyRL'],
     handler,
-};
-
-const getPublicationDate = (value?: string): Date | undefined => {
-    if (typeof value !== 'string' || !/\S/.test(value)) {
-        return undefined;
-    }
-    const date = timezone(parseDate(value), 8);
-    return Number.isFinite(date.getTime()) ? date : undefined;
 };
 
 async function handler(ctx): Promise<Data> {
@@ -58,7 +49,7 @@ async function handler(ctx): Promise<Data> {
     let items = data.articles.map((item) => ({
         title: item.title,
         description: item.abstract,
-        pubDate: getPublicationDate(item.created_at),
+        pubDate: parseDate(item.created_at, 8),
         link: `${rootUrl}/article/${item.id}`,
         api: `${apiUrl}/article/${item.id}`,
         author: `${item.university} ${item.user_name}`,

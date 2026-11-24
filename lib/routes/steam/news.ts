@@ -6,8 +6,8 @@ import type { Context } from 'hono';
 
 import type { Data, DataItem, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news/:appid/:language?',
@@ -145,14 +145,14 @@ async function handler(ctx: Context): Promise<Data> {
         return {
             title,
             description,
-            pubDate: item.announcement_body.posttime === undefined || item.announcement_body.posttime === null ? undefined : parseDate(item.announcement_body.posttime, 'X'),
+            pubDate: parseDate(item.announcement_body.posttime, 'X'),
             link: new URL(`games/${appid}/announcements/detail/${item.announcement_body.gid}`, rootUrl).href,
             category: item.announcement_body.tags,
             content: {
                 html: description,
                 text: item.announcement_body.body,
             },
-            updated: item.announcement_body.updatetime === undefined || item.announcement_body.updatetime === null ? undefined : parseDate(item.announcement_body.updatetime, 'X'),
+            updated: parseDate(item.announcement_body.updatetime, 'X'),
             image: capsuleImage ? new URL(`images/${item.announcement_body.clanid}/${capsuleImage}`, clanRootUrl).href : undefined,
             banner: titleImage ? new URL(`images/${item.announcement_body.clanid}/${titleImage}`, clanRootUrl).href : undefined,
         };
@@ -252,10 +252,11 @@ const customPreset: PresetFactory = presetHTML5.extend((tags) => ({
     previewyoutube: (node) => ({
         tag: 'iframe',
         attrs: {
-            src: `https://www.youtube-nocookie.com/embed/${(getUniqAttr(node.attrs) as string).match(/[\w-]+/)?.[0]}`,
+            src: `https://www.youtube-nocookie.com/embed/${/[\w-]+/.exec(getUniqAttr(node.attrs) as string)?.[0]}`,
             title: 'YouTube video player',
             frameborder: '0',
             allowFullScreen: '1',
+            referrerpolicy: 'strict-origin-when-cross-origin',
         },
     }),
     video: (node, { render }) => ({

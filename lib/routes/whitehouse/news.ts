@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news/:category?',
@@ -32,13 +32,6 @@ export const route: Route = {
 | --- | -------- | ------------------------ | -------------------- | ------- |
 |     | articles | briefings-statements     | presidential-actions | remarks |`,
 };
-function parsePublicationDate(value: string | undefined) {
-    if (!value?.trim()) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-}
 async function handler(ctx) {
     const category = ctx.req.param('category') ?? 'news';
     const rootUrl = 'https://www.whitehouse.gov';
@@ -55,43 +48,30 @@ async function handler(ctx) {
             const a = $item.find('a').first();
             return {
                 title: a.text(),
-                link: new URL(a.attr('href')!, currentUrl).href,
-                pubDate: parsePublicationDate($item.find('time').attr('datetime')),
+                link: a.attr('href'),
+                pubDate: parseDate($item.find('time').attr('datetime')!),
                 category: [$item.find('a[rel^=tag]').first().text()],
             };
         });
-    const items = await unwrapFirstFailure(
-        pMap(
-            list,
-            async (item) => {
-                const detail = await cache.tryGet(`whitehouse:news:article:${item.link}`, async () => {
-                    const response = await got({
-                        method: 'get',
-                        url: item.link,
-                    });
-                    const $ = load(response.data);
-                    $('.wp-block-whitehouse-topper').remove();
-                    const body = $('.entry-content');
-                    if (body.length !== 1) {
-                        throw new Error(`Article body not found at ${item.link}`);
-                    }
-                    return { description: body.html() };
+    const items = await pMap(
+        list,
+        async (item) => {
+            const detail = await cache.tryGet(`whitehouse:news:article:${item.link}`, async () => {
+                const response = await got({
+                    method: 'get',
+                    url: item.link,
                 });
-                return { ...item, description: detail.description };
-            },
-            { concurrency: 3, stopOnError: false }
-        )
+                const $ = load(response.data);
+                $('.wp-block-whitehouse-topper').remove();
+                return { description: $('.entry-content').html() };
+            });
+            return { ...item, description: detail.description };
+        },
+        { concurrency: 3 }
     );
     return {
         title: $('title').text(),
         link: currentUrl,
         item: items,
     };
-}
-async function unwrapFirstFailure<T>(promise: Promise<T>): Promise<T> {
-    try {
-        return await promise;
-    } catch (error) {
-        throw error instanceof AggregateError ? error.errors[0] : error;
-    }
 }

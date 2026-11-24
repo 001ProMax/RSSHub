@@ -6,7 +6,7 @@ import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import logger from '@/utils/logger';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://today.line.me';
 
@@ -24,10 +24,7 @@ const parseItems = (list: Array<DataItem & { link: string; hash: string }>) =>
         list,
         async (item) => {
             const detail = await cache.tryGet(`line:article:${item.link}`, async () => {
-                const edition = item.link.match(/today\.line\.me\/(\w+)\/v[23]\/.*$/)?.[1];
-                if (!edition) {
-                    throw new Error(`Cannot identify the LINE TODAY edition for ${item.link}`);
-                }
+                const edition = item.link.split('/', 4)[3];
                 let data;
                 try {
                     const response = await got(`${baseUrl}/webapi/portal/page/setting/article`, {

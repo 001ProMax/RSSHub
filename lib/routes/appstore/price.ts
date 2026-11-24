@@ -3,7 +3,7 @@ import currency from 'currency-symbol-map';
 import NotFoundError from '@/errors/types/not-found';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/price/:country/:type/:id',
@@ -70,7 +70,7 @@ async function handler(ctx) {
             description: `<a href="${link}" target="_blank">Go to App Store</a>`,
             link,
             guid: id + result.priceLastChangeDate,
-            pubDate: result.priceLastChangeDate ? parseDate(result.priceLastChangeDate, 'YYYY-MM-DD') : undefined,
+            pubDate: parseDate(result.priceLastChangeDate, 'YYYY-MM-DD'),
         };
         item.push(single);
     }

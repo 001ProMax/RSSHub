@@ -6,7 +6,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category',
@@ -40,10 +40,7 @@ async function handler(ctx: Context) {
                 const res = await ofetch(link);
                 const $$ = load(res);
 
-                const time = $$('meta[name="dc.date.issued"]').attr('content') || $$('meta[name="citation_publication_date"]').attr('content') || $$('span#page-creation').text();
-                const pubDate = time ? parseDate(/^\d{4}-\d{2}-\d{2}$/.test(time) ? `${time}T00:00:00Z` : time) : undefined;
-
-                $$('a').removeAttr('data-popup-title').removeAttr('data-popup-title-html').removeAttr('data-popup-author').removeAttr('data-popup-abstract').removeAttr('data-popup-doi').removeAttr('data-popup-date');
+                const time = $$('meta[name="dc.date.issued"]').attr('content');
 
                 return {
                     title: $$('header > h1').text(),
@@ -51,7 +48,7 @@ async function handler(ctx: Context) {
                     description: $$('div#markdownBody').html()!.replace('&shy;', ''),
                     link,
                     guid: link,
-                    pubDate: pubDate && !Number.isNaN(pubDate.getTime()) ? pubDate : undefined,
+                    pubDate: parseDate(`${time}T00:00:00Z`),
                 };
             });
         },

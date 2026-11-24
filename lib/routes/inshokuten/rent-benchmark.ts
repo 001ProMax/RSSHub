@@ -66,8 +66,7 @@ const parseDetail = (html: string, base: Pick<RentBenchmarkExtra, 'area_kind' | 
             .match(/（([^）]+)）/)?.[1] ?? null;
     const buckets = $('input[name^="js-circle-graph-val"]')
         .toArray()
-        .map((el) => Number($(el).attr('value')))
-        .filter((n) => Number.isFinite(n));
+        .map((el) => Number($(el).attr('value')));
     const trend = $('#rate-total')
         .eq(1)
         .find('tr')
@@ -126,7 +125,7 @@ const toItem = (target: Target, kind: RentBenchmarkExtra['area_kind'], pref: str
         DETAIL_CACHE_SECONDS
     );
 
-export const handler = async (ctx): Promise<Data> => {
+const handler = async (ctx): Promise<Data> => {
     const slug: string = ctx.req.param('area') ?? '23ward';
     const lineId: string | undefined = ctx.req.param('line');
     const area = AREAS.find((a) => a.slug === slug);

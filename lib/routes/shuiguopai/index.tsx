@@ -5,8 +5,8 @@ import { renderToString } from 'hono/jsx/dom/server';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -33,8 +33,7 @@ async function handler(ctx) {
     const listUrl = `${apiRootUrl}/v1_2/homePage`;
     const filmUrl = `${apiRootUrl}/v1_2/filmInfo`;
 
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isFinite(requestedLimit) && requestedLimit >= 1 ? Math.floor(requestedLimit) : 50;
+    const limit = getRouteLimit(ctx, 50);
 
     const response = await got({
         method: 'post',
@@ -54,7 +53,7 @@ async function handler(ctx) {
         title: item.title,
         guid: item.library_id,
         link: `${rootUrl}/play-details/${item.library_id}`,
-        pubDate: timezone(parseDate(item.show_time_origin, 'YYYY-MM-DD HH:mm:ss'), 8),
+        pubDate: parseDate(item.show_time_origin, 'YYYY-MM-DD HH:mm:ss', 8),
         category: item.tags.map((t) => t.tag_title),
     }));
 

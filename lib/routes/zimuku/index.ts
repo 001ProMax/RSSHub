@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseRelativeDate } from '@/utils/parse-date';
+import { parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:type?',
@@ -37,7 +37,7 @@ async function handler(ctx: Context) {
         .toArray()
         .map((ele) => {
             const $item = $(ele);
-            const author = $item.find('.glyphicon-user').next('a').text() || undefined;
+            const author = $item.find('.glyphicon-user').next('a').text();
             const date = $item
                 .find('.glyphicon-time')
                 .parent()
@@ -54,7 +54,7 @@ async function handler(ctx: Context) {
                 title: baseInfoNode.attr('title') ?? '',
                 link: `${baseUrl}${baseInfoNode.attr('href')}`,
                 author,
-                pubDate: date ? parseRelativeDate(date) : undefined,
+                pubDate: parseRelativeDate(date),
                 category: langs,
             };
         });

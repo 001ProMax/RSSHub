@@ -4,8 +4,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:site/:grouping/:name',
@@ -53,7 +53,7 @@ async function handler(ctx) {
         throw new InvalidParameterError(`ClickMe could not find the ${grouping} "${name}". Use a category or tag from the source website.`);
     }
 
-    const categoryName = name === 'new' ? '最新' : (response.data.items[0]?.categoryName?.[0]?.name ?? name);
+    const categoryName = name === 'new' ? '最新' : response.data.items[0].categoryName[0].name;
     const displayedName = grouping === 'tag' ? name : categoryName;
 
     const list = response.data.items.slice(0, getRouteLimit(ctx, 18)).map((item) => ({

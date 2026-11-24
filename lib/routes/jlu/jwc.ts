@@ -2,8 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/jwc',
@@ -44,12 +43,10 @@ async function handler() {
 
             const link = new URL(linkEl.attr('href')!, baseUrl).href;
 
-            const date = /^\d{4}-\d{1,2}$/.test(yearMonth) && /^\d{1,2}$/.test(day) ? `${yearMonth}-${day}` : undefined;
-
             return {
                 title,
                 link,
-                pubDate: date ? timezone(parseDate(date, 'YYYY-MM-DD'), 8) : undefined,
+                pubDate: parseDate(`${yearMonth}-${day}`, 'YYYY-MM-DD', 8),
             };
         }),
     };

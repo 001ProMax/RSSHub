@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -47,13 +47,12 @@ async function handler() {
             const $item = $(item);
 
             const projectDiv = $item.parent().parent();
-            const published = projectDiv.find('time').text();
             const description = projectDiv.find('p').text();
 
             return {
                 title: $item.text(),
                 link: $item.attr('href'),
-                pubDate: published ? parseDate(published) : undefined,
+                pubDate: parseDate(projectDiv.find('time').text()),
                 description: renderDescription({
                     image: projectDiv.parent().find('.cover-fit')?.attr('src') ?? projectDiv.parent().parent().find('.cover-fit').attr('src'),
                     description: description ? `<p>${description}</p>` : '',

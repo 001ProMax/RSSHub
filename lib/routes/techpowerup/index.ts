@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { baseUrl, fixImages, parseReviews } from './utils';
 
@@ -66,7 +66,7 @@ async function handler() {
                         .map((tag) => $(tag).text()),
                 };
             });
-            return { ...item, ...detail, pubDate: detail.pubDate ?? item.pubDate, category: [...new Set([...item.category, ...(detail.category ?? [])])] };
+            return { ...item, ...detail, pubDate: detail.pubDate ?? item.pubDate, category: [...new Set([...[item.category].flat(), ...[detail.category ?? []].flat()])] };
         },
         { concurrency: 3 }
     );

@@ -4,9 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import shortcuts from './shortcuts';
 
@@ -110,12 +109,12 @@ async function handler(ctx) {
                 return {
                     title,
                     link: new URL($item.prop('href')!, currentUrl).href,
-                    ...(dateText && { pubDate: timezone(parseDate(dateText), 8) }),
+                    ...(dateText && { pubDate: parseDate(dateText, 8) }),
                 };
             });
 
         return {
-            title: `国家自然科学基金委员会 - ${$('.szyw, .sciences-content-right-title').first().text()}`,
+            title: `国家自然科学基金委员会 - ${$('.szyw, .sciences-content-right-title').text()}`,
             link: currentUrl,
             language: 'zh-CN' as const satisfies Language,
             item: await pMap(
@@ -132,7 +131,7 @@ async function handler(ctx) {
                             .text()
                             .match(/\bvar\s+ct\s*=\s*["'](\d+)["']/)?.[1];
                         content('#js_content img[data-src]').each((_, image) => {
-                            content(image).attr('src', content(image).attr('data-src')!);
+                            content(image).attr('src', content(image).attr('data-src'));
                         });
                         return {
                             ...item,
@@ -140,7 +139,7 @@ async function handler(ctx) {
                             description: content('.detail-p, .main-body, #js_content').html(),
                             author: content('.detail-introduce > div').eq(2).find('span').text() || content('#js_name').text() || undefined,
                             category: [content('.detail-introduce > div').eq(1).find('span').text()].filter(Boolean),
-                            ...(wechatTimestamp ? { pubDate: parseDate(wechatTimestamp, 'X') } : dateText && { pubDate: timezone(parseDate(dateText), 8) }),
+                            ...(wechatTimestamp ? { pubDate: parseDate(wechatTimestamp, 'X') } : dateText && { pubDate: parseDate(dateText, 8) }),
                         };
                     });
                 },

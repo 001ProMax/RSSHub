@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog',
@@ -83,7 +83,7 @@ async function handler() {
                 $('nav').remove();
                 $('footer').remove();
                 $('a[href*="buymeacoffee"]').parent().remove();
-                $('script, style').remove();
+                $('style').remove();
                 $('body > h1').first().remove();
                 $('body > span.text-sm.text-gray-500').remove();
 

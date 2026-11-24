@@ -1,11 +1,11 @@
 import pMap from 'p-map';
 
+import { renderYoutube } from '@/routes/youtube/utils';
 import type { Data, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 type NewsArticle = {
     title: string;
@@ -20,11 +20,6 @@ type NewsArticle = {
 
 type NewsListResponse = {
     data: { articles: Array<{ id: string; link: string }> };
-};
-
-const getArticles = async (url: string, limit: number) => {
-    const response = await ofetch<NewsListResponse>(url, { query: { page: 1, limit } });
-    return response.data.articles;
 };
 
 export const route: Route = {
@@ -68,24 +63,21 @@ async function handler(ctx): Promise<Data> {
     const limit = getRouteLimit(ctx, 20);
     const listPath = category === 'real' || category === 'breaking' ? 'breaking-list' : category === 'taiwanese' ? 'taiwanese-list' : `${category}/list`;
     const apiUrl = `${rootUrl}/api/news/${listPath}`;
-    let articles = await getArticles(apiUrl, limit);
-    if (!articles.length && limit !== 20) {
-        articles = await getArticles(apiUrl, 20);
-    }
+    const response = await ofetch<NewsListResponse>(apiUrl, { query: { page: 1, limit } });
     const items = await pMap(
-        articles.slice(0, limit),
+        response.data.articles,
         (item) => {
             const link = new URL(item.link, rootUrl).href;
             return cache.tryGet(link, async () => {
                 const response = await ofetch<{ data: { article: NewsArticle } }>(`${rootUrl}/api/news/${item.id}`);
                 const article = response.data.article;
-                const video = article.youtubeId ? `<iframe src="https://www.youtube-nocookie.com/embed/${article.youtubeId}" allowfullscreen></iframe>` : '';
+                const video = article.youtubeId ? renderYoutube(true, article.youtubeId) : '';
                 return {
                     title: article.title,
                     author: article.author,
                     description: video + article.content,
-                    category: [article.category, ...article.tags].filter(Boolean),
-                    pubDate: timezone(parseDate(article.publishTime), 8),
+                    category: [article.category, ...article.tags],
+                    pubDate: parseDate(article.publishTime, 8),
                     image: article.coverImage?.imageUrl,
                     link,
                 };

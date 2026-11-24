@@ -1,20 +1,9 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 import { renderToString } from 'hono/jsx/dom/server';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function copyElements<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, element) => cloneNode(element, true));
-    const root = new Document(copy.toArray());
-    copy.each((_, element) => {
-        element.parent = root;
-    });
-    return copy;
-}
+import { parseDateStrict } from '@/utils/time';
 
 const rootUrl = 'https://rsj.sh.gov.cn';
 
@@ -70,8 +59,12 @@ async function handler() {
         .map((row) => {
             const cells = $(row).children('td');
             const title = cells.eq(1).find('a');
-            const published = copyElements(cells.eq(3)).children().remove().end().text().trim();
-            const pubDate = published ? timezone(parseDate(published, 'YYYY-MM-DD', true), 8) : undefined;
+            const published = cells
+                .eq(3)
+                .contents()
+                .filter((_, node) => node.type === 'text')
+                .text()
+                .trim();
             return {
                 title: title.attr('title') || title.text(),
                 link: new URL(title.attr('href')!, url).href,
@@ -82,7 +75,7 @@ async function handler() {
                         .filter(({ index, value }) => index >= 2 && index !== 3 && value)
                 ),
                 category: [cells.eq(0).text()],
-                pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
+                pubDate: parseDateStrict(published, 'YYYY-MM-DD', 8),
             };
         });
 

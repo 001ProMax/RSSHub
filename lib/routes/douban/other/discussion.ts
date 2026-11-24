@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:id/discussion',
@@ -43,11 +42,10 @@ async function handler(ctx) {
         .map((item): DataItem => {
             const $item = $(item);
             const a = $item.find('a');
-            const date = $item.find('.time').text();
             return {
                 title: a.attr('title')!,
                 link: a.attr('href'),
-                pubDate: date ? timezone(parseDate(date), 8) : undefined,
+                pubDate: parseDate($item.find('.time').text(), 8),
                 author: $item.find('a').eq(1).text(),
             };
         });

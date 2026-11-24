@@ -13,8 +13,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news/:type?',
@@ -56,20 +55,17 @@ async function handler(ctx: Context) {
                 title: $item.attr('title')!,
                 link: new URL($item.attr('href')!, url).href,
                 description: $item.find('.zy').text(),
-                pubDate: timezone(parseDate(sj.length ? `${sj.find('span').text()}-${sj.find('p').text()}` : $item.find('span').text()), 8),
+                pubDate: parseDate(sj.length ? `${sj.find('span').text()}-${sj.find('p').text()}` : $item.find('span').text(), 8),
             };
         });
 
     const items = await pMap(
         list,
         async (item) => {
-            if (!item.link?.startsWith(`${host}/`)) {
-                return item;
-            }
             const description = await cache.tryGet(`guat:article:${item.link}`, async () => {
                 const article = await ofetch<string>(item.link!);
                 const $ = load(article);
-                return $('.v_news_content').html() ?? undefined;
+                return $('.v_news_content').html();
             });
             return { ...item, summary: item.description ?? undefined, description };
         },

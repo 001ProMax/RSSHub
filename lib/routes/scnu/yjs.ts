@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/yjs',
@@ -39,29 +38,26 @@ async function handler() {
 
     const items = list.toArray().map((item) => {
         const $item = $(item);
+        const href = $item.attr('href');
         return {
             title: $item.text(),
-            link: $item.attr('href'),
+            link: href ? new URL(href, link).href : undefined,
         };
     });
     const detailedItems = await pMap(
         items,
-        async (item) =>
-            item.link
-                ? {
-                      ...item,
-                      ...(await cache.tryGet(`scnu:yjs:v3:${item.link}`, async () => {
-                          const loadedSource1 = (await got(item.link!)).data;
-                          const article = load(loadedSource1);
-                          const date = article('h1').next('p').find('span').first().text();
-                          const category = article('.tag a')
-                              .toArray()
-                              .map((element) => article(element).text().trim())
-                              .filter(Boolean);
-                          return { description: article('.article').html() ?? undefined, ...(category.length && { category }), pubDate: date ? timezone(parseDate(date, 'YYYY-MM-DD HH:mm:ss'), 8) : undefined };
-                      })),
-                  }
-                : item,
+        async (item) => ({
+            ...item,
+            ...(await cache.tryGet(`scnu:yjs:v3:${item.link}`, async () => {
+                const loadedSource1 = (await got(item.link)).data;
+                const article = load(loadedSource1);
+                const date = article('h1').next('p').find('span').first().text();
+                const category = article('.tag a')
+                    .toArray()
+                    .map((element) => article(element).text().trim());
+                return { description: article('.article').html(), ...(category.length && { category }), pubDate: parseDate(date, 'YYYY-MM-DD HH:mm:ss', 8) };
+            })),
+        }),
         { concurrency: 3 }
     );
 

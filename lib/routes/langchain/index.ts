@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog',
@@ -84,11 +84,11 @@ async function handler() {
                 if (!description) {
                     throw new Error(`Cannot find the article content on ${item.link}.`);
                 }
-                const article = JSON.parse($detail('script[type="application/ld+json"]').first().text() || '{}');
+                const article = JSON.parse($detail('script[type="application/ld+json"]').text());
                 return {
                     description,
-                    pubDate: article.datePublished ? parseDate(article.datePublished) : undefined,
-                    updated: article.dateModified ? parseDate(article.dateModified) : undefined,
+                    pubDate: parseDate(article.datePublished),
+                    updated: parseDate(article.dateModified),
                 };
             });
             return { ...item, ...details };

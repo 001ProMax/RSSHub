@@ -1,12 +1,11 @@
-import { createHash } from 'node:crypto';
-
 import { load } from 'cheerio';
 import { renderToString } from 'hono/jsx/dom/server';
 
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
+import { sha256 } from '@/utils/hash';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const categories = {
     overall: 'Overall',
@@ -37,15 +36,12 @@ export const route: Route = {
 };
 
 function getLeaderboard($) {
-    const flight = $('script')
+    const flight = $('script:contains("self.__next_f.push")')
         .toArray()
         .flatMap((element) => {
             const match = $(element)
                 .text()
                 .match(/self\.__next_f\.push\((.+)\)/s);
-            if (!match) {
-                return [];
-            }
             const chunk = JSON.parse(match[1]);
             return chunk[0] === 1 && typeof chunk[1] === 'string' ? [chunk[1]] : [];
         })
@@ -75,12 +71,10 @@ async function handler(ctx) {
     if (leaderboard.leaderboardSlug !== category || !leaderboard.entries.length) {
         throw new Error(`Arena did not return the requested ${category} leaderboard.`);
     }
-    const modified = $('script[type="application/ld+json"]')
-        .toArray()
-        .map((element) => JSON.parse($(element).text()))
-        .find((entry) => entry['@type'] === 'WebPage')?.dateModified;
+    const webPage = $('script[type="application/ld+json"]:contains("WebPage")').text();
+    const modified = webPage ? JSON.parse(webPage).dateModified : undefined;
     const snapshot = leaderboard.entries.map((entry) => [entry.rank, entry.modelKey, entry.rating]);
-    const hash = createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
+    const hash = sha256(JSON.stringify(snapshot));
     return {
         title: `Arena - ${categories[category]} text leaderboard`,
         link,

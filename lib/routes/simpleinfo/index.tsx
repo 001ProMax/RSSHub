@@ -6,8 +6,7 @@ import pMap from 'p-map';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?',
@@ -63,7 +62,7 @@ async function handler(ctx): Promise<Data> {
             const $item = $(item);
             return {
                 title: $item.find('.title').text(),
-                link: $item.find('a').first().attr('href'),
+                link: new URL($item.find('a').attr('href')!, rootUrl).href,
                 category: $item.find('.category').text(),
             };
         });
@@ -74,10 +73,9 @@ async function handler(ctx): Promise<Data> {
             const details = await cache.tryGet(`simpleinfo:article:v3:${item.link}`, async () => {
                 const result = await got(item.link);
                 const content = load(result.data);
-                const published = content('meta[property="article:published_time"]').attr('content');
                 return {
                     author: content('meta[property="article:author"]').attr('content'),
-                    pubDate: published ? timezone(parseDate(published), 8) : undefined,
+                    pubDate: parseDate(content('meta[property="article:published_time"]').attr('content')!, 8),
                     description: renderDescription({
                         image: content('meta[property="og:image"]').attr('content'),
                         description: content('.article-content').first().html() ?? undefined,

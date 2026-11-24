@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/edu/news',
@@ -22,11 +21,6 @@ export const route: Route = {
     handler,
     url: 'jxjy.ynnu.edu.cn',
 };
-
-function parsePublishedDate(value: string) {
-    const date = parseDate(value.trim(), '发布日期：YYYY-MM-DD', true);
-    return Number.isFinite(date.getTime()) ? timezone(date, 8) : undefined;
-}
 
 async function handler(): Promise<Data> {
     const baseUrl = 'https://jxjy.ynnu.edu.cn';
@@ -55,15 +49,14 @@ async function handler(): Promise<Data> {
             const article = await cache.tryGet(`ynnu:article:v4:${item.link}`, async () => {
                 const response = await ofetch(item.link);
                 const $ = load(response);
-                const title = $('.art-tit h3').text();
                 return {
-                    title: title.trim() ? title : undefined,
-                    pubDate: parsePublishedDate($('.art-tit p span').text()),
+                    title: $('.art-tit h3').text(),
+                    pubDate: parseDate($('.art-tit p span').text(), '发布日期：YYYY-MM-DD', 8),
                     description: $('.v_news_content').html(),
-                    category: [$('.channl-menu h2').text().trim()].filter(Boolean),
+                    category: [$('.channl-menu h2').text().trim()],
                 };
             });
-            return { ...item, ...article, title: article.title ?? item.title };
+            return { ...item, ...article };
         },
         { concurrency: 3, stopOnError: false }
     );

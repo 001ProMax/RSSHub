@@ -5,8 +5,8 @@ import type { Data, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import type { Post, PostDetail } from './types';
 
@@ -53,8 +53,8 @@ async function handler(ctx: Context): Promise<Data> {
                 link,
                 description: detail.description,
                 author: post.author_name,
-                pubDate: post.created_at === undefined ? undefined : parseDate(post.created_at, 'X'),
-                updated: post.updated_at === undefined ? undefined : parseDate(post.updated_at, 'X'),
+                pubDate: parseDate(post.created_at, 'X'),
+                updated: parseDate(post.updated_at, 'X'),
             };
         },
         { concurrency: 3 }

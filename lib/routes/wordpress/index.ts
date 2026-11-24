@@ -1,29 +1,16 @@
-import { type CheerioAPI, load } from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 
 import { config } from '@/config';
 import ConfigNotFoundError from '@/errors/types/config-not-found';
 import type { Data, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 import { apiSlug, bakeFeedUrl, bakeFilterSearchParams, bakeFiltersWithPair, bakePageUrl, bakeUrl, fetchData, parseFilterStr } from './util';
 
-const parseGmtDate = (value: string | undefined) => {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) ? value : `${value}Z`);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-};
-const parseRssDate = (value: string | undefined) => {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-};
 const rewriteImageUrls = ($: CheerioAPI, link: string, cdn: string | undefined) => {
     $('img').each((_, el) => {
         const image = $(el);
@@ -59,12 +46,12 @@ async function handler(ctx) {
             const terminologies = item._embedded?.['wp:term'] ?? [];
             const guid = item.guid?.rendered ?? item.guid;
             const $$ = load(item.content?.rendered ?? item.content);
-            rewriteImageUrls($$, item.link || rootUrl, cdn);
+            rewriteImageUrls($$, item.link, cdn);
             const description = $$.html();
             return {
                 title: item.title?.rendered ?? item.title,
                 description,
-                pubDate: parseGmtDate(item.date_gmt),
+                pubDate: parseDate(`${item.date_gmt}Z`),
                 link: item.link,
                 category: [...new Set(terminologies.flat().map((c) => c.name))],
                 author: item._embedded?.author?.map((a) => a.name).join('/'),
@@ -74,7 +61,7 @@ async function handler(ctx) {
                     html: description,
                     text: $$.text(),
                 },
-                updated: parseGmtDate(item.modified_gmt),
+                updated: parseDate(`${item.modified_gmt}Z`),
             };
         });
         const data = await fetchData(currentUrl, rootUrl);
@@ -94,7 +81,7 @@ async function handler(ctx) {
             return {
                 title: item.title!,
                 description,
-                pubDate: parseRssDate(item.pubDate),
+                pubDate: item.pubDate ? parseDate(item.pubDate) : undefined,
                 link: item.link,
                 category: item.categories,
                 author: item.creator,

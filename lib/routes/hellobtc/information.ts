@@ -5,7 +5,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.hellobtc.com';
 
@@ -64,11 +64,10 @@ async function handler(ctx) {
                 const detailResponse = await got(item.link);
                 const content = load(detailResponse.data);
 
-                const article = content('#nr, #ctx .article > article').first();
+                const article = content('#nr, #ctx .article > article');
                 article.find('.wants').remove();
                 item.description = article.html();
-                const date = content('.author span.date').first().text();
-                item.pubDate = date ? parseDateInTimezone(date, 8) : undefined;
+                item.pubDate = parseDate(content('.author span.date').text(), 8);
 
                 return item;
             }),

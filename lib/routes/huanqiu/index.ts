@@ -5,8 +5,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 interface ChannelNode {
@@ -95,20 +95,14 @@ async function handler(ctx) {
                 });
                 const content = load(detailResponse.data);
 
-                const timestamp = content('textarea.article-time').text();
-                const pubDate = /^\d+$/.test(timestamp) ? parseDate(Number(timestamp)) : undefined;
-                const description = content('textarea.article-content').text();
-                if (!description.trim()) {
-                    throw new Error(`Huanqiu article content was not found at ${item.link}`);
-                }
                 return {
-                    description,
+                    description: content('textarea.article-content').text(),
                     author:
                         content('textarea.article-author')
                             .text()
                             .replace(/^作者[：:]\s*/, '')
                             .trim() || content('span', '.source').text(),
-                    pubDate: pubDate && !Number.isNaN(pubDate.getTime()) ? pubDate : undefined,
+                    pubDate: parseDate(Number(content('textarea.article-time').text())),
                     category: content('meta[name="keywords"]').attr('content')?.split(','),
                 };
             });

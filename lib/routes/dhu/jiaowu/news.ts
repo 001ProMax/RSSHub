@@ -6,10 +6,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-import { selectItems } from '../utils';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://jw.dhu.edu.cn';
 
@@ -58,12 +55,12 @@ async function handler(ctx: Context) {
             return {
                 title: newsTitle.text(),
                 link: new URL(newsTitle.attr('href')!, baseUrl).href,
-                pubDate: timezone(parseDate($item.find('.news_meta').text(), 'YYYY-MM-DD', 'zh-cn'), 8),
+                pubDate: parseDate($item.find('.news_meta').text(), 'YYYY-MM-DD', 8),
             };
         });
 
     const items = await pMap(
-        selectItems(list),
+        list,
         (item) =>
             cache.tryGet(item.link, async () => {
                 // Some article bodies are restricted to the university network.

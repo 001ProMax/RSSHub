@@ -3,9 +3,9 @@ import { load } from 'cheerio';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { compareDates, parseDateStrict } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 export const route: Route = {
     path: '/fg/:category{.+}?',
@@ -47,20 +47,21 @@ async function handler(ctx) {
         .map((item): DataItem => {
             const $item = $(item);
 
-            const date = $item.parent().find('span.time').text().trim();
-            const pubDate = date ? timezone(parseDate(date, 'YYYY-MM-DD', true), 8) : undefined;
-
             return {
                 title: $item.prop('title') || $item.text(),
                 link: new URL($item.prop('href')!, rootUrl).href,
                 author: $item.find('.author').text(),
-                pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
+                pubDate: parseDateStrict($item.parent().find('span.time').text().trim(), 'YYYY-MM-DD', 8),
             };
         });
 
     items = await Promise.all(
-        items.map((item) =>
-            cache.tryGet(item.link!, async () => {
+        items.map((item) => {
+            // only follow links on the site itself
+            if (!isOnSite(item.link, 'suzhou.gov.cn')) {
+                return item;
+            }
+            return cache.tryGet(item.link!, async () => {
                 const { data: detailResponse } = await got(item.link);
 
                 const content = load(detailResponse);
@@ -68,23 +69,21 @@ async function handler(ctx) {
                 item.title = content('ucaptitle').text().trim();
                 item.description = content('ucapcontent').html();
                 item.author = content('span.ly b').text().trim();
-                const date = content('meta[name="PubDate"]').prop('content');
-                const pubDate = date ? timezone(parseDate(date, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm'], true), 8) : undefined;
-                item.pubDate = pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : item.pubDate;
+                item.pubDate = parseDateStrict(content('meta[name="PubDate"]').prop('content'), ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm'], 8);
 
                 return item;
-            })
-        )
+            });
+        })
     );
 
-    if (ctx.req.query('sorted') !== 'false' && items.every((item) => item.pubDate instanceof Date && Number.isFinite(item.pubDate.getTime()))) {
-        items.sort((a, b) => (b.pubDate as Date).getTime() - (a.pubDate as Date).getTime());
+    if (ctx.req.query('sorted') !== 'false') {
+        items.sort((a, b) => compareDates(b.pubDate, a.pubDate));
         items = items.slice(0, limit);
     }
 
     const author = $('meta[name="SiteName"]').prop('content');
     const subtitle = $('meta[name="ColumnName"]').prop('content');
-    const imageUrl = $('div.logo img, .header-logo img').first().prop('src');
+    const imageUrl = $('div.logo img, .header-logo img').prop('src');
     const image = imageUrl ? new URL(imageUrl, rootUrl).href : undefined;
 
     const language = $('html').prop('lang') as Language;

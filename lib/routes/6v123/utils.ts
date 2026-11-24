@@ -3,8 +3,7 @@ import iconv from 'iconv-lite';
 
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 async function loadDetailPage(link) {
     const response = await got.get(link, {
@@ -38,15 +37,12 @@ export async function processItems(_context, baseURL, exclude) {
     const $ = load(response.data);
     const list = $('ul.list li')
         .toArray()
-        .filter((item) => {
-            const link = $(item).find('a');
-            return link.attr('href') && !exclude?.some((pattern) => pattern.test(link.text()));
-        });
+        .filter((item) => exclude.every((pattern) => !pattern.test($(item).find('a').text())));
 
     const process = await Promise.all(
         list.map((item) => {
             const link = $(item).find('a');
-            const pubDate = timezone(parseDate($(item).find('span').text().replaceAll(/[[\]]/g, ''), 'MM-DD'), 8);
+            const pubDate = parseDate($(item).find('span').text().replaceAll(/[[\]]/g, ''), 'MM-DD', 8);
             const itemUrl = new URL(link.attr('href')!, baseURL).href;
 
             return cache.tryGet(itemUrl, async () => {

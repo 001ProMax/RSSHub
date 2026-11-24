@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/ygafz/:type?',
@@ -49,11 +48,10 @@ async function handler(ctx) {
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
-            const date = $item.find('.date').text().trim();
             return {
                 title: $item.find('p').text(),
                 link: `${baseUrl}${$item.attr('href')}`,
-                pubDate: date ? timezone(parseDate(date, 'YYYY-MM-DD'), 8) : undefined,
+                pubDate: parseDate($item.find('.date').text().trim(), 'YYYY-MM-DD', 8),
             };
         });
 
@@ -68,7 +66,7 @@ async function handler(ctx) {
                     author: $('.article-submit')
                         .text()
                         .match(/发布人：(.*)/)?.[1],
-                    description: ($('div[data-block-plugin-id="entity_field:node:body"]').html() ?? '') + ($('div[data-block-plugin-id="entity_field:node:attachments"]').html() ?? '') || undefined,
+                    description: $('div[data-block-plugin-id="entity_field:node:body"]').html() + ($('div[data-block-plugin-id="entity_field:node:attachments"]').html() ?? ''),
                 };
             })),
         }),

@@ -1,56 +1,41 @@
-import { type CheerioAPI, load } from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
-export function extractForumThreadDates($: CheerioAPI): Map<string, Date> {
+export function extractForumThreadDates($: CheerioAPI): Map<string, Temporal.Instant> {
     const prefix = 'window.$$data=';
-    const script = $('script')
-        .toArray()
-        .map((element) => $(element).text().trim())
-        .find((content) => content.startsWith(prefix));
-    const dates = new Map<string, Date>();
+    const script = $('script:contains("window.$$data=")').text();
+    const dates = new Map<string, Temporal.Instant>();
     if (!script) {
         return dates;
     }
 
-    const data = JSON.parse(script.slice(prefix.length).replace(/;\s*$/, '')) as {
-        topic?: { threads?: { list?: Array<{ url?: string; createdAt?: number }> } };
+    const data = JSON.parse(script.slice(prefix.length)) as {
+        topic?: { threads?: { list?: Array<{ url: string; createdAt: number }> } };
     };
     const threads = data.topic?.threads?.list ?? [];
     for (const thread of threads) {
-        if (!(thread.url && typeof thread.createdAt === 'number' && Number.isFinite(thread.createdAt) && thread.createdAt > 0)) {
-            continue;
-        }
-
-        const date = parseDate(thread.createdAt);
-        if (Number.isFinite(date.getTime())) {
-            dates.set(thread.url, date);
-        }
+        dates.set(thread.url, parseDate(thread.createdAt)!);
     }
     return dates;
 }
 
 export function extractNextData<T = unknown>(html: string, url?: string): T {
-    const scriptMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/);
+    const scriptMatch = /<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/.exec(html);
     if (!scriptMatch || !scriptMatch[1]) {
         throw new Error(`Failed to find __NEXT_DATA__ script tag in page${url ? `: ${url}` : ''}`);
     }
 
-    try {
-        return JSON.parse(scriptMatch[1]);
-    } catch (error) {
-        throw new Error(`Failed to parse __NEXT_DATA__ JSON: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
-    }
+    return JSON.parse(scriptMatch[1]);
 }
 
 interface ThreadNextData {
     props: {
         pageProps: {
-            detail?: { thread?: { createdAt?: number } };
             threadData: {
                 data: {
                     moduleConfigList: {
@@ -239,7 +224,7 @@ export function getEntryDetails(item: DataItem): Promise<DataItem> {
     if (!item.link) {
         return Promise.resolve(item);
     }
-    return cache.tryGet(item.link!, async () => {
+    return cache.tryGet(item.link, async () => {
         try {
             const detailResponse = await got({
                 method: 'get',
@@ -251,16 +236,8 @@ export function getEntryDetails(item: DataItem): Promise<DataItem> {
 
             // Extract matchId from __NEXT_DATA__
             let matchId: string | null = null;
-            let detailPubDate: Date | undefined;
             try {
                 const nextData = extractNextData<ThreadNextData>(html, item.link);
-                const timestamp = nextData.props?.pageProps?.detail?.thread?.createdAt;
-                if (typeof timestamp === 'number' && Number.isFinite(timestamp) && timestamp > 0) {
-                    const date = parseDate(timestamp);
-                    if (Number.isFinite(date.getTime())) {
-                        detailPubDate = date;
-                    }
-                }
                 const contentStr = nextData.props?.pageProps?.threadData?.data?.moduleConfigList?.content?.moduleContent?.content;
                 if (contentStr) {
                     const matchContent: MatchContent = JSON.parse(contentStr);
@@ -271,9 +248,6 @@ export function getEntryDetails(item: DataItem): Promise<DataItem> {
             }
 
             const author = content('.bbs-user-info-name, .bbs-user-wrapper-content-name-span').text();
-            const pubDateString = content('.second-line-user-info span:not([class])').text();
-            const fullDate = pubDateString ? parseDate(pubDateString, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD'], true) : undefined;
-            const pubDate = [item.pubDate, detailPubDate, fullDate && Number.isFinite(fullDate.getTime()) ? timezone(fullDate, 8) : undefined].find((date) => date instanceof Date && Number.isFinite(date.getTime()));
             const categories = content('.basketballTobbs_tag > a, .tag-player-team')
                 .toArray()
                 .map((c) => content(c).text())
@@ -321,10 +295,8 @@ export function getEntryDetails(item: DataItem): Promise<DataItem> {
                 author,
                 category: categories.length > 0 ? categories : item.category,
                 description,
-                pubDate,
             };
         } catch {
-            // no-empty
             return item;
         }
     });

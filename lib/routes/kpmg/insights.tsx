@@ -8,7 +8,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://kpmg.com';
 const payload = {
@@ -97,8 +97,8 @@ const handler = async (ctx: Context) => {
         title: item.kpmg_title.raw,
         description: item.kpmg_description.raw,
         link: item.kpmg_url.raw,
-        pubDate: item.kpmg_article_date_time?.raw ? parseDate(item.kpmg_article_date_time.raw) : undefined,
-        image: item.kpmg_image.raw ? new URL(item.kpmg_image.raw, 'https://assets.kpmg.com').href : undefined,
+        pubDate: parseDate(item.kpmg_article_date_time.raw),
+        image: new URL(item.kpmg_image.raw, 'https://assets.kpmg.com').href,
         imageAlt: item.kpmg_image_alt?.raw,
     }));
 

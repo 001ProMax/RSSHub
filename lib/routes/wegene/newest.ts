@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/newest',
@@ -23,15 +23,11 @@ async function handler() {
     return {
         title: '最近更新-WeGene',
         link,
-        item: data.map((item) => {
-            const dateValue = item.add_time;
-            const date = typeof dateValue === 'number' || (typeof dateValue === 'string' && dateValue.trim()) ? parseDate(item.add_time * 1000) : undefined;
-            return {
-                title: item.title,
-                description: item.description,
-                pubDate: date && Number.isFinite(date.getTime()) ? date : undefined,
-                link: item.url,
-            };
-        }),
+        item: data.map((item) => ({
+            title: item.title,
+            description: item.description,
+            pubDate: parseDate(item.add_time * 1000),
+            link: item.url,
+        })),
     };
 }

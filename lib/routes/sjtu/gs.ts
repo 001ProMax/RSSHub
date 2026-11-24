@@ -5,7 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 import { fetchArticle } from '@/utils/wechat-mp';
 
 export const route: Route = {
@@ -79,7 +79,7 @@ async function handler(ctx) {
             return {
                 title: $item.find('.title').text(),
                 link: `${$item.attr('href')!.startsWith('http') ? '' : rootUrl}${$item.attr('href')}`,
-                pubDate: year && day ? parseDate(`${year}-${day} +0000`, 'YYYY-MM-DD ZZ') : undefined,
+                pubDate: parseDate(`${year}-${day} +0000`, 'YYYY-MM-DD ZZ'),
             };
         });
 

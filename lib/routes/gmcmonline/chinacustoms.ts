@@ -3,11 +3,10 @@ import { load } from 'cheerio';
 import type { Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const limit = getRouteLimit(ctx, 10);
 
     const rootUrl = 'http://chinacustoms.gmcmonline.com';
@@ -28,12 +27,11 @@ export const handler = async (ctx) => {
 
             const title = $item.find('p.txt').text();
             const image = new URL($item.find('img').prop('src')!, rootUrl).href;
-            const publicationDate = title ? parseDate(title, 'YYYY年MM期') : undefined;
 
             return {
                 title,
                 link: new URL($item.prop('href')!, rootUrl).href,
-                pubDate: publicationDate && !Number.isNaN(publicationDate.getTime()) ? timezone(publicationDate, 8) : undefined,
+                pubDate: parseDate(title, 'YYYY年MM期', 8),
                 author,
                 image,
                 banner: image,
@@ -51,9 +49,7 @@ export const handler = async (ctx) => {
                 $$('ol.breadcrumb li a').first().remove();
 
                 const current = $$('ol.breadcrumb li a').first().text();
-                const publicationDateText = $$('div.title').text();
-                const publicationDate = publicationDateText ? parseDate(publicationDateText, 'YYYY年MM月DD日') : undefined;
-                const pubDate = publicationDate && !Number.isNaN(publicationDate.getTime()) ? timezone(publicationDate, 8) : item.pubDate;
+                const pubDate = parseDate($$('div.title').text(), 'YYYY年MM月DD日', 8);
                 const image = new URL($$('div.coverline img').prop('src')!, rootUrl).href;
 
                 return $$('a.txt')
@@ -61,7 +57,7 @@ export const handler = async (ctx) => {
                     .map((i) => {
                         const $i = $(i);
 
-                        const id = $i.prop('href')!.match(/c\/(\d+)\.shtml/)?.[1] ?? undefined;
+                        const id = $i.prop('href')!.match(/c\/(\d+)\.shtml/)?.[1];
 
                         if (!id) {
                             return;
@@ -74,7 +70,7 @@ export const handler = async (ctx) => {
                             title,
                             pubDate,
                             link: new URL($i.prop('href')!, item.link).href,
-                            category: [current, $i.closest('div.class-box').find('div.title-box span').text().replaceAll(/【|】/g, '') || undefined].filter((c): c is string => Boolean(c)),
+                            category: [current, $i.closest('div.class-box').find('div.title-box span').text().replaceAll(/【|】/g, '')].filter((c): c is string => Boolean(c)),
                             author,
                             guid,
                             id: guid,

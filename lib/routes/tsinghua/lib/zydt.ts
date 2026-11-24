@@ -4,9 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 async function fetchArticleDetails(link: string): Promise<Pick<DataItem, 'title' | 'description' | 'content'>> {
     const { data: response } = await got(link);
@@ -21,7 +20,7 @@ async function fetchArticleDetails(link: string): Promise<Pick<DataItem, 'title'
     };
 }
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { category } = ctx.req.param();
     const limit = getRouteLimit(ctx, 10);
 
@@ -37,14 +36,12 @@ export const handler = async (ctx) => {
     let items = $('ul.notice-list li')
         .slice(0, limit)
         .toArray()
-        .filter((item) => $(item).find('div.notice-list-tt a').attr('href'))
         .map((item): DataItem & { link: string } => {
             const $item = $(item);
-            const date = $item.find('div.notice-date').text();
 
             return {
                 title: $item.find('div.notice-list-tt a').text(),
-                pubDate: date ? timezone(parseDate(date, 'YYYY/MM/DD'), 8) : undefined,
+                pubDate: parseDate($item.find('div.notice-date').text(), 'YYYY/MM/DD', 8),
                 link: new URL($item.find('div.notice-list-tt a').prop('href')!, rootUrl).href,
                 category: $item
                     .find('div.notice-label')
@@ -59,7 +56,7 @@ export const handler = async (ctx) => {
         async (item) => {
             const details = await cache.tryGet(item.link, () => fetchArticleDetails(item.link));
 
-            return { ...item, title: details.title || item.title, description: details.description, content: details.content };
+            return { ...item, title: details.title, description: details.description, content: details.content };
         },
         { concurrency: 3, stopOnError: false }
     );

@@ -6,8 +6,8 @@ import ConfigNotFoundError from '@/errors/types/config-not-found';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/next/:url',
@@ -48,11 +48,9 @@ async function handler(ctx: Context) {
             ...(await cache.tryGet(item.link, async () => {
                 const storyDetail = await ofetch(item.link);
                 const $ = load(storyDetail);
-                const date = $('time').attr('datetime');
-                const pubDate = date ? parseDate(date) : undefined;
 
                 return {
-                    pubDate: pubDate && !Number.isNaN(pubDate.getTime()) ? pubDate : undefined,
+                    pubDate: parseDate($('time').attr('datetime')!),
                     description: $('.post-body').html(),
                 };
             })),

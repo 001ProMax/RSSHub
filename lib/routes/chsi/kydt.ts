@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const host = 'https://yz.chsi.com.cn';
 
@@ -45,13 +44,11 @@ async function handler() {
             title: $item.find('a').text(),
             link: new URL(path, host).href,
             path,
-            pubDate: timezone(parseDate($item.find('.span-time, .time').first().text()), 8),
+            pubDate: parseDate($item.find('.time').text(), 8),
         };
     });
-    const ordered = candidates;
-    const selected = ordered;
     const items = await Promise.all(
-        selected.map((item) =>
+        candidates.map((item) =>
             cache.tryGet(item.link, async () => {
                 let description: string;
                 if (!item.path.startsWith('https://') && !item.path.startsWith('http://')) {

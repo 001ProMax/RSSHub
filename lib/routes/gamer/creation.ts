@@ -3,9 +3,8 @@ import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { fetchItem } from './utils';
 
@@ -36,20 +35,13 @@ async function handler(ctx: Context) {
         },
     });
 
-    let list = data.list.map((item) => ({
+    const list = data.list.slice(0, getRouteLimit(ctx)).map((item) => ({
         title: item.title,
         link: `https://home.gamer.com.tw/artwork.php?sn=${item.csn}`,
         author: item.nick,
         category: item.categoryName,
-        pubDate: timezone(parseDate(item.ctime), 8),
+        pubDate: parseDate(item.ctime, 8),
     }));
-    const limit = getRouteLimit(ctx);
-    if (limit && (ctx.req.query('sorted') === 'false' || list.every((item) => Number.isFinite(item.pubDate.getTime())))) {
-        if (ctx.req.query('sorted') !== 'false') {
-            list.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
-        }
-        list = list.slice(0, limit);
-    }
     const items = await pMap(list, (item) => fetchItem(item), { concurrency: 3 });
 
     return {

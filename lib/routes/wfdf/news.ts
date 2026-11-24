@@ -1,10 +1,7 @@
-import { load } from 'cheerio';
-
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news',
@@ -30,26 +27,6 @@ export const route: Route = {
     url: 'wfdf.sport/news/',
 };
 
-function parseGmtDate(value?: string | null) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value.replace(/Z$/, ''), ['YYYY-MM-DDTHH:mm:ss', 'YYYY-MM-DDTHH:mm:ss.SSS'], true);
-    return Number.isFinite(date.getTime()) ? timezone(date, 0) : undefined;
-}
-
-function getArticleBody(content: string) {
-    if (!content.includes('single-post-date')) {
-        return content;
-    }
-    const $ = load(content, { xml: { xmlMode: false, decodeEntities: false, withStartIndices: true, withEndIndices: true } }, false);
-    const ranges = $('.single-post-date')
-        .toArray()
-        .flatMap(({ startIndex, endIndex }) => (typeof startIndex === 'number' && typeof endIndex === 'number' ? [[startIndex, endIndex + 1]] : []))
-        .toSorted((a, b) => b[0] - a[0]);
-    return ranges.reduce((body, [start, end]) => body.slice(0, start) + body.slice(end), content);
-}
-
 async function handler(ctx) {
     const baseUrl = 'https://wfdf.sport';
     const { data: response } = await got(`${baseUrl}/wp-json/wp/v2/posts`, {
@@ -63,13 +40,10 @@ async function handler(ctx) {
         title: item.title.rendered,
         link: item.link,
         guid: item.guid.rendered,
-        description: getArticleBody(item.content.rendered),
-        pubDate: parseGmtDate(item.date_gmt),
+        description: item.content.rendered,
+        pubDate: parseDate(item.date_gmt, 0),
         author: item._embedded.author[0].name,
-        category: item._embedded?.['wp:term']
-            ?.flat()
-            .map((term: { name?: string }) => term.name)
-            .filter((name): name is string => typeof name === 'string'),
+        category: item._embedded['wp:term'].flat().map((term) => term.name),
     }));
 
     return {

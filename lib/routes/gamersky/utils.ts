@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 interface idNameMap {
     type: string;
@@ -54,7 +53,7 @@ export const parseArticleList = (response: string) => {
             const a = ele.find('.tt').length ? ele.find('.tt') : ele.find('a');
             const title = a.text();
             const link = a.attr('href');
-            const pubDate = timezone(parseDate(ele.find('.time').text()), 8);
+            const pubDate = parseDate(ele.find('.time').text(), 8);
             const description = ele.find('.txt').text();
             if (!link) {
                 return;
@@ -111,17 +110,6 @@ export const getUserArticleList = async (userId: string) => {
     return response.body;
 };
 
-function parseUserTimestamp(timestamp?: string): Date | undefined {
-    if (!timestamp) {
-        return;
-    }
-    const date = parseDate(timestamp);
-    if (!Number.isFinite(date.getTime())) {
-        return;
-    }
-    return /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?$/.test(timestamp) ? timezone(date, 8) : date;
-}
-
 export const parseUserArticleList = (body: string) => {
     const $ = load(body);
     const list = $('.cmt-list');
@@ -132,7 +120,7 @@ export const parseUserArticleList = (body: string) => {
         return {
             title: title.text(),
             link: title.attr('href'),
-            pubDate: parseUserTimestamp(e.attr('data-time')),
+            pubDate: parseDate(e.attr('data-time')!, 8),
             description: e.find('.qzcmt-content-txt span').text(),
         };
     });

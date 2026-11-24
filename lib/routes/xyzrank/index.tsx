@@ -4,14 +4,13 @@ import { renderToString } from 'hono/jsx/dom/server';
 import type { Route } from '@/types';
 import { getSubPath } from '@/utils/common-utils';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate, parseDateStrict } from '@/utils/time';
 
-function parseSourceDate(value: string | number | Date | undefined) {
+function parseSourceDate(value: string | undefined) {
     if (value === undefined || value === '') {
         return;
     }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
+    return parseDate(value) ?? parseDateStrict(value.replace(/ \(.+\)$/, ''), 'ddd MMM DD YYYY HH:mm:ss [GMT]ZZ');
 }
 export const route: Route = {
     path: '/',
@@ -64,8 +63,7 @@ export async function handler(ctx) {
         url: categories[category].url,
     });
     const type = categories[category].type;
-    const requestedLimit = Number(ctx.req.query('limit') ?? 250);
-    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0 ? requestedLimit : 250;
+    const limit = Number(ctx.req.query('limit') ?? 250);
     const items = response.data.items.slice(0, limit).map((item, index) => ({
         title: `#${index + 1} ${item.title ?? item.name}`,
         category: [item.primaryGenreName],

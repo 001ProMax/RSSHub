@@ -1,16 +1,16 @@
-import { createHash } from 'node:crypto';
-
-import MarkdownIt from 'markdown-it';
 import pMap from 'p-map';
 
 import { config } from '@/config';
 import ConfigNotFoundError from '@/errors/types/config-not-found';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
+import { sha256 } from '@/utils/hash';
+import MarkdownIt from '@/utils/markdown-it';
 import { getPlaywrightPage } from '@/utils/playwright';
+import { parseDate } from '@/utils/time';
 
 import { renderSubscriptionImages } from './templates/subscriptions';
-import { apiqRootUrl, imageRootUrl, parseCreatedAt, rootUrl } from './utils';
+import { apiqRootUrl, imageRootUrl, rootUrl } from './utils';
 
 const md = MarkdownIt({
     html: true,
@@ -69,13 +69,11 @@ async function handler() {
 
     const username = config.iwara.username;
     const password = config.iwara.password;
-    const accountKey = createHash('sha256')
-        .update(JSON.stringify([username, password]))
-        .digest('hex');
+    const accountKey = sha256(JSON.stringify([username, password]));
 
     const { page, destroy } = await getPlaywrightPage(rootUrl, {
         onBeforeLoad: async (page) => {
-            await page.route('**/*', (route) => (['document', 'fetch', 'xhr'].includes(route.request().resourceType()) ? route.continue() : route.abort()));
+            await page.route('**/*', (route) => (['document', 'fetch'].includes(route.request().resourceType()) ? route.continue() : route.abort()));
         },
         gotoConfig: {
             waitUntil: 'domcontentloaded',
@@ -151,7 +149,7 @@ async function handler() {
                 link: `${rootUrl}/video/${item.id}`,
                 category: ['Video', ...(item.tags ? item.tags.map((i) => i.id) : [])],
                 imageUrl,
-                pubDate: parseCreatedAt(item.createdAt),
+                pubDate: parseDate(item.createdAt),
                 private: item.private,
             };
         });
@@ -164,7 +162,7 @@ async function handler() {
                 link: `${rootUrl}/image/${item.id}`,
                 category: ['Image', ...(item.tags ? item.tags.map((i) => i.id) : [])],
                 imageUrl,
-                pubDate: parseCreatedAt(item.createdAt),
+                pubDate: parseDate(item.createdAt),
             };
         });
 

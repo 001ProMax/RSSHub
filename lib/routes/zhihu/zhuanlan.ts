@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { generateData as generatePinData } from './pin/utils';
 import { processImage } from './utils';
@@ -49,7 +49,7 @@ async function handler(ctx) {
         let title: string;
         let link: string;
         let author: string;
-        let pubDate: Date;
+        let pubDate: Temporal.Instant | undefined;
         switch (item.type) {
             case 'answer':
                 title = item.question.title;
@@ -80,7 +80,7 @@ async function handler(ctx) {
             link,
             description,
             pubDate,
-            updated: isNullish(item.updated) || item.updated === '' ? undefined : parseDate(item.updated, 'X'),
+            updated: item.updated ? parseDate(item.updated, 'X') : undefined,
             author,
             image: item.title_image,
         };
@@ -92,7 +92,4 @@ async function handler(ctx) {
         link: url,
         image: column.image_url,
     };
-}
-function isNullish(value: unknown): value is null | undefined {
-    return value === null || value === undefined;
 }

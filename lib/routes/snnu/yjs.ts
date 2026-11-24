@@ -5,7 +5,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/yjs',
@@ -42,8 +42,7 @@ export const route: Route = {
                 const $link = $item.find('a');
                 const link = new URL($link.attr('href') || '', url).href;
 
-                const date = $link.find('em').text();
-                const pubDate = date ? parseDateInTimezone(date, 8) : undefined;
+                const pubDate = parseDate($link.find('em').text(), 8);
                 const title = $link.attr('title') || $link.find('p').text() || $link.text();
 
                 const metadata = { title, link, pubDate };

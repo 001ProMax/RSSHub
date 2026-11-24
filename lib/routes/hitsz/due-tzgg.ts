@@ -5,18 +5,9 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
-function parsePublicationDate(value?: string) {
-    if (!value?.trim()) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 8);
-}
-
-export const handler = async () => {
+const handler = async () => {
     const baseUrl = 'http://due.hitsz.edu.cn';
     const baseListPath = 'index/tzggqb';
 
@@ -48,7 +39,7 @@ export const handler = async () => {
             return {
                 title,
                 link: new URL(linkUrl, baseUrl).href,
-                pubDate: parsePublicationDate(pubDateStr),
+                pubDate: parseDate(pubDateStr, 8),
             };
         })
         .filter((item) => item !== null);
@@ -60,10 +51,9 @@ export const handler = async () => {
             ...(await cache.tryGet(item.link, async () => {
                 const response = await got(item.link);
                 const $ = load(response.data);
-                const content = $('.v_news_content').html() ?? $('.wp_articlecontent').html() ?? '';
+                const content = $('.v_news_content').html() ?? '';
                 const attachments = $('.page-main-fj a[href]')
                     .toArray()
-                    .filter((element) => $(element).attr('href'))
                     .map((element) => String(html`<p><a href="${new URL($(element).attr('href')!, item.link).href}">${$(element).text()}</a></p>`))
                     .join('');
                 return { description: content + attachments || undefined };

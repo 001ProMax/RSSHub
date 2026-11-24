@@ -5,8 +5,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const map = new Map([
     ['xyxw', { title: '中国科学技术大学数学科学学院 - 学院新闻', id: 'xyxw' }],
@@ -58,8 +57,7 @@ async function handler(ctx) {
             const title = elem.find('.Article_Title > a').attr('title');
             let link = elem.find('.Article_Title > a').attr('href');
             link = link!.startsWith('/') ? host + link : link;
-            const published = elem.find('.Article_PublishDate').text().trim();
-            const pubDate = published ? timezone(parseDate(published, 'YYYY-MM-DD'), 8) : undefined;
+            const pubDate = parseDate(elem.find('.Article_PublishDate').text(), 'YYYY-MM-DD', 8);
             return {
                 title: title!,
                 pubDate,
@@ -69,23 +67,21 @@ async function handler(ctx) {
     items = await pMap(
         items,
         async (item) => {
-            const details = await cache.tryGet<Pick<DataItem, 'description' | 'pubDate' | 'author'>>(`ustc:math:detail:${item.link}`, async () => {
-                const details: Pick<DataItem, 'description' | 'pubDate' | 'author'> = {};
+            const details = await cache.tryGet<Pick<DataItem, 'description' | 'author'>>(`ustc:math:detail:${item.link}`, async () => {
+                const details: Pick<DataItem, 'description' | 'author'> = {};
                 try {
                     const response = await got(item.link);
                     const $detail = load(response.data);
                     details.description = $detail('div.wp_articlecontent').html();
-                    details.author =
-                        $detail('.arti_publisher')
-                            .text()
-                            .replace(/^发布者[：:]\s*/, '')
-                            .trim() || undefined;
+                    details.author = $detail('.arti_publisher')
+                        .text()
+                        .replace(/^发布者[：:]\s*/, '');
                 } catch {
                     // Intranet only contents
                 }
                 return details;
             });
-            return { ...item, ...details, pubDate: details.pubDate ?? item.pubDate };
+            return { ...item, ...details };
         },
         { concurrency: 3 }
     );

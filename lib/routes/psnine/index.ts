@@ -2,17 +2,13 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate, parseRelativeDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate, parseRelativeDate } from '@/utils/time';
 
 function parseTopicDate(date: string) {
-    if (!date) {
-        return;
-    }
     const match = /^(\d+天前)\s+(\d{1,2}:\d{2})$/.exec(date);
     if (match) {
-        const day = parseRelativeDate(match[1]).toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
-        return timezone(parseDate(`${day} ${match[2]}`, 'YYYY-MM-DD HH:mm'), 8);
+        const day = parseRelativeDate(match[1])?.toLocaleString('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' });
+        return parseDate(`${day} ${match[2]}`, 'YYYY-MM-DD HH:mm', 8);
     }
     return parseRelativeDate(date);
 }
@@ -23,27 +19,17 @@ const handler = async () => {
 
     const $ = load(response);
 
-    const out = $('.list li, .topic-row')
+    const out = $('.topic-row')
         .toArray()
         .map((item) => {
             const $item = $(item);
             return {
                 title: $item.find('.title').text(),
                 link: $item.find('.title a').attr('href'),
-                pubDate: parseTopicDate(
-                    $item.hasClass('topic-row')
-                        ? $item.find('.meta > span:not(.author):not(.replies)').text()
-                        : $item
-                              .find('.meta')
-                              .contents()
-                              .filter((_, i) => i.nodeType === 3)
-                              .text()
-                              .trim()
-                              .split(/\s{2,}/, 1)[0]
-                ),
-                author: $item.find('.meta a.psnnode, .meta .author a').text(),
+                pubDate: parseTopicDate($item.find('.meta > span:not(.author):not(.replies)').text()),
+                author: $item.find('.meta .author a').text(),
                 category: $item
-                    .find('.meta a.node, .tag a')
+                    .find('.tag a')
                     .toArray()
                     .map((a) => $(a).text()),
             };

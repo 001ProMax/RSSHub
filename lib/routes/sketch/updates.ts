@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Data, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/updates',
@@ -31,13 +31,12 @@ async function handler(): Promise<Data> {
             const $item = $(item);
             const content = $item.find('.detail__content');
             content.find('button').remove();
-            const released = $item.find('.detail__date').attr('datetime');
 
             return {
                 title: $item.find('h2.detail__title').text(),
                 description: content.html(),
                 link: $item.find('.detail__date button').attr('data-update-url'),
-                pubDate: released ? parseDate(released) : undefined,
+                pubDate: parseDate($item.find('.detail__date').attr('datetime')!),
                 category: $item
                     .find('.detail__apps .pill')
                     .toArray()

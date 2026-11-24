@@ -1,7 +1,4 @@
-import path from 'node:path';
-
 import { load } from 'cheerio';
-import type { Context } from 'hono';
 import pMap from 'p-map';
 
 import { config } from '@/config';
@@ -10,8 +7,7 @@ import type { DataItem } from '@/types';
 import got from '@/utils/got';
 import logger from '@/utils/logger';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 interface RequestHeaders {
     cookie?: string;
@@ -38,6 +34,18 @@ if (config.ehentai.star) {
     headers.cookie = `${headers.cookie};star=${config.ehentai.star}`;
 }
 
+const galleryHosts = new Set(['e-hentai.org', 'exhentai.org']);
+
+// only send the cookie to the gallery site itself
+function isGalleryUrl(url: string, includeSubdomains = false) {
+    try {
+        const { protocol, hostname } = new URL(url);
+        return protocol === 'https:' && (galleryHosts.has(hostname) || (includeSubdomains && [...galleryHosts].some((host) => hostname.endsWith(`.${host}`))));
+    } catch {
+        return false;
+    }
+}
+
 function ehgot(url) {
     return fromEx ? got({ method: 'get', url: `https://exhentai.org/${url}`, headers }) : got({ method: 'get', url: `https://e-hentai.org/${url}`, headers });
 }
@@ -45,19 +53,9 @@ function ehgot(url) {
 function getThumbnail(cache, thumbnailUrl) {
     return cache.tryGet(`ehentai:thumbnail:${thumbnailUrl}`, async () => {
         try {
-            const buffer = await ofetch.raw<ArrayBuffer, 'arrayBuffer'>(thumbnailUrl, { responseType: 'arrayBuffer', headers: headers.cookie ? { Cookie: headers.cookie } : undefined });
-            const data = Buffer.from(buffer._data!).toString('base64');
-            const ext = path.extname(new URL(thumbnailUrl).pathname).slice(1).toLowerCase();
-            const imageTypes = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', avif: 'image/avif', svg: 'image/svg+xml' };
-            const contentType = buffer.headers.get('content-type')?.split(';', 1)[0].toLowerCase();
-            if (contentType && !contentType.startsWith('image/')) {
-                return thumbnailUrl;
-            }
-            const mimeType = contentType === 'image/jpg' ? 'image/jpeg' : contentType?.startsWith('image/') ? contentType : imageTypes[ext];
-            if (!mimeType) {
-                return thumbnailUrl;
-            }
-            return `data:${mimeType};base64,${data}`;
+            const buffer = await ofetch.raw<ArrayBuffer, 'arrayBuffer'>(thumbnailUrl, { responseType: 'arrayBuffer', headers: headers.cookie && isGalleryUrl(thumbnailUrl, true) ? { Cookie: headers.cookie } : undefined });
+            const data = Buffer.from(buffer._data!).toBase64();
+            return `data:${buffer.headers.get('content-type')};base64,${data}`;
         } catch (error) {
             logger.warn('Cannot download thumbnail: ' + thumbnailUrl, error);
             return thumbnailUrl;
@@ -69,7 +67,7 @@ function parseElement($, element, layout: string, includeBittorrent: string | bo
     const el = $(element);
     const title = el.find('.glink').html();
     const rawDate = el.find('div[id^="posted_"]').text();
-    const pubDate = rawDate ? timezone(parseDate(rawDate), 0) : undefined;
+    const pubDate = rawDate ? parseDate(rawDate, 0) : undefined;
     let linkElement;
     let imageElement;
     // match layout
@@ -92,7 +90,7 @@ function parseElement($, element, layout: string, includeBittorrent: string | bo
         const url = new URL(thumbnail);
         thumbnail = config.ehentai.img_proxy + url.pathname + url.search;
     }
-    const description = thumbnail ? `<img src='${thumbnail}' alt='thumbnail'>` : undefined;
+    const description = `<img src='${thumbnail}' alt='thumbnail'>`;
     if (!title || !link) {
         return;
     }
@@ -107,7 +105,7 @@ function parseElement($, element, layout: string, includeBittorrent: string | bo
     if (includeBittorrent) {
         const downloadElement = el.find('div.gldown');
         const bittorrentPageUrl = downloadElement.find('a').attr('href');
-        if (bittorrentPageUrl) {
+        if (bittorrentPageUrl && isGalleryUrl(bittorrentPageUrl)) {
             item.bittorrentPageUrl = bittorrentPageUrl;
         }
     }
@@ -123,7 +121,7 @@ function parseElement($, element, layout: string, includeBittorrent: string | bo
     return item;
 }
 
-async function parsePage(cache, data, includeBittorrent: string | boolean, embedThumbnail: string | boolean, ctx: Context, torrentState: TorrentState) {
+async function parsePage(cache, data, includeBittorrent: string | boolean, embedThumbnail: string | boolean, torrentState: TorrentState) {
     const $ = load(data);
     // "m" for Minimal
     // "p" for Minimal+
@@ -224,10 +222,10 @@ async function updateBittorrentUrl(cache, items, torrentState: TorrentState) {
     return items;
 }
 
-async function gatherItemsByPage(cache, url, includeBittorrent: string | boolean, embedThumbnail: string | boolean, ctx: Context) {
+async function gatherItemsByPage(cache, url, includeBittorrent: string | boolean, embedThumbnail: string | boolean) {
     const response = await ehgot(url);
     const torrentState: TorrentState = {};
-    const items = await parsePage(cache, response.data, includeBittorrent, embedThumbnail, ctx, torrentState);
+    const items = await parsePage(cache, response.data, includeBittorrent, embedThumbnail, torrentState);
     return (await updateBittorrentUrl(cache, items, torrentState)).map((item) => {
         delete item.thumbnail;
         delete item.bittorrentPageUrl;
@@ -241,23 +239,23 @@ function checkFirstPage(page?: string) {
     }
 }
 
-function getFavoritesItems(cache, favcat, inlineSet, page, getBittorrent: string | boolean = false, embedThumb: string | boolean = false, ctx: Context) {
+function getFavoritesItems(cache, favcat, inlineSet, page, getBittorrent: string | boolean = false, embedThumb: string | boolean = false) {
     checkFirstPage(page);
-    return gatherItemsByPage(cache, `favorites.php?favcat=${favcat}&inline_set=${inlineSet}`, getBittorrent, embedThumb, ctx);
+    return gatherItemsByPage(cache, `favorites.php?favcat=${favcat}&inline_set=${inlineSet}`, getBittorrent, embedThumb);
 }
 
-function getSearchItems(cache, params = '', page, getBittorrent: string | boolean = false, embedThumb: string | boolean = false, ctx: Context) {
+function getSearchItems(cache, params = '', page, getBittorrent: string | boolean = false, embedThumb: string | boolean = false) {
     checkFirstPage(page);
     const query = new URLSearchParams(params);
     for (const key of ['next', 'prev', 'page']) {
         query.delete(key);
     }
-    return gatherItemsByPage(cache, `?${query}`, getBittorrent, embedThumb, ctx);
+    return gatherItemsByPage(cache, `?${query}`, getBittorrent, embedThumb);
 }
 
-function getTagItems(cache, tag, page, getBittorrent: string | boolean = false, embedThumb: string | boolean = false, ctx: Context) {
+function getTagItems(cache, tag, page, getBittorrent: string | boolean = false, embedThumb: string | boolean = false) {
     checkFirstPage(page);
-    return gatherItemsByPage(cache, `tag/${encodeURIComponent(tag)}`, getBittorrent, embedThumb, ctx);
+    return gatherItemsByPage(cache, `tag/${encodeURIComponent(tag)}`, getBittorrent, embedThumb);
 }
 
 export default { getFavoritesItems, getSearchItems, getTagItems, hasCookie, fromEx };

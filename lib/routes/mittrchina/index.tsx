@@ -6,8 +6,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:type?',
@@ -112,7 +112,7 @@ async function handler(ctx) {
                     ...item,
                     description: details.content,
                     author: item.author || details.authors.map((author) => author.username).join(', '),
-                    pubDate: item.pubDate || (details.start_time ? parseDate(details.start_time, 'X') : undefined),
+                    pubDate: item.pubDate || parseDate(details.start_time, 'X'),
                     ...(details.cover && {
                         enclosure_url: details.cover,
                         enclosure_type: getMimeType(new URL(details.cover, 'https://www.mittrchina.com').pathname),

@@ -3,16 +3,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function parsePublicationDate(value?: string) {
-    if (!value?.trim()) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 8);
-}
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/libNews',
@@ -50,7 +41,7 @@ async function handler() {
     const list = response.data.datas.datas.map((item) => ({
         title: item['1'].value,
         link: `${host}/engine2/d/${item.id}/${engineInstanceId}/0?t=${typeId}&p=${pageId}`,
-        pubDate: parsePublicationDate(item['6']?.value),
+        pubDate: parseDate(item['6'].value, 8),
         image: item['0'].value ? new URL(item['0'].value, host).href : undefined,
     }));
 

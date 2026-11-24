@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 interface SourceArticle {
     article_info: {
@@ -13,7 +13,7 @@ interface SourceArticle {
         create_at: string;
     };
     author?: { profile?: { name?: string } };
-    cate?: { name?: string };
+    cate: { name: string };
 }
 
 export const route: Route = {
@@ -64,9 +64,9 @@ async function handler() {
                     title: info.title,
                     description: content,
                     link,
-                    author: article.author?.profile?.name || '',
-                    pubDate: parseDateInTimezone(info.create_at, 8),
-                    category: article.cate?.name ? [article.cate.name] : [],
+                    author: article.author?.profile?.name,
+                    pubDate: parseDate(info.create_at, 8),
+                    category: [article.cate.name],
                     guid: String(articleId),
                 };
             });

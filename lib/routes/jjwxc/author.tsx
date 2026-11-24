@@ -6,8 +6,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import NotFoundError from '@/errors/types/not-found';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/author/:id?',
@@ -97,18 +96,17 @@ async function handler(ctx) {
             author,
             category: [bookStatus],
             guid: `jjwxc-${id}-${bookId}#${bookWords}`,
-            pubDate: /\d{4}-\d{1,2}-\d{1,2}/.test(bookUpdatedTime) ? timezone(parseDate(bookUpdatedTime), 8) : undefined,
+            pubDate: parseDate(bookUpdatedTime, 8),
         },
     ];
 
     const logoEl = $('div.logo a img');
-    const imageSource = logoEl.prop('src');
-    const image = imageSource ? new URL(imageSource, currentUrl).href : undefined;
+    const image = `https:${logoEl.prop('src')}`;
     const icon = new URL('favicon.ico', rootUrl).href;
 
     return {
         item: items,
-        title: `${logoEl.prop('alt')?.replace(/logo/, '') || '晋江文学城'} | ${author} - 最近更新`,
+        title: `${logoEl.prop('alt').replace(/logo/, '')} | ${author} - 最近更新`,
         link: currentUrl,
         description: $('span[itemprop="description"]').text(),
         language: 'zh' as const,

@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const campusGot = got.extend({ allowH2: false });
 
@@ -57,15 +57,9 @@ async function handler(ctx) {
                 const result = await campusGot(itemUrl);
                 const $ = load(result.data);
                 const body = $('.read .wp_articlecontent');
-                if (!body.length) {
-                    throw new Error('Sass article body is missing');
-                }
                 body.find('[pdfsrc]').each((_, el) => {
                     const pdf = $(el);
-                    const path = pdf.attr('pdfsrc');
-                    if (!path) {
-                        return;
-                    }
+                    const path = el.attribs.pdfsrc;
                     const url = new URL(path, itemUrl);
                     const label = pdf.attr('sudyfile-attr')?.match(/'title':'([^']+)'/)?.[1] ?? url.pathname.split('/').pop();
                     pdf.replaceWith(
@@ -79,7 +73,7 @@ async function handler(ctx) {
                     title: itemTitle,
                     link: itemUrl,
                     description,
-                    pubDate: itemDate ? parseDate(`${itemDate.trim()}T00:00:00Z`) : undefined,
+                    pubDate: parseDate(`${itemDate}T00:00:00Z`),
                 };
             });
         },

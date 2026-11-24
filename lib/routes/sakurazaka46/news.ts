@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news',
@@ -47,12 +47,11 @@ async function handler(ctx) {
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
-            const date = $item.find('.date').text();
 
             return {
                 title: $item.find('.lead').text(),
                 link: `${rootUrl}${$item.attr('href')!.split('?', 1)[0]}`,
-                pubDate: date ? parseDate(`${date.replaceAll('.', '-')}T00:00:00Z`) : undefined,
+                pubDate: parseDate(`${$item.find('.date').text().replaceAll('.', '-')}T00:00:00Z`),
             };
         });
 

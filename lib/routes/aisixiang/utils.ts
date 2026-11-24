@@ -2,8 +2,7 @@ import { load } from 'cheerio';
 
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const ossUrl = 'https://oss.aisixiang.com';
 const rootUrl = 'https://www.aisixiang.com';
@@ -30,7 +29,7 @@ const ProcessFeed = (limit, items) =>
                     .map((element) => content(element).text())
                     .join(' ');
                 const authorPrefix = `${authors}：`;
-                item.title = author && title.startsWith(authorPrefix) ? title.slice(authorPrefix.length) : title;
+                item.title = title.startsWith(authorPrefix) ? title.slice(authorPrefix.length) : title;
                 item.description = content('div.article-content').html();
                 item.author = author;
                 item.category = content('u')
@@ -39,7 +38,7 @@ const ProcessFeed = (limit, items) =>
                     .find('u')
                     .toArray()
                     .map((c) => content(c).text());
-                item.pubDate = timezone(parseDate(content('div.info').text().split('时间：').pop()!), 8);
+                item.pubDate = parseDate(content('div.info').text().split('时间：').pop()!, 8);
                 item.upvotes = content('span.like-num').text() ? Number(content('span.like-num').text()) : 0;
                 item.comments = commentMatches ? Number(commentMatches[1]) : 0;
 

@@ -4,15 +4,7 @@ import pMap from 'p-map';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-
-const getPublicationDate = (timestamp: number | undefined) => {
-    if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
-        return;
-    }
-    const date = parseDate(timestamp, 'X');
-    return Number.isFinite(date.getTime()) ? date : undefined;
-};
+import { parseDate } from '@/utils/time';
 
 type ArticleData = [
     string,
@@ -69,7 +61,7 @@ export async function fetchItems(queryParam: string): Promise<DataItem[]> {
                     author: authors.length ? authors.join(', ') : undefined,
                 };
             });
-            return { title: item[0], pubDate: getPublicationDate(item[5]?.[0]), description: detail.description, author: detail.author, link };
+            return { title: item[0], pubDate: parseDate(item[5][0], 'X'), description: detail.description, author: detail.author, link };
         },
         { concurrency: 3, stopOnError: false }
     );

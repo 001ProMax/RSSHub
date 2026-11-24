@@ -1,6 +1,5 @@
 import type { Route } from '@/types';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import utils from './utils';
 
@@ -60,10 +59,8 @@ async function handler(ctx) {
             title: item.context,
             description: item.context,
             guid: JSON.stringify([number, id, item.time || item.ftime, item.context]),
-            pubDate: parseTrackingDate(item.time || item.ftime),
+            pubDate: parseDate(item.time || item.ftime, 8),
             link: 'https://www.kuaidi100.com',
         })),
     };
 }
-
-const parseTrackingDate = (date?: string) => (date ? (/(?:Z|[+-]\d{2}:?\d{2})$/i.test(date) ? parseDate(date) : timezone(parseDate(date), 8)) : undefined);

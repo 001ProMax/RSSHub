@@ -4,19 +4,13 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const newsBaseUrl = 'http://news.tju.edu.cn/';
 const getArticle = async (link: string) => {
     try {
         const response = await got(link);
         const $ = load(response.data);
-        const dateText =
-            $('.arc-info time').first().text().trim() ||
-            $('.contentTime')
-                .text()
-                .match(/\d{4}-\d{2}-\d{2}/)?.[0];
         const streamLines = $('.v_news_content script').toArray();
         for (const element of streamLines) {
             const match = $(element)
@@ -26,18 +20,15 @@ const getArticle = async (link: string) => {
                 continue;
             }
             const videoUrl = new URL(JSON.parse(match[1]), link);
-            if (isOneOf(videoUrl.protocol, ['http:', 'https:'])) {
-                $(element).replaceWith($('<video controls></video>').attr('src', videoUrl.href));
-            }
+            $(element).replaceWith($('<video controls></video>').attr('src', videoUrl.href));
         }
         return {
-            pubDate: dateText ? timezone(parseDate(dateText, ['YYYY/MM/DD', 'YYYY-MM-DD']), 8) : undefined,
+            pubDate: parseDate($('.arc-info time').text(), 'YYYY/MM/DD', 8),
             author:
                 $('.arc-info')
                     .text()
-                    .match(/作者：([\s\S]*?)编辑：/)?.[1]
-                    .trim() || undefined,
-            description: $('.v_news_content').html() ?? undefined,
+                    .match(/作者：([\s\S]*?)编辑：/)?.[1] || undefined,
+            description: $('.v_news_content').html(),
         };
     } catch {
         // Keep the source listing when an article detail is unavailable.
@@ -70,25 +61,25 @@ export const route: Route = {
     name: 'News',
     maintainers: ['AlanZeng423', 'SuperPung'],
     handler,
-    description: `| Focus on TJU | General News | Internal News | Media Report | Pictures of TJU |
-| :----------: | :----------: | :-----------: | :----------: | :-------------: |
-|     focus    |    general   |    internal   |     media    |     picture     |`,
+    description: `| Cover News | General News | Campus News | Media Report | Pictures of TJU |
+| :--------: | :----------: | :---------: | :----------: | :-------------: |
+|    focus   |    general   |   internal  |     media    |     picture     |`,
 };
 async function handler(ctx) {
     const type = ctx.req.param('type');
     let path, subtitle;
     switch (type) {
         case 'focus':
-            subtitle = '聚焦天大';
-            path = 'jjtd.htm';
+            subtitle = '封面新闻';
+            path = 'xw/fmxw.htm';
             break;
         case 'general':
             subtitle = '综合新闻';
             path = 'xw/zhxw.htm';
             break;
         case 'internal':
-            subtitle = '校内新闻';
-            path = 'xnxw1/qb.htm';
+            subtitle = '校园时讯';
+            path = 'xw/xysx.htm';
             break;
         case 'media':
             subtitle = '媒体报道';
@@ -99,20 +90,13 @@ async function handler(ctx) {
             path = 'yx/tstd.htm';
             break;
         default:
-            subtitle = '聚焦天大';
-            path = 'jjtd.htm';
+            subtitle = '封面新闻';
+            path = 'xw/fmxw.htm';
     }
     const listUrl = new URL(path, newsBaseUrl).href;
-    const response = await got(listUrl, {
-        headers: {
-            Referer: newsBaseUrl,
-        },
-    });
+    const response = await got(listUrl);
     const $ = load(response.data);
-    let elements = $('.nylist-a > li, .nylist-b > li, .nylist-c > li').toArray();
-    if (!elements.length) {
-        elements = type === 'picture' ? $('.picList > li').toArray() : $('.indexList > li').toArray();
-    }
+    const elements = $('.nylist-a > li, .nylist-b > li, .nylist-c > li').toArray();
     const list = elements.map(
         (
             item
@@ -120,11 +104,11 @@ async function handler(ctx) {
             type?: string;
         } => {
             const $item = $(item);
-            const anchor = $item.find('h4 > a').first().length ? $item.find('h4 > a').first() : $item.find('a').first();
+            const anchor = $item.find('h4 > a').length ? $item.find('h4 > a') : $item.find('a');
             const href = anchor.attr('href');
             const type = pageType(href);
             return {
-                title: anchor.find('h4').first().length ? anchor.find('h4').first().text() : anchor.text(),
+                title: anchor.find('h4').length ? anchor.find('h4').text() : anchor.text(),
                 link: type === 'in-site' ? new URL(href!, listUrl).href : href,
                 type,
             };
@@ -150,10 +134,6 @@ async function handler(ctx) {
         link: listUrl,
         item: items,
     };
-}
-function isOneOf<const T>(value: unknown, values: readonly T[]): value is T {
-    const candidates: readonly unknown[] = values;
-    return candidates.includes(value);
 }
 function omitInternalField<T extends object, K extends keyof T>(item: T, key: K): Omit<T, K> {
     const metadata = { ...item };

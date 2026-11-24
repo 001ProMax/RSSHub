@@ -5,8 +5,7 @@ import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 interface Post {
     post_title: string;
@@ -70,13 +69,13 @@ export async function handler(ctx) {
             const description = await cache.tryGet(`eastmoney:cfh:content:${item.post_source_id}`, async () => {
                 const { data } = await got(link);
                 const $ = load(data);
-                return $('.xeditor_content').html() || descriptionContent;
+                return $('.xeditor_content').html();
             });
 
             return {
                 title: item.post_title || `${nickname} 发布了长文: ${descriptionContent}`,
                 description,
-                pubDate: timezone(parseDate(item.post_publish_time), 8),
+                pubDate: parseDate(item.post_publish_time, 8),
                 link,
                 author: item.post_user.user_nickname,
             };

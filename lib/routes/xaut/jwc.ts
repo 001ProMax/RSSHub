@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 
 export const route: Route = {
     path: '/jwc/:category?',
@@ -36,7 +35,7 @@ async function fetchDetail(link: string): Promise<Pick<DataItem, 'description' |
         const response = await got(link);
         const content = load(response.body);
         return {
-            description: content('[id^="vsb_content"]').first().html() ?? undefined,
+            description: content('[id^="vsb_content"]').html(),
             author:
                 content('.main_contit p')
                     .text()
@@ -62,16 +61,13 @@ async function handler(ctx) {
     const list = $('.main_conRCb a')
         .slice(0, 20)
         .toArray()
-        .filter((item) => $(item).attr('href'))
         .map((item): DataItem => {
             const $item = $(item);
             const link = new URL($item.attr('href')!, rootUrl + categoryPaths[category]).href;
-            const rawDate = $item.find('span').text();
-            const pubDate = rawDate ? timezone(parseDate(rawDate, 'YYYY-MM-DD', true), 8) : undefined;
             return {
                 title: $item.find('em').text(),
                 link,
-                pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
+                pubDate: parseDateStrict($item.find('span').text(), 'YYYY-MM-DD', 8),
             };
         });
     return {

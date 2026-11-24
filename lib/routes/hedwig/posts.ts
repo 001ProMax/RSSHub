@@ -1,11 +1,11 @@
 import { load } from 'cheerio';
-import MarkdownIt from 'markdown-it';
 
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import { ViewType } from '@/types';
+import MarkdownIt from '@/utils/markdown-it';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 const md = MarkdownIt({
@@ -46,7 +46,7 @@ export const route: Route = {
             return {
                 title: item.subject,
                 description,
-                pubDate: item.publishAt ? parseDate(item.publishAt) : undefined,
+                pubDate: parseDate(item.publishAt),
                 link: `${baseUrl}/i/${item.urlFriendlyName}`,
             };
         });

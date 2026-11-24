@@ -5,7 +5,7 @@ import { config } from '@/config';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import type { Album, MobileTrack, RichIntro, TrackInfoResponse } from './types';
 import { decryptUrl, getRandom16, getXmSign } from './utils';
@@ -44,7 +44,7 @@ function judgeTrue(str, ...validStrings) {
         return false;
     }
     str = str.toLowerCase();
-    if (isOneOf(str, ['true', '1'])) {
+    if (str === 'true' || str === '1') {
         return true;
     }
     for (const _s of validStrings) {
@@ -136,7 +136,7 @@ async function handler(ctx) {
         await pMap(
             playList,
             async (item) => {
-                const timestamp = Math.floor(Date.now());
+                const timestamp = Math.floor(Temporal.Now.instant().epochMilliseconds);
                 const trackPayInfoApi = `https://www.ximalaya.com/mobile-playpage/track/v3/baseInfo/${timestamp}?device=www2&trackQualityLevel=2&trackId=${item.trackId}`;
                 const data = await cache.tryGet('ximalaya:trackPayInfo' + trackPayInfoApi, async () => {
                     const trackPayInfoResponse = await ofetch(trackPayInfoApi, {
@@ -169,14 +169,14 @@ async function handler(ctx) {
         const trackId = item.trackId;
         const itunesItemImage = item.coverLarge.split('!', 1)[0];
         const link = `${baseUrl}/sound/${trackId}`;
-        const pubDate = !isNullish(item.createdAt) && getClockText(item.createdAt) && isFiniteClock(item.createdAt) ? parseDate(item.createdAt, 'x') : undefined;
+        const pubDate = parseDate(item.createdAt, 'x');
         const duration = item.duration; // Duration in seconds
         const enclosureUrl = item.playPathAacv224 || item.playPathAacv164;
         let resultItem: DataItem = {
             title,
             link,
             description: item.desc || '',
-            pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
+            pubDate,
             itunes_item_image: itunesItemImage,
         };
         if (enclosureUrl) {
@@ -203,18 +203,4 @@ async function handler(ctx) {
         itunes_category: categoryDict[albumCategory] || albumCategory,
         item: resultItems,
     };
-}
-function isNullish(value: unknown): value is null | undefined {
-    return isOneOf(value, [null, undefined]);
-}
-function isOneOf<const T>(value: unknown, values: readonly T[]): value is T {
-    const candidates: readonly unknown[] = values;
-    return candidates.includes(value);
-}
-function getClockText(value: string | number): string {
-    return String(value).trim();
-}
-
-function isFiniteClock(value: string | number): boolean {
-    return Number.isFinite(Number(value));
 }

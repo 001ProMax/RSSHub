@@ -1,10 +1,11 @@
-import { type CheerioOptions, load } from 'cheerio';
+import type { CheerioOptions } from 'cheerio';
+import { load } from 'cheerio';
 import pMap from 'p-map';
 
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const BASE = 'https://www.timednews.com/topic';
 
@@ -79,18 +80,16 @@ export const route: Route = {
 };
 
 async function getArticleDetails(link: string): Promise<Pick<DataItem, 'author' | 'pubDate' | 'description'>> {
-    const details = await cache.tryGet(link, async () => {
+    return await cache.tryGet(link, async () => {
         const response = await got(link);
         const $ = load(response.data, { decodeEntities: false } as CheerioOptions);
         $('.event .twitter').remove();
-        const publishedDate = $('.datetime #publishdate').text();
         return {
-            pubDate: publishedDate ? parseDate(`${publishedDate} +0000`, 'YYYY-MM-DD ZZ') : undefined,
+            pubDate: parseDate(`${$('.datetime #publishdate').text()} +0000`, 'YYYY-MM-DD ZZ'),
             author: $('.datetime #author').text(),
             description: $('.event').html(),
         };
     });
-    return { pubDate: details.pubDate, author: details.author, description: details.description };
 }
 
 async function handler(ctx) {

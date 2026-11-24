@@ -3,7 +3,7 @@ import { escapeText } from 'entities';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 function deserializeAstroProps(val: any): any {
     if (Array.isArray(val)) {
@@ -33,7 +33,7 @@ interface Package {
     license: string;
     description: string;
     keywords?: string[];
-    updatedAt?: number;
+    updatedAt: number;
     releasedAt: number;
     hasRepo: boolean;
     categories?: string[];
@@ -42,14 +42,6 @@ interface Package {
 
 interface SearchResults {
     packages: Package[];
-}
-
-function getPublicationDate(value: number | undefined): Date | undefined {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-        return;
-    }
-    const date = parseDate(value, 'X');
-    return Number.isFinite(date.getTime()) ? date : undefined;
 }
 
 export const route: Route = {
@@ -74,7 +66,7 @@ export const route: Route = {
             title: `${item.name} (${item.version}) | ${item.description}`,
             link: `https://typst.app/universe/package/${item.name}`,
             description: escapeText(item.description),
-            pubDate: getPublicationDate(item.updatedAt),
+            pubDate: parseDate(item.updatedAt, 'X'),
             category: [...new Set([...(item.keywords ?? []), ...(item.categories ?? [])])],
             author: item.authors.join(', '),
         }));

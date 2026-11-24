@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/graduate/:type?',
@@ -67,8 +66,7 @@ export const route: Route = {
                 const link = href ? new URL(href, `${baseUrl}/${type}/list.htm`).href : undefined;
 
                 // Extract the publication date.
-                const dateStr = $timeDiv.text().trim();
-                const pubDate = dateStr ? timezone(parseDate(dateStr, 'YYYY-MM-DD'), 8) : undefined;
+                const pubDate = parseDate($timeDiv.text(), 'YYYY-MM-DD', 8);
 
                 return {
                     title: title!,
@@ -112,9 +110,6 @@ export const route: Route = {
                         });
                     }
 
-                    if (!$description.length) {
-                        throw new Error(`Could not find the graduate notice content: ${item.link}`);
-                    }
                     return { description: $description.html() };
                 });
                 return { ...item, ...detail };

@@ -4,8 +4,8 @@ import type { Context } from 'hono';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/yjsc/:type',
@@ -47,7 +47,7 @@ async function handler(ctx: Context) {
             return {
                 title: $item.find('td a').attr('title') ?? '',
                 link: $item.find('td a').attr('href'),
-                pubDate: getPublicationDate($item.find('td div').text()),
+                pubDate: parseDate($item.find('td div').text()),
             };
         });
 
@@ -56,12 +56,4 @@ async function handler(ctx: Context) {
         link,
         item: items,
     };
-}
-
-function getPublicationDate(value: string) {
-    if (!value.trim()) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
 }

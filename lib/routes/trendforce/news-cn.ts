@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 async function fetchArticleDetails(link: string): Promise<Pick<DataItem, 'description' | 'author' | 'category'>> {
     const response = await ofetch(link);
@@ -20,7 +19,7 @@ async function fetchArticleDetails(link: string): Promise<Pick<DataItem, 'descri
         .map((a) => $(a).text());
     const author = tagRow.find('.fa-user').parent().find('a').text();
 
-    pressCenter.children('h1').first().remove();
+    pressCenter.children('h1').remove();
     pressCenter.children('.tag-row, .press-choose-post, hr.space').remove();
 
     return { description: pressCenter.html()?.trim(), category, author };
@@ -50,16 +49,15 @@ async function handler() {
 
     const list = $('.list-items .list-item')
         .toArray()
-        .filter((item) => $(item).find('h3 a.title-link').attr('href'))
         .map((item): DataItem & { link: string } => {
             const $item = $(item);
             const a = $item.find('h3 a.title-link');
-            const date = $item.find('h4').text().trim();
+            const date = $item.find('h4').text();
             return {
                 title: a.find('strong').text(),
                 link: new URL(a.attr('href')!, baseUrl).href,
-                description: $item.find('p').text()?.trim(),
-                pubDate: date ? timezone(parseDate(date, 'D MMMM YYYY'), 8) : undefined,
+                description: $item.find('p').text().trim(),
+                pubDate: parseDate(date, 'D MMMM YYYY', 8),
             };
         });
 

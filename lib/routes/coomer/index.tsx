@@ -4,8 +4,8 @@ import { renderToString } from 'hono/jsx/dom/server';
 import { config } from '@/config';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { getCoomerMediaUrl } from './utils';
 
@@ -98,7 +98,7 @@ async function handler(ctx) {
                 });
             }
             const filesHTML = renderSource(i);
-            const pubDate = i.published ? parseDate(i.published) : undefined;
+            const pubDate = parseDate(i.published);
             let $ = load(filesHTML);
             const coomerFiles = $('img, a, audio, video').map((_, el) => $(el).prop('outerHTML')!);
             let desc = '';
@@ -139,7 +139,7 @@ async function handler(ctx) {
             });
 
             return {
-                title: i.title || pubDate?.toString() || 'Untitled Post',
+                title: i.title || pubDate!.toString(),
                 description: desc,
                 author,
                 pubDate,

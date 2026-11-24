@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/red',
@@ -45,11 +45,8 @@ async function handler() {
                 const $ = load(response);
 
                 const publishedTime = $('meta[property="article:published_time"]').attr('content');
-                const legacyDate = $('d-article p').first();
-                const date = publishedTime || legacyDate.text().trim();
-                item.pubDate = date ? parseDate(date) : undefined;
+                item.pubDate = publishedTime ? parseDate(publishedTime) : undefined;
                 $('h3:contains("Subscribe")').remove();
-                legacyDate.remove();
                 const content = $('d-article').length ? $('d-article') : $('#main-content > div > article');
                 content.find('[class$="_Header"], [class$="_ConstellationPanelSlot"]').remove();
                 content.find('img').each((_, e) => {

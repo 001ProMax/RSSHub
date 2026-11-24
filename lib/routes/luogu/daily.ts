@@ -1,11 +1,12 @@
-import MarkdownIt from 'markdown-it';
 import pMap from 'p-map';
 
 import type { Route } from '@/types';
+import MarkdownIt from '@/utils/markdown-it';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
-import { getArticleDescription, getPageData, type LuoguArticle } from './utils';
+import type { LuoguArticle } from './utils';
+import { getArticleDescription, getPageData } from './utils';
 
 const md = MarkdownIt();
 
@@ -37,13 +38,14 @@ export const route: Route = {
 async function handler(ctx) {
     const id = ctx.req.param('id') ?? 47327;
     const link = `https://www.luogu.com.cn/discuss/${id}`;
-    const response = await ofetch(link, { responseType: 'text' });
+    const response = await ofetch(link);
     const { post } = getPageData<{ post: { content: string } }>(response);
     const dailyLink = post.content.match(/<(https?:[^>]+)>/)?.[1];
     if (!dailyLink) {
         throw new Error('The Luogu daily index does not contain an article or collection link. Check the discussion ID.');
     }
-    const dailyResponse = await ofetch(dailyLink, { responseType: 'text' });
+    // the link is taken from a user-written post
+    const dailyResponse = await ofetch(dailyLink, { publicOnly: true });
     const data = getPageData<{ articles?: { result: LuoguArticle[] }; article?: LuoguArticle }>(dailyResponse);
     const articles = data.articles?.result ?? (data.article ? [data.article] : undefined);
     if (!articles) {

@@ -3,7 +3,7 @@ import iconv from 'iconv-lite';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { baseUrl, fixImage, fixVideo } from './utils';
 
@@ -62,8 +62,7 @@ async function handler(ctx) {
                 category: $story
                     .find('.tags__tag[data-tag]')
                     .toArray()
-                    .map((tag) => $(tag).attr('data-tag'))
-                    .filter((tag): tag is string => Boolean(tag)),
+                    .map((tag) => tag.attribs['data-tag']),
             };
         });
 

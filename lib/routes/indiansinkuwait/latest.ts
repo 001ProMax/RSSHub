@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDateStrict } from '@/utils/time';
 
 const baseUrl = 'https://www.indiansinkuwait.com';
 
@@ -53,8 +53,7 @@ async function handler() {
                 const { data: response } = await got(item.link);
                 const $ = load(response);
 
-                const date = $('#ctl00_ContentPlaceHolder1_SpanAuthor').text();
-                item.pubDate = date ? parseDate(`${date} GMT`) : undefined;
+                item.pubDate = parseDateStrict($('#ctl00_ContentPlaceHolder1_SpanAuthor').text(), 'dddd, MMMM D, YYYY');
                 $('#newsdetails h3, #ctl00_ContentPlaceHolder1_SpanAuthor, .noprint, [id^=div-gpt-ad]').remove();
                 item.description = $('#newsdetails').html();
 

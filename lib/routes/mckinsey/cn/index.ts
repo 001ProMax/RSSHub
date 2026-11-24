@@ -5,7 +5,7 @@ import type { DataItem, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 import { categories } from './category-map';
 
@@ -88,12 +88,11 @@ async function handler(ctx) {
         .map((item): DataItem => {
             const $item = $(item);
             const a = $item.find('h2 a');
-            const date = $item.find('[itemprop="datePublished"]').attr('content');
             return {
                 title: a.attr('title')!,
                 description: $item.find('.fl-post-grid-content').html()?.trim(),
                 link: a.attr('href'),
-                pubDate: date ? parseDateInTimezone(date, 8) : undefined,
+                pubDate: parseDate($item.find('[itemprop="datePublished"]').attr('content')!, 8),
             };
         });
 
@@ -107,7 +106,7 @@ async function handler(ctx) {
                 const $ = load(response);
 
                 return {
-                    description: $('.ast-post-format-').html() || undefined,
+                    description: $('.ast-post-format-').html(),
                     guid: $('link[rel="shortlink"]').attr('href'),
                 };
             });

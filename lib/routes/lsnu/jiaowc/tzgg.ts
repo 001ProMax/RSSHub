@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/jiaowc/tzgg/:category?',
@@ -54,7 +54,7 @@ async function handler(ctx) {
             const $item = $(item);
             const title = $item.find('a').attr('title');
             const link = new URL($item.find('a').attr('href')!, url).href;
-            const date = $item.find('td[width="80"]').text().trim();
+            const date = $item.find('td[width="80"]').text();
 
             const description = await cache.tryGet('lsnu:article:' + link, async () => {
                 const response = await got({
@@ -71,7 +71,7 @@ async function handler(ctx) {
                 title: title!,
                 link,
                 description,
-                pubDate: date ? parseDateInTimezone(date, 8) : undefined,
+                pubDate: parseDate(date, 8),
             };
         },
         { concurrency: 3 }

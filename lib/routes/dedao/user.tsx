@@ -1,4 +1,3 @@
-import { load } from 'cheerio';
 import { raw } from 'hono/html';
 import { renderToString } from 'hono/jsx/dom/server';
 import pMap from 'p-map';
@@ -7,8 +6,8 @@ import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const types = {
     0: '动态',
@@ -24,17 +23,12 @@ const extractImageUrl = (value?: string) => value?.match(/"url":"(.*?)"/)?.[1];
 
 const getVideoUrl = (link: string) =>
     cache.tryGet(`dedao:video:${link}`, async () => {
-        const response = await ofetch(link);
-        const $ = load(response);
-        const state = $('script')
-            .toArray()
-            .map((script) => $(script).text())
-            .find((script) => script.includes('window.__INITIAL_STATE__'));
-        const videoUrl = state ? JSON.parse(state.replace(/^\s*window\.__INITIAL_STATE__\s*=\s*/, '').replace(/;\s*$/, '')).noteDetail?.video?.video_url : undefined;
-        if (!videoUrl) {
+        const response = await ofetch<string>(link);
+        const state = response.match(/window\.__INITIAL_STATE__\s*=\s*(\{.+?\});<\/script>/s)?.[1];
+        if (!state) {
             throw new Error(`No public video playback URL found on ${link}.`);
         }
-        return videoUrl as string;
+        return JSON.parse(state).noteDetail.video.video_url as string;
     });
 
 export const route: Route = {

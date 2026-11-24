@@ -1,5 +1,6 @@
 import type { CheerioAPI } from 'cheerio';
 import { load } from 'cheerio';
+import { renderToString } from 'hono/jsx/dom/server';
 import pMap from 'p-map';
 
 import NotFoundError from '@/errors/types/not-found';
@@ -7,7 +8,7 @@ import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?/:section?',
@@ -63,28 +64,23 @@ async function handler(ctx) {
     const category = ctx.req.param('category') ? ctx.req.param('category').toLowerCase() : 'singapore';
     const section = ctx.req.param('section')?.toLowerCase();
     const baseUrl = 'https://www.straitstimes.com';
-    const currentUrl = new URL(`/${category}`, baseUrl).href;
+    const currentUrl = `${baseUrl}/${category}`;
     const { data: response } = await got(currentUrl);
     const $ = load(response);
     const refCode = section === 'top-stories' ? 'top-stories' : 'latest';
-    const seen = new Set<string>();
-    const list: Array<DataItem & { link: string }> = $('a[href]')
+    const list: Array<DataItem & { link: string }> = $('main a[href]')
         .toArray()
         .flatMap((element) => {
             const anchor = $(element);
-            const url = new URL(anchor.attr('href') || '', baseUrl);
+            const url = new URL(element.attribs.href, baseUrl);
             if (url.searchParams.get('ref') !== refCode) {
                 return [];
             }
             url.search = '';
-            if (seen.has(url.href)) {
-                return [];
-            }
-            seen.add(url.href);
             return {
-                title: anchor.find('[data-testid="heading-test-id"]').first().text(),
+                title: anchor.find('[data-testid="heading-test-id"]').text(),
                 link: url.href,
-                image: anchor.find('img').first().attr('src'),
+                image: anchor.find('img').attr('src'),
             };
         });
 
@@ -94,9 +90,9 @@ async function handler(ctx) {
             const detail = await cache.tryGet(`straitstimes:article:v3:${item.link}`, async () => {
                 const { data: response } = await got(item.link);
                 const content = load(response);
-                const body = content('.storyline-wrapper').first();
+                const body = content('.storyline-wrapper');
                 body.find('.more-on-this-topic-wrapper').remove();
-                const description = (content('.hero-media-wrapper').first().html() ?? '') + (body.html() ?? '');
+                let description = (content('.hero-media-wrapper').html() ?? '') + (body.html() ?? '');
                 const liveBlogId = content('.live-blog-coverage')
                     .attr('data-testid')
                     ?.match(/^live-coverage-test-id-(\d+)$/)?.[1];
@@ -117,6 +113,15 @@ async function handler(ctx) {
                         pubDate: schema?.datePublished ? parseDate(schema.datePublished) : undefined,
                         updated: schema?.dateModified ? parseDate(schema.dateModified) : undefined,
                     };
+                }
+                // Interactive graphics render their body in the browser; the HTML only carries the share image and standfirst.
+                if (!description && content('meta[property="og:url"]').attr('content')?.includes('/multimedia/graphics/')) {
+                    description = renderToString(
+                        <>
+                            <img src={content('meta[property="og:image"]').attr('content')} />
+                            <p>{content('meta[property="og:description"]').attr('content')}</p>
+                        </>
+                    );
                 }
                 if (!description) {
                     throw new NotFoundError(`No readable article content is available at ${item.link}`);

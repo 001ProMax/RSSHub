@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'http://www.vom.mn';
 const languages = {
@@ -79,7 +79,7 @@ async function fetchArticle(link: string): Promise<ArticleDetails> {
     const pubDate = parseDate($('.vom-news-show-meta .right').prev().text());
     const category = $('.vom-news-show-meta .uk-button-text').text();
     $('.uk-article-title, .uk-text-meta, article .uk-grid-small').remove();
-    return { title, author, pubDate, category, description: $('article').html() ?? undefined };
+    return { title, author, pubDate, category, description: $('article').html() };
 }
 
 async function getArticle(link: string): Promise<DataItem> {

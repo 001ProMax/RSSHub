@@ -2,7 +2,7 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/games',
@@ -24,8 +24,8 @@ async function handler() {
         item: response.data.map((game) => ({
             title: game.names.international,
             link: game.weblink,
-            pubDate: game.created ? parseDate(game.created) : undefined,
-            description: renderToString(<>{game.assets['cover-large']?.uri && <img src={game.assets['cover-large'].uri} alt="" />}</>),
+            pubDate: parseDate(game.created),
+            description: renderToString(<img src={game.assets['cover-large'].uri} alt="" />),
         })),
     };
 }

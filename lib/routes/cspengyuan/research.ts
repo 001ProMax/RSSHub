@@ -1,10 +1,9 @@
 import { escapeAttribute } from 'entities';
 
 import type { Route } from '@/types';
-import { parseDate } from '@/utils/parse-date';
-import { getPlaywrightPage } from '@/utils/playwright';
+import ofetch from '@/utils/ofetch';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.cspengyuan.com';
 
@@ -14,7 +13,6 @@ export const route: Route = {
     name: '信用研究',
     categories: ['finance'],
     maintainers: ['DIYgod'],
-    features: { requirePuppeteer: true },
     parameters: { category: '官网信用研究栏目编码，默认 macroSpecialResearch。' },
     description: `| 栏目         | 编码                    |
 | ------------ | ----------------------- |
@@ -39,27 +37,14 @@ async function handler(ctx) {
     const category = ctx.req.param('category') ?? 'macroSpecialResearch';
     const link = `${baseUrl}/credit-research/${category}`;
     const apiUrl = `${baseUrl}/api/credit-research/category/${encodeURIComponent(category)}?page=0&size=20`;
-    const { page, destroy } = await getPlaywrightPage(apiUrl, {
-        onBeforeLoad: async (page) => {
-            await page.setExtraHTTPHeaders({ Referer: link, Accept: 'application/json, text/plain, */*' });
-            await page.route('**/*', (route) => (route.request().resourceType() === 'document' ? route.continue() : route.abort()));
-        },
-    });
-    let response;
-    try {
-        await page.waitForSelector('pre');
-        const body = await page.locator('pre').textContent();
-        response = JSON.parse(body!);
-    } finally {
-        await destroy();
-    }
+    const response = await ofetch(apiUrl);
     const limit = getRouteLimit(ctx, 20);
     const items = response.responseData.content.slice(0, limit).map((report) => {
         const pdfUrl = new URL(report.pdfUrl.startsWith('/api/files/') ? report.pdfUrl : `/api/files/${report.pdfUrl}`, baseUrl).href;
         return {
             title: report.title,
             link: `${baseUrl}/pdf-view?url=${encodeURIComponent(new URL(pdfUrl).pathname)}`,
-            pubDate: timezone(parseDate(report.publishDate, 'YYYY-MM-DD HH:mm:ss'), 8),
+            pubDate: parseDate(report.publishDate, 'YYYY-MM-DD HH:mm:ss', 8),
             category: report.category,
             description: `<iframe src="${escapeAttribute(pdfUrl)}"></iframe>`,
             enclosure_url: pdfUrl,

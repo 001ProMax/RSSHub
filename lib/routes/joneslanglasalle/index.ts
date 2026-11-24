@@ -4,8 +4,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const searchApiUrl = 'https://www.jll.com/api/search/template';
 const subscriptionKey = '8f6a4de5b0144673acaa89b03aac035e';
@@ -55,7 +55,7 @@ const localeMap = new Map<string, LocaleConfig>([
     ],
 ]);
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { language: lang = 'zh' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 12);
 

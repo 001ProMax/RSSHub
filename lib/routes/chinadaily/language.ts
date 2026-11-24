@@ -7,13 +7,12 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category = 'thelatest' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
 
@@ -75,10 +74,9 @@ export const handler = async (ctx: Context): Promise<Data> => {
                     const $$: CheerioAPI = load(detailResponse);
 
                     const title: string = $$('meta[ property="og:title"]').attr('content')!;
-                    const pubDateStr: string | undefined =
-                        $$('p.main_title3')
-                            .text()
-                            .match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?::\d{2})?/)?.[0] ?? $$('meta[name="publishdate"]').attr('content');
+                    const pubDateStr: string | undefined = $$('p.main_title3')
+                        .text()
+                        .match(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?::\d{2})?/)?.[0];
                     const categories: string[] | undefined = $$('meta[name="keywords"]').attr('content')?.split(/,/);
                     const authorEls: Element[] = $$('meta[name="source"], meta[name="author"], meta[name="editor"]').toArray();
                     const authorNames: string[] = [
@@ -100,12 +98,12 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
                     let processedItem: DataItem = {
                         title,
-                        pubDate: pubDateStr ? timezone(parseDate(pubDateStr), 8) : item.pubDate,
+                        pubDate: pubDateStr ? parseDate(pubDateStr, 8) : item.pubDate,
                         category: categories,
                         author: authors,
                         image,
                         banner: image,
-                        updated: upDatedStr ? timezone(parseDate(upDatedStr), 8) : item.updated,
+                        updated: upDatedStr ? parseDate(upDatedStr, 8) : item.updated,
                         language,
                     };
 

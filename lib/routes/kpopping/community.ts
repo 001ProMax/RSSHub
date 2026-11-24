@@ -4,11 +4,11 @@ import type { Context } from 'hono';
 import type { Data, DataItem, Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const filter = ctx.req.param('filter');
     const params = new URLSearchParams(filter);
 
@@ -27,7 +27,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
         const link = `https://kpopping.com/community/${item.slug}`;
         const dateStr = item.publishedAt ?? item.createdAt;
         const pubDate = dateStr ? parseDate(dateStr) : undefined;
-        const category = [item.category, ...(item.tags ?? [])].filter(Boolean);
+        const category = [item.category, ...(item.tags ?? [])];
         const author = item.authorName;
 
         return {

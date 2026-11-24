@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/bookmarks/:slug',
@@ -80,7 +80,7 @@ async function handler(ctx) {
                     title: article.title,
                     description: details.description ?? article.summary,
                     link: `https://sspai.com/post/${article.id}`,
-                    pubDate: article.released_time ? parseDate(article.released_time * 1000) : undefined,
+                    pubDate: parseDate(article.released_time * 1000),
                     author: article.author.nickname,
                 };
             },

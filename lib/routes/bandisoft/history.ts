@@ -6,8 +6,8 @@ import type { Context } from 'hono';
 import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const idOptions = [
     {
@@ -127,7 +127,7 @@ const languageOptions = [
     },
 ];
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { id = 'bandizip', language = 'en' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 500);
 
@@ -169,7 +169,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
             const processedItem: DataItem = {
                 title,
                 description,
-                pubDate: pubDateStr ? parseDate(pubDateStr) : undefined,
+                pubDate: pubDateStr ? parseDate(pubDateStr, 'MMMM D, YYYY') : undefined,
                 link: linkUrl,
                 author,
                 guid,
@@ -182,7 +182,8 @@ export const handler = async (ctx: Context): Promise<Data> => {
             };
 
             return processedItem;
-        });
+        })
+        .filter((item, index, items) => items.findIndex((candidate) => candidate.guid === item.guid) === index);
 
     return {
         title: $('title').text(),

@@ -6,9 +6,8 @@ import pMap from 'p-map';
 import type { Data, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { compareDates, parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -51,18 +50,14 @@ async function handler(ctx: Context): Promise<Data> {
                 title: `${season} ${name}`,
                 link,
                 guid: `${link}#${season}`,
-                pubDate: timezone(parseDate($item.find('span.time').text()), 8),
+                pubDate: parseDate($item.find('span.time').text(), 8),
             };
         });
 
-    const sorted = ctx.req.query('sorted') !== 'false';
-    const allDated = items.every((item) => Number.isFinite(item.pubDate.getTime()));
-    if (sorted && allDated) {
-        items = items.toSorted((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
+    if (ctx.req.query('sorted') !== 'false') {
+        items = items.toSorted((a, b) => compareDates(b.pubDate, a.pubDate));
     }
-    if (!sorted || allDated) {
-        items = items.slice(0, limit);
-    }
+    items = items.slice(0, limit);
 
     const links = [...new Set(items.map((item) => item.link))];
     const details = new Map(

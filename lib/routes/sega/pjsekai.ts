@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/pjsekai/news',
@@ -38,7 +38,7 @@ async function handler() {
         id: number;
         title: string;
         path: string;
-        startAt?: number;
+        startAt: number;
         informationTag: string;
     }> = response.data || [];
     const list = await pMap(
@@ -65,7 +65,7 @@ async function handler() {
             const item = {
                 title: post.title,
                 link,
-                pubDate: post.startAt === undefined ? undefined : parseDate(post.startAt),
+                pubDate: parseDate(post.startAt),
                 description,
                 category: post.informationTag, // event,gacha,music,bug,information
                 guid,

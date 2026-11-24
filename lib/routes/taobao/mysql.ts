@@ -1,14 +1,16 @@
-import { type Cheerio, type CheerioAPI, load } from 'cheerio';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 import type { Element } from 'domhandler';
 import type { Context } from 'hono';
 import pMap from 'p-map';
 
-import { type Data, type DataItem, type Language, type Route, ViewType } from '@/types';
+import type { Data, DataItem, Language, Route } from '@/types';
+import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
 import { getRouteLimit } from '@/utils/route-limit';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const limit = getRouteLimit(ctx, 30);
 
     const baseUrl = 'http://mysql.taobao.org';
@@ -18,16 +20,12 @@ export const handler = async (ctx: Context): Promise<Data> => {
     const $: CheerioAPI = load(response);
     const language = ($('html').attr('lang') ?? 'zh') as Language;
 
-    const monthlyItems: DataItem[] = await collectMonthlyItems($, $('h3 a.main').toArray(), baseUrl, limit, language);
+    const monthlyItems: DataItem[] = await collectMonthlyItems($('h3 a.main').toArray(), baseUrl, limit, language);
 
     const items: DataItem[] = await pMap(
         monthlyItems.slice(0, limit),
-        (item) => {
-            if (!item.link) {
-                return item;
-            }
-
-            return cache.tryGet(`${item.link}:publication-v2`, async (): Promise<DataItem> => {
+        (item) =>
+            cache.tryGet(`${item.link}:publication-v2`, async (): Promise<DataItem> => {
                 const detailResponse = await ofetch(item.link!);
                 const $$: CheerioAPI = load(detailResponse);
 
@@ -63,8 +61,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                     ...item,
                     ...processedItem,
                 };
-            });
-        },
+            }),
         { concurrency: 3 }
     );
 
@@ -109,30 +106,16 @@ export const route: Route = {
     view: ViewType.Articles,
 };
 
-async function collectMonthlyItems($: CheerioAPI, elements: Element[], baseUrl: string, limit: number, language: Language, index = 0, items: DataItem[] = []): Promise<DataItem[]> {
+async function collectMonthlyItems(elements: Element[], baseUrl: string, limit: number, language: Language, index = 0, items: DataItem[] = []): Promise<DataItem[]> {
     if (index >= elements.length || items.length >= limit) {
         return items;
     }
-    let href: string | undefined;
-    while (index < elements.length && !href) {
-        href = $(elements[index]).attr('href');
-        if (!href) {
-            index++;
-        }
-    }
-    if (href) {
-        const monthlyUrl = new URL(href, baseUrl).href;
-        const monthlyResponse = await ofetch(monthlyUrl);
-        const $$ = load(monthlyResponse);
-        for (const el of $$('h3 a.main').toArray()) {
-            const linkUrl = $$(el).attr('href');
-            if (linkUrl) {
-                items.push({ title: $$(el).text(), link: new URL(linkUrl, baseUrl).href, language });
-            }
-            if (items.length >= limit) {
-                break;
-            }
-        }
-    }
-    return href ? collectMonthlyItems($, elements, baseUrl, limit, language, index + 1, items) : items;
+    const monthlyUrl = new URL(elements[index].attribs.href, baseUrl).href;
+    const monthlyResponse = await ofetch(monthlyUrl);
+    const $$ = load(monthlyResponse);
+    const monthItems = $$('h3 a.main')
+        .toArray()
+        .slice(0, limit - items.length)
+        .map((el) => ({ title: $$(el).text(), link: new URL(el.attribs.href, baseUrl).href, language }));
+    return collectMonthlyItems(elements, baseUrl, limit, language, index + 1, [...items, ...monthItems]);
 }

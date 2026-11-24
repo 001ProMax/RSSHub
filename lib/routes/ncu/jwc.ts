@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Data, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://jwc.ncu.edu.cn';
 
@@ -45,8 +45,7 @@ async function handler(): Promise<Data> {
             const el = $(item);
             const linkEl = el.find('a');
 
-            const titleText = linkEl.find('span.text-gray-700').text();
-            const title = titleText.trim() ? titleText : linkEl.text();
+            const title = linkEl.find('span.text-gray-700').text() || linkEl.text();
             const rawLink = linkEl.attr('href');
             const link = rawLink ? new URL(rawLink, baseUrl).href : '';
 
@@ -55,7 +54,7 @@ async function handler(): Promise<Data> {
             return {
                 title,
                 link,
-                pubDate: dateText ? parseDateInTimezone(dateText, 8) : undefined,
+                pubDate: dateText ? parseDate(dateText, 8) : undefined,
             };
         })
         .filter((item) => item.title && item.link);

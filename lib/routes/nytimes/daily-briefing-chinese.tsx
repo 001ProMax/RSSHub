@@ -5,15 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-
-const getPublicationDate = (value?: string | number | null): Date | undefined => {
-    if ((typeof value !== 'string' || !/\S/.test(value)) && typeof value !== 'number') {
-        return undefined;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-};
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/daily_briefing_chinese',
@@ -57,7 +49,7 @@ async function handler() {
         if (key.startsWith('Article:') && item.url) {
             items.push({
                 link: item.url,
-                pubDate: getPublicationDate(item.firstPublished),
+                pubDate: parseDate(item.firstPublished),
             });
         }
     }

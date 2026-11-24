@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseRelativeDate } from '@/utils/parse-date';
+import { parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/depth',
@@ -28,7 +28,7 @@ async function handler() {
             return {
                 title: $elem.find('h5 > a').text(),
                 author: $elem.find('div.inner_depth_list_tags > p.pull-left a[title]').attr('title'),
-                pubDate: parseRelativeDate($elem.find('div.inner_depth_list_tags > p').first().text()),
+                pubDate: parseRelativeDate($elem.find('div.inner_depth_list_tags > p').first().text(), 'YYYY/MM/DD'),
                 link: new URL($elem.find('h5 > a').attr('href')!, base).href,
             };
         });
@@ -39,7 +39,7 @@ async function handler() {
                 const detailResponse = await ofetch(item.link!);
                 const detailCapture = load(detailResponse);
 
-                return { description: detailCapture('.main div.inner_content').html() ?? undefined };
+                return { description: detailCapture('.main div.inner_content').html() };
             });
             return { ...item, ...detail };
         })

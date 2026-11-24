@@ -1,12 +1,10 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 import pMap from 'p-map';
 
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { joinUrl } from './utils';
 
@@ -21,13 +19,12 @@ async function getArticle(link: string): Promise<Partial<DataItem>> {
             .find('a[href*="DownloadAttachUrl"]')
             .filter((_, elem) => !$(elem).closest('.v_news_content').length)
             .each((_, elem) => {
-                const attachment = copyNodes($(elem));
-                content.append($('<p>').append(attachment));
+                content.append($('<p>').append($(elem)));
             });
         item.description = content.html()!;
         const date = $('#lbDate').text();
         if (date.trim()) {
-            item.pubDate = timezone(parseDate(date, '更新时间：YYYY年MM月DD日'), 8);
+            item.pubDate = parseDate(date, '更新时间：YYYY年MM月DD日', 8);
         }
         const author = $('.detailShowAEA')
             .text()
@@ -83,7 +80,7 @@ async function handler(ctx): Promise<Data> {
         .toArray()
         .map((elem) => ({
             title: $(currentTemplate ? 'a' : 'label:eq(0)', elem).text(),
-            pubDate: currentTemplate && $('.list-date', elem).text().trim() ? timezone(parseDate($('.list-date', elem).text(), 'YYYY-MM-DD'), 8) : undefined,
+            pubDate: currentTemplate ? parseDate($('.list-date', elem).text(), 'YYYY-MM-DD', 8) : undefined,
             link: joinUrl('https://www.swpu.edu.cn/dean/', $('a', elem).attr('href')),
         }));
 
@@ -96,13 +93,4 @@ async function handler(ctx): Promise<Data> {
         language: 'zh-CN',
         item: out,
     };
-}
-
-function copyNodes<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, node) => cloneNode(node, true));
-    const root = new Document(copy.toArray());
-    for (const node of copy) {
-        node.parent = root;
-    }
-    return copy;
 }

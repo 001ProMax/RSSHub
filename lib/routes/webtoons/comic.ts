@@ -3,8 +3,8 @@ import type { Context } from 'hono';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:lang/:category/:name/:id',
@@ -31,15 +31,12 @@ async function handler(ctx: Context) {
             title: `Webtoons - ${body.title}`,
             link: comicLink,
             description: body.description,
-            item: body.items.map((x) => {
-                const date = x.pubDate ? parseDate(x.pubDate) : undefined;
-                return {
-                    title: x.title,
-                    pubDate: date && Number.isFinite(date.getTime()) ? date : undefined,
-                    link: x.link,
-                    description: x.content,
-                };
-            }),
+            item: body.items.map((x) => ({
+                title: x.title,
+                pubDate: x.pubDate ? parseDate(x.pubDate) : undefined,
+                link: x.link,
+                description: x.content,
+            })),
         };
     } catch {
         const body = await ofetch(comicLink);
@@ -52,12 +49,11 @@ async function handler(ctx: Context) {
                 .toArray()
                 .map((ep) => {
                     const dateText = $('.date', ep).text();
-                    const date = dateText ? (lang === 'zh-cn' || lang === 'zh-hant' ? parseDate(dateText, 'YYYY年M月D日', true) : parseDate(dateText)) : undefined;
                     return {
                         title: $('.subj > span', ep).text(),
-                        pubDate: date && Number.isFinite(date.getTime()) ? date : undefined,
+                        pubDate: lang === 'zh-cn' || lang === 'zh-hant' ? parseDate(dateText, 'YYYY年M月D日') : parseDate(dateText),
                         link: $(ep).attr('href'),
-                        description: $('.thmb', ep).html() ?? undefined,
+                        description: $('.thmb', ep).html(),
                     };
                 }),
         };

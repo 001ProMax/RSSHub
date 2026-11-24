@@ -1,4 +1,4 @@
-import { createDecipheriv, createHash } from 'node:crypto';
+import { createDecipheriv } from 'node:crypto';
 
 import { load } from 'cheerio';
 import { renderToString } from 'hono/jsx/dom/server';
@@ -7,6 +7,7 @@ import type { DataItem, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
+import { md5 } from '@/utils/hash';
 import { PRESETS } from '@/utils/header-generator';
 
 export const route: Route = {
@@ -49,8 +50,7 @@ async function handler(ctx) {
 
     const items: Array<DataItem | null> = await Promise.all(
         list.map((item) => {
-            const href = $(item).attr('href') ?? $(item).find('a').attr('href');
-            const link = new URL(href!, url).href;
+            const link = $(item).attr('href')!;
             return cache.tryGet<DataItem | null>(link, () => getWork(link, author));
         })
     );
@@ -69,8 +69,8 @@ async function handler(ctx) {
 interface ChangbaWork {
     enc_workpath?: string;
     enc_duetpath?: string;
-    song?: { name: string };
-    title?: string;
+    song: { name: string };
+    title: string;
     headcontent?: string;
 }
 
@@ -80,9 +80,7 @@ interface ChangbaResponse {
     data_type: string;
     data?: {
         userwork?: ChangbaWork;
-        newuserwork?: ChangbaWork;
-        enc_workpath?: string;
-        enc_duetpath?: string;
+        newuserwork: ChangbaWork;
         isduet?: boolean;
         workCover?: string;
         jsSecret: string;
@@ -90,7 +88,7 @@ interface ChangbaResponse {
 }
 
 function decodeMedia(value: string, secret: string): string {
-    const digest = createHash('md5').update(secret).digest('hex');
+    const digest = md5(secret);
     const decipher = createDecipheriv('aes-128-cbc', Buffer.from(digest.slice(16)), Buffer.from(digest.slice(0, 16)));
     return decipher.update(value, 'base64', 'utf8') + decipher.final('utf8');
 }
@@ -112,14 +110,14 @@ async function getWork(link: string, author: string): Promise<DataItem | null> {
     if (response.code !== 0 || !data || !work) {
         return null;
     }
-    const encryptedMedia = data.isduet ? (data.enc_duetpath ?? work.enc_duetpath) : (data.enc_workpath ?? work.enc_workpath);
+    const encryptedMedia = data.isduet ? work.enc_duetpath : work.enc_workpath;
     if (!encryptedMedia) {
         return null;
     }
     const mp3 = decodeMedia(encryptedMedia, data.jsSecret);
     return {
-        title: work.song?.name || data.newuserwork?.song?.name || work.title || link,
-        description: renderToString(<ChangbaWorkDescription desc={`${work.headcontent ? `「${work.headcontent}」` : ''}${work.title ?? ''}`} mp3url={mp3} />),
+        title: work.song.name || data.newuserwork.song.name,
+        description: renderToString(<ChangbaWorkDescription desc={`${work.headcontent ? `「${work.headcontent}」` : ''}${work.title}`} mp3url={mp3} />),
         link,
         author,
         itunes_item_image: data.workCover,

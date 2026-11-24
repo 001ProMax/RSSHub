@@ -3,8 +3,8 @@ import type { Context } from 'hono';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/report/:type1/:type2',
@@ -33,8 +33,7 @@ export const route: Route = {
 
 async function handler(ctx: Context) {
     const { type1, type2 } = ctx.req.param();
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0 ? requestedLimit : 20;
+    const limit = getRouteLimit(ctx, 20);
     const baseUrl = 'https://mall.nanhua.net';
     const apiBase = `${baseUrl}/mall/nh/api`;
     const link = `${baseUrl}/mall/r/w/reportNew/report-list.html?type1=${type1}&type2=${type2}`;
@@ -74,7 +73,7 @@ async function handler(ctx: Context) {
         title: item.title,
         description: item.content || item.summary || item.desc,
         link: getLink(item),
-        pubDate: timezone(parseDate(item.createTime), 8),
+        pubDate: parseDate(item.createTime, 8),
         author: item.personName,
         category: [item.type1Name, item.type2Name, item.typeName].filter(Boolean),
         image: item.iconUrl,

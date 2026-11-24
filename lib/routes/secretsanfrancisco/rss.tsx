@@ -5,8 +5,8 @@ import { renderToString } from 'hono/jsx/dom/server';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?',
@@ -108,14 +108,7 @@ async function handler(ctx) {
                 updated: parseDate(`${item.modified_gmt}Z`),
                 image,
                 author: item._embedded.author[0].name,
-                category: [
-                    ...new Set<string>(
-                        item._embedded?.['wp:term']
-                            ?.flat()
-                            .map((term) => term.name)
-                            .filter(Boolean)
-                    ),
-                ],
+                category: item._embedded['wp:term'].flat().map((term) => term.name),
             };
             return single;
         });

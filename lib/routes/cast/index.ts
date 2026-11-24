@@ -3,9 +3,8 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.cast.org.cn';
 
@@ -16,8 +15,7 @@ async function parsePage(html: string) {
             .toArray()
             .map((el) => {
                 const a = $(el).find('a');
-                const heading = a.find('[title]').first();
-                const title = heading.attr('title') || a.attr('title') || a.text();
+                const title = a.find('[title]').attr('title')!;
                 let articleUrl = a.attr('href');
 
                 if (articleUrl?.startsWith('http')) {
@@ -29,14 +27,14 @@ async function parsePage(html: string) {
                 articleUrl = `${baseUrl}${a.attr('href')}`;
 
                 return cache.tryGet(articleUrl, async () => {
-                    const res = await got.get(articleUrl!);
+                    const res = await got.get(articleUrl);
                     const article = load(res.data);
-                    const pubDate = timezone(parseDate(article('meta[name=PubDate]').attr('content')!, 'YYYY-MM-DD HH:mm'), 8);
+                    const pubDate = parseDate(article('meta[name=PubDate]').attr('content')!, 'YYYY-MM-DD HH:mm', 8);
 
                     return {
                         title,
                         pubDate,
-                        description: article('#zoom, .fybjq.fyxqbjq').first().html(),
+                        description: article('.fybjq.fyxqbjq').html(),
                         link: articleUrl,
                     };
                 });

@@ -5,9 +5,8 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const documentMimeTypes = {
     doc: 'application/msword',
@@ -43,7 +42,6 @@ export const route: Route = {
 async function handler(ctx) {
     const { path = 'bshff/ylqxbzhgl/qxggtzh' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
-    const candidateLimit = ctx.req.query('sorted') === 'false' ? limit : Math.max(30, limit);
 
     const rootUrl = 'https://www.nifdc.org.cn';
     const currentUrl = new URL(`nifdc/${path}/`, rootUrl).href;
@@ -53,7 +51,7 @@ async function handler(ctx) {
     const $ = load(response);
 
     let items = $('div.list ul li')
-        .slice(0, candidateLimit)
+        .slice(0, limit)
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
@@ -65,7 +63,7 @@ async function handler(ctx) {
             return {
                 title: a.prop('title') || a.text(),
                 link: link!.startsWith('http') ? link : new URL(link!, currentUrl).href,
-                pubDate: publishedDate ? timezone(parseDate(publishedDate), 8) : undefined,
+                pubDate: publishedDate ? parseDate(publishedDate, 8) : undefined,
             };
         });
 
@@ -84,7 +82,7 @@ async function handler(ctx) {
                     ...new Set([content('meta[name="ColumnName"]').prop('content'), content('meta[name="ColumnType"]').prop('content'), ...(content('meta[name="ColumnKeywords"]').prop('content')?.split(/,|;/) ?? [])]),
                 ].filter(Boolean);
                 const publishedDate = content('meta[name="PubDate"]').prop('content');
-                item.pubDate = publishedDate ? timezone(parseDate(publishedDate), 8) : item.pubDate;
+                item.pubDate = publishedDate ? parseDate(publishedDate, 8) : item.pubDate;
                 item.enclosure_url = content('a.fujianClass').first().prop('href');
 
                 if (item.enclosure_url) {

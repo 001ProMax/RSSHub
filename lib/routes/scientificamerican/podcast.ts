@@ -1,21 +1,23 @@
-import { type CheerioAPI, load } from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 import type { Context } from 'hono';
 import { getMimeType } from 'hono/utils/mime';
 import pMap from 'p-map';
 
-import { type Data, type DataItem, type Language, type Route, ViewType } from '@/types';
+import type { Data, DataItem, Language, Route } from '@/types';
+import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
 type ArticleDetails = Omit<DataItem, 'title' | 'link' | 'pubDate'>;
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { id } = ctx.req.param();
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isFinite(requestedLimit) && requestedLimit >= 1 ? Math.floor(requestedLimit) : 12;
+    const limit = getRouteLimit(ctx, 12);
 
     const baseUrl = 'https://www.scientificamerican.com';
     const targetUrl: string = new URL(`podcast${id ? `/${id}` : 's'}/`, baseUrl).href;

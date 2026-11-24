@@ -1,8 +1,7 @@
-import MarkdownIt from 'markdown-it';
-
 import type { Data, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import MarkdownIt from '@/utils/markdown-it';
+import { parseDate } from '@/utils/time';
 
 const md = MarkdownIt({
     html: true,
@@ -48,7 +47,7 @@ async function handler(): Promise<Data> {
             title: item.version,
             link: `${currentUrl}#${item.version}`,
             description: content.description,
-            pubDate: content.pubDate ?? (item.createdAt ? parseDate(item.createdAt) : undefined),
+            pubDate: content.pubDate ?? parseDate(item.createdAt),
         };
     });
 
@@ -62,19 +61,14 @@ async function handler(): Promise<Data> {
 
 function parseReleaseContent(content: string, version: string) {
     const tokens = md.parse(content, {});
-    let pubDate: Date | undefined;
-    if (tokens[0]?.type === 'heading_open' && [version, `Postman ${version}`, `Postman v${version}`].includes(tokens[1]?.content)) {
+    let pubDate: Temporal.Instant | undefined;
+    if (tokens[0].type === 'heading_open' && [version, `Postman ${version}`, `Postman v${version}`].includes(tokens[1].content)) {
         tokens.splice(0, 3);
-        const next = tokens.at(0);
-        const releaseDate = tokens[1]?.content;
-        if (next?.type === 'paragraph_open' && releaseDate && /^[A-Z][a-z]+ \d{1,2}, \d{4}$/.test(releaseDate)) {
+        const [next, { content: releaseDate }] = tokens;
+        if (next.type === 'paragraph_open' && /^[A-Z][a-z]+ \d{1,2}, \d{4}$/.test(releaseDate)) {
             // Keep the publisher's calendar date at UTC midnight, independent of the host timezone.
-            const date = parseDate(`${releaseDate} +0000`, ['MMMM D, YYYY ZZ', 'MMM D, YYYY ZZ']);
-            const calendarDate = date.toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: releaseDate.split(' ', 1)[0].length === 3 ? 'short' : 'long', day: 'numeric' });
-            if (calendarDate === releaseDate.replace(/ (\d{1,2}),/, (_, day) => ` ${Number(day)},`)) {
-                pubDate = date;
-                tokens.splice(0, 3);
-            }
+            pubDate = parseDate(`${releaseDate} +0000`, ['MMMM D, YYYY ZZ', 'MMM D, YYYY ZZ']);
+            tokens.splice(0, 3);
         }
     }
     return { description: md.renderer.render(tokens, md.options, {}), pubDate };

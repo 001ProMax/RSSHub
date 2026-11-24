@@ -5,7 +5,7 @@ import { renderYoutube } from '@/routes/youtube/utils';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const langs = ['ar', 'de', 'en-US', 'es-ES', 'es-MX', 'fr', 'it', 'ja', 'ko', 'pl', 'pt-BR', 'ru', 'tr', 'zh-Hans'];
 
@@ -148,7 +148,7 @@ const renderSection = (section) => {
         case 'ElementImageGallery':
             return section.images.map((image) => `<img src="${originalImage(image.url)}">`).join('');
         case 'ElementArticleVideoYouTube':
-            return renderYoutube(true, section.youTubeVideoId, undefined, undefined);
+            return renderYoutube(true, section.youTubeVideoId);
         case 'ElementArticleVideoEmbed':
             return `<video controls preload="metadata" src="${section.asset.url}"></video>`;
         default:

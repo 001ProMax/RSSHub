@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/changelog',
@@ -84,7 +84,7 @@ async function handler() {
                     guid: `simpread:changelog:${versionType}:${version}:${year}:${monthDay}`,
                     description: detail.html(),
                     link: 'https://simpread.pro/changelog.html',
-                    pubDate: year && monthDay ? parseDate(`${year}-${monthDay.replace('.', '-')} +0000`, 'YYYY-MM-DD ZZ') : undefined,
+                    pubDate: parseDate(`${year}-${monthDay!.replace('.', '-')} +0000`, 'YYYY-MM-DD ZZ'),
                     title: `${versionType}${version}`,
                     author: 'SimpRead',
                 };

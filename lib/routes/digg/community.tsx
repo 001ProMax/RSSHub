@@ -5,8 +5,8 @@ import { FetchError } from 'ofetch';
 
 import type { Data, DataItem, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { compareDates, parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/community/:community',
@@ -60,7 +60,7 @@ function findFirstPage(value: JsonValue): FeedPage | undefined {
     if (!value || typeof value !== 'object') {
         return;
     }
-    if ('initialPage' in value && value.initialPage && typeof value.initialPage === 'object' && 'posts' in value.initialPage && Array.isArray(value.initialPage.posts)) {
+    if ('initialPage' in value && value.initialPage && typeof value.initialPage === 'object' && 'posts' in value.initialPage) {
         return value.initialPage as FeedPage;
     }
     for (const entry of Object.values(value)) {
@@ -90,7 +90,7 @@ async function fetchFirstPage(community: string): Promise<FeedPage> {
     // The public topic page embeds the same first feed page when the API is rate limited.
     const html = await ofetch<string>(`${baseUrl}/${encodeURIComponent(community)}`);
     const $ = load(html);
-    const flight = $('script')
+    const flight = $('script:contains("self.__next_f.push")')
         .toArray()
         .map((script) => {
             const match = $(script)
@@ -119,22 +119,19 @@ async function fetchFirstPage(community: string): Promise<FeedPage> {
 async function handler(ctx: Context): Promise<Data> {
     const community = ctx.req.param('community')!;
     const response = await fetchFirstPage(community);
-    if (!Array.isArray(response.posts)) {
-        throw new TypeError('Digg did not return its published topic stories. Please check the topic on the original site.');
-    }
 
     const items: DataItem[] = response.posts.map((post) => ({
         title: post.summary.title,
         id: post.clusterId,
-        description: post.summary.description ? renderToString(<p>{post.summary.description}</p>) : undefined,
+        description: renderToString(<p>{post.summary.description}</p>),
         link: `${baseUrl}/${encodeURIComponent(community)}/${encodeURIComponent(post.clusterUrlId)}`,
-        pubDate: post.createdAt ? parseDate(post.createdAt) : undefined,
+        pubDate: parseDate(post.createdAt),
         author: 'Digg',
         image: post.image?.src,
         category: [community],
     }));
     if (ctx.req.query('sorted') !== 'false') {
-        items.sort((a, b) => +new Date(b.pubDate || 0) - +new Date(a.pubDate || 0));
+        items.sort((a, b) => compareDates(b.pubDate, a.pubDate));
     }
 
     return {

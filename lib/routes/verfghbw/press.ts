@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 
 const rootUrl = 'https://verfgh.baden-wuerttemberg.de';
 const listUrl = `${rootUrl}/presse-und-service/pressemitteilungen/`;
@@ -57,12 +56,11 @@ async function handler() {
                 const $$ = load(detail.data);
 
                 return {
-                    description: $$('.news-text-wrap').html() ?? undefined,
-                    pubDate: parsePublicationDate($$('.news-single time').attr('datetime')),
+                    description: $$('.news-text-wrap').html(),
+                    pubDate: parseDateStrict($$('.news-single time').prop('datetime'), 'YYYY-MM-DD', 0),
                     category: $$('.news-list-category')
                         .toArray()
-                        .map((element) => $$(element).text().trim())
-                        .filter(Boolean),
+                        .map((element) => $$(element).text().trim()),
                 };
             });
 
@@ -82,14 +80,4 @@ async function handler() {
         description: 'Pressemitteilungen des Verfassungsgerichtshof für das Land Baden-Württemberg',
         item: items,
     };
-}
-
-function parsePublicationDate(value?: string) {
-    if (typeof value !== 'string' || !value) {
-        return;
-    }
-
-    const date = parseDate(value, 'YYYY-MM-DD', true);
-    // Preserve the source calendar day without inferring a publication time.
-    return Number.isFinite(date.getTime()) ? timezone(date, 0) : undefined;
 }

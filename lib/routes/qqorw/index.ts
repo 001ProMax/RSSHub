@@ -5,8 +5,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 export const route: Route = {
@@ -41,8 +41,7 @@ async function handler(ctx) {
         throw new InvalidParameterError('Invalid category');
     }
 
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0 ? requestedLimit : 10;
+    const limit = getRouteLimit(ctx, 10);
 
     const rootUrl = 'https://qqorw.cn';
     const currentUrl = new URL(category, rootUrl).href;
@@ -67,7 +66,7 @@ async function handler(ctx) {
                     .find('a.label')
                     .toArray()
                     .map((c) => $(c).text()),
-                pubDate: timezone(parseDate($item.find('p.auth-span span.muted').first().text().trim()), 8),
+                pubDate: parseDate($item.find('p.auth-span span.muted').first().text().trim(), 8),
                 upvotes: $item.find('span.count').text() ? Number($item.find('span.count').text()) : 0,
             };
         });

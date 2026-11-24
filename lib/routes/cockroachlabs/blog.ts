@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     name: 'Blogs',
@@ -52,7 +52,7 @@ async function handler(ctx) {
     const articleList = html('a[href^="/blog/"]')
         .filter((_, element) => html(element).children('h2, p').length > 0)
         .map((_, element) => ({
-            title: html(element).children('h2, p').first().text(),
+            title: html(element).children('h2, p').text(),
             link: new URL(html(element).attr('href')!, rootUrl).href,
         }));
 

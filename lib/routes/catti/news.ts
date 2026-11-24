@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 type NewsCategory = {
     title: string;
@@ -42,10 +41,10 @@ const handler: Route['handler'] = async (ctx) => {
     // Map through each list item to extract details
     const contentLinkList = listItems.toArray().map((element) => {
         const date = $(element).find('span.ui-right-time').text();
-        const title = $(element).find('a').attr('title') || $(element).find('.ui-card-title').text();
+        const title = $(element).find('.ui-card-title').text();
         const relativeLink = $(element).find('a').attr('href')!;
         const absoluteLink = `https://www.catticenter.com${relativeLink}`;
-        const formattedDate = timezone(parseDate(date, 'YYYY-MM-DD'), 8);
+        const formattedDate = parseDate(date, 'YYYY-MM-DD', 8);
         return {
             date: formattedDate,
             title,

@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news',
@@ -52,7 +52,7 @@ async function handler() {
         async (item) => ({
             title: item.title,
             link: item.link,
-            pubDate: item.dateStr ? parseDate(`${item.dateStr}T00:00:00Z`) : undefined,
+            pubDate: parseDate(`${item.dateStr}T00:00:00Z`),
             ...(await cache.tryGet(item.link, async () => {
                 const articleResponse = await ofetch(item.link);
                 const $article = load(articleResponse);

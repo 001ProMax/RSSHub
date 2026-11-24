@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const rootURL = 'https://www.cncf.io';
 
@@ -39,7 +39,7 @@ async function handler() {
                 const detailResponse = await got(item.link);
                 const content = load(detailResponse.data);
 
-                const publicationDate = content('meta[property="article:published_time"]').attr('content') || content('p.is-style-spaced-uppercase').text().split(':', 2)[1];
+                const publicationDate = content('meta[property="article:published_time"]').attr('content');
                 item.pubDate = publicationDate ? parseDate(publicationDate) : undefined;
                 const article = content('article');
                 article.find('.social-share').remove();

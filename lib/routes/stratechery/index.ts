@@ -3,7 +3,7 @@ import RSSParser from 'rss-parser';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -22,12 +22,12 @@ async function handler() {
         if (!item.title || !item.link) {
             return [];
         }
-        const content = load(item['content:encoded'] || item.content || item.description || '');
+        const content = load(item['content:encoded']);
         content('.passport-podcast-player-logged-out-view-overlay').remove();
         return {
             title: item.title,
             link: item.link,
-            guid: item.guid || item.link,
+            guid: item.guid,
             description: content.html(),
             author: item.creator,
             category: item.categories,

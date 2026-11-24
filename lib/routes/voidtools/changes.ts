@@ -2,7 +2,7 @@ import { escapeText } from 'entities';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/changes',
@@ -16,7 +16,7 @@ export const route: Route = {
 async function handler() {
     const rootUrl = 'https://www.voidtools.com/Changes.txt';
 
-    const response = await ofetch(rootUrl, { responseType: 'text' });
+    const response = await ofetch(rootUrl);
 
     const items = response
         .replaceAll('\r\n', '\n')

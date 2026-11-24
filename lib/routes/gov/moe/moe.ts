@@ -4,8 +4,7 @@ import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import logger from '@/utils/logger';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const moeUrl = 'https://www.moe.gov.cn/';
 const typesIdMap = [
@@ -94,14 +93,14 @@ async function handler(ctx) {
                           } else if (itemUrl.includes('srcsite')) {
                               description = data('div#content_body_xxgk').html();
                           } else if (itemUrl.includes('jyb_')) {
-                              const content = data('div.moe-detail-box, div#moe-detail-box').first();
+                              const content = data('div.moe-detail-box, div#moe-detail-box');
                               content.find('#moe-detail-page-set, #moeCode, .moe-detail-shuxing').remove();
                               content.children('h1').remove();
                               description = content.html();
                           }
 
                           const pubDate = data('meta[name="PubDate"]').attr('content');
-                          return { title: data('meta[name="ArticleTitle"]').attr('content'), description, pubDate: pubDate ? timezone(parseDate(pubDate), 8) : undefined };
+                          return { title: data('meta[name="ArticleTitle"]').attr('content'), description, pubDate: pubDate ? parseDate(pubDate, 8) : undefined };
                       });
 
                 return {

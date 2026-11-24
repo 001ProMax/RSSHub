@@ -4,9 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -67,6 +66,7 @@ async function handler(ctx) {
     const $ = load(response);
 
     let items = $('#jmzhanshi1 dl')
+        .slice(0, limit)
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
@@ -79,7 +79,7 @@ async function handler(ctx) {
                 .find('dd')
                 .last()
                 .text()
-                .match(/\d{4}-\d{2}-\d{2}/)?.[0];
+                .match(/\d{4}-\d{2}-\d{2}/)![0];
 
             return {
                 title: a.prop('title') ?? '',
@@ -90,17 +90,10 @@ async function handler(ctx) {
                         alt: image.prop('alt'),
                     },
                 }),
-                pubDate: date ? timezone(parseDate(date, 'YYYY-MM-DD'), 8) : undefined,
+                pubDate: parseDate(date, 'YYYY-MM-DD', 8),
                 itunes_item_image: image.prop('src'),
             };
         });
-
-    if (ctx.req.query('sorted') !== 'false' && items.every((item) => item.pubDate instanceof Date && Number.isFinite(item.pubDate.getTime()))) {
-        items.sort((a, b) => (b.pubDate as Date).getTime() - (a.pubDate as Date).getTime());
-    }
-    if (ctx.req.query('sorted') === 'false' || items.every((item) => item.pubDate instanceof Date && Number.isFinite(item.pubDate.getTime()))) {
-        items = items.slice(0, limit);
-    }
 
     items = await pMap(
         items,

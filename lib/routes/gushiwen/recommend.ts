@@ -1,20 +1,10 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 import type { Context } from 'hono';
 import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-
-function copyElements<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, element) => cloneNode(element, true));
-    const root = new Document(copy.toArray());
-    copy.each((_, element) => {
-        element.parent = root;
-    });
-    return copy;
-}
 
 export const route: Route = {
     path: '/recommend/:annotation?',
@@ -34,7 +24,7 @@ export const route: Route = {
 const idPattern = /230427\('\w+','(\w+)'\)/;
 
 function getContent(onclick: string, annotation: string) {
-    const id = onclick.match(idPattern)![1];
+    const id = idPattern.exec(onclick)![1];
     return ofetch(`https://www.guwendao.net/nocdn/ajaxshiwenDetailCont.aspx?id=${id}&value=${annotation}`, { headers: { cookie: 'login=flase' } });
 }
 
@@ -58,14 +48,6 @@ async function handler(ctx: Context) {
                     const annotationHtml = await getContent(onclick, annotation);
                     const annotationContent = load(annotationHtml);
                     description = annotationContent('.contson').html();
-                } else {
-                    const content = copyElements($item.find('div.contson'));
-                    content
-                        .find('p')
-                        .filter((_, element) => $(element).find('a[href*="shiwenv_"]').length > 0)
-                        .remove();
-                    content.find('p.source').remove();
-                    description = content.html();
                 }
 
                 return {

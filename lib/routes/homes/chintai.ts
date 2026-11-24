@@ -7,7 +7,7 @@ import { getRouteLimit } from '@/utils/route-limit';
 
 import { checkSlugs, DEFAULT_LIMIT, DETAIL_BUDGET, HOMES_RENT_DETAIL_SCOPE, homesFetcher, HOST, parseHomesChintaiList, parseHomesDetail } from './utils';
 
-export const handler = async (ctx): Promise<Data> => {
+const handler = async (ctx): Promise<Data> => {
     const pref: string = ctx.req.param('pref');
     const city: string = ctx.req.param('city');
     checkSlugs({ pref, city });
@@ -37,7 +37,8 @@ export const handler = async (ctx): Promise<Data> => {
         throw new Error(`homes: no listing found on ${listUrl}; the area slug may be wrong or the page structure changed`);
     }
     const limit = Math.min(getRouteLimit(ctx, DEFAULT_LIMIT), units.length);
-    const items = await residentialItems(units.slice(0, limit), { source: 'homes', deal_kind: 'rent' }, ctx.req.query('detail') === '0' ? null : (html) => parseHomesDetail(html, HOMES_RENT_DETAIL_SCOPE), fetchPage, {
+    const items = await residentialItems(units.slice(0, limit), { source: 'homes', deal_kind: 'rent' }, ctx.req.query('detail') === '0' ? null : (html) => parseHomesDetail(html, HOMES_RENT_DETAIL_SCOPE), {
+        fetchPage,
         maxFetches: DETAIL_BUDGET,
     });
 

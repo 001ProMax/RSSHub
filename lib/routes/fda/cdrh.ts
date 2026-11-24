@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/cdrh/:titleOnly?',
@@ -41,11 +41,11 @@ async function handler(ctx) {
         .toArray()
         .flatMap((heading) => {
             const $heading = $(heading);
-            const date = $heading.text().trim();
+            const date = $heading.text();
             if (!/^[A-Z][a-z]+ \d{1,2}, \d{4}$/.test(date)) {
                 return [];
             }
-            const pubDate = parseDate(`${date} UTC`);
+            const pubDate = parseDate(date, 'MMMM D, YYYY');
             return $heading
                 .nextUntil('h2')
                 .find('li > a[href]')

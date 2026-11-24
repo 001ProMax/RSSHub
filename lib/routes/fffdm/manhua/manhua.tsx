@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const domain = 'manhua.fffdm.com';
 const host = `https://${domain}`;
@@ -57,15 +57,10 @@ async function handler(ctx) {
     const response = await got(`${host}/api/manhua/${id}`);
     const data = response.data;
 
-    const chapters: Array<{ url: string; time?: string; pubDate?: Date }> = data.mhlist.map((item) => ({ ...item, pubDate: item.time ? parseDate(item.time) : undefined }));
+    const chapters: Array<{ url: string; time: string }> = data.mhlist;
     const limit = getRouteLimit(ctx);
-    const sorted = ctx.req.query('sorted') !== 'false';
-    const candidates =
-        limit === undefined || (sorted && chapters.some((item) => !item.pubDate || !Number.isFinite(item.pubDate.getTime())))
-            ? chapters
-            : (sorted ? chapters.toSorted((a, b) => b.pubDate!.getTime() - a.pubDate!.getTime()) : chapters).slice(0, limit);
     const chapterDetails = await pMap(
-        candidates,
+        chapters.slice(0, limit),
         async (item) => {
             const url = `${host}/api/manhua/${id}/${item.url}`;
             const picContent = await cache.tryGet(`${url}#pictures`, () => getPictures(url));
@@ -82,7 +77,7 @@ async function handler(ctx) {
                     </div>
                 ),
                 link: `${host}/${id}/${item.url}/`,
-                pubDate: item.pubDate,
+                pubDate: parseDate(item.time),
             };
         },
         { concurrency: 3 }

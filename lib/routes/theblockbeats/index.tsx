@@ -9,8 +9,8 @@ import type { DataItem, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const domain = 'theblockbeats.info';
 const rootUrl = `https://www.${domain}`;
@@ -46,7 +46,7 @@ const createNonce = (length = 16) => {
 const cleanQuery = (query: ApiQuery) => Object.fromEntries(Object.entries(query).filter((entry): entry is [string, number | string] => entry[1] !== undefined));
 
 const buildSignedHeaders = (path: string, query: Record<string, number | string>) => {
-    const timestamp = Date.now().toString();
+    const timestamp = Temporal.Now.instant().epochMilliseconds.toString();
     const nonce = createNonce();
     const canonicalQuery = Object.keys(query)
         .toSorted((a, b) => a.localeCompare(b))
@@ -91,7 +91,7 @@ const render = (data: { image?: string; description?: string }) => {
             }
             const match = originalAuthorPattern.exec(text);
             if (match) {
-                author ||= match[1].trim();
+                author ||= match[1];
                 block.remove();
             } else if (/^原文标题[：:][^\r\n]+$/.test(text)) {
                 block.remove();
@@ -214,14 +214,7 @@ async function handler(ctx) {
     }));
 
     if (channel !== 'newsflash') {
-        try {
-            list = await pMap(list, createArticleItem, { concurrency: 3, stopOnError: false });
-        } catch (error) {
-            if (error instanceof AggregateError) {
-                throw new AggregateError(error.errors, `BlockBeats article details failed: ${error.errors.map(String).join('; ')}`, { cause: error });
-            }
-            throw error;
-        }
+        list = await pMap(list, createArticleItem, { concurrency: 3 });
     }
 
     const items = list.map(({ author, category, description, image, link, pubDate, title }) => ({

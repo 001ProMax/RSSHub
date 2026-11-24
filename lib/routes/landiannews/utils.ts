@@ -2,13 +2,13 @@ import sanitizeHtml from 'sanitize-html';
 
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.landiannews.com/';
 
 const getRenderedText = (html: string) => sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} });
 
-const getPubDate = (dateGmt?: string, date?: string) => (dateGmt ? parseDateInTimezone(dateGmt, 0) : date ? parseDateInTimezone(date, 8) : undefined);
+const getPubDate = (dateGmt?: string, date?: string) => (dateGmt ? parseDate(dateGmt, 0) : date ? parseDate(date, 8) : undefined);
 
 const fetchTaxonomy = async (slug: string, type: 'categories' | 'tags') => {
     const url = new URL(`wp-json/wp/v2/${type}`, rootUrl);
@@ -35,11 +35,8 @@ async function fetchNewsItems(apiUrl: string) {
         description: item.content.rendered,
         link: item.link,
         pubDate: getPubDate(item.date_gmt, item.date),
-        author: item._embedded?.author?.[0]?.name,
-        category: item._embedded?.['wp:term']
-            ?.flat()
-            .filter(Boolean)
-            .map((term) => term.name),
+        author: item._embedded.author[0].name,
+        category: item._embedded['wp:term'].flat().map((term) => term.name),
     }));
 }
 

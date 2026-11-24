@@ -2,9 +2,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import utils from './utils';
 
@@ -53,12 +52,11 @@ async function handler(ctx) {
 
     const list = res.data.data.items.map((item) => ({
         title: item.title,
-        pubDate: item.pubtime ? timezone(parseDate(item.pubtime, 'YYYY-MM-DD HH:mm:ss'), 8) : undefined,
+        pubDate: parseDate(item.pubtime, 'YYYY-MM-DD HH:mm:ss', 8),
         author: item.source,
         id: item.recid,
     }));
-    const orderedList = ctx.req.query('sorted') === 'false' ? list : list.toSorted((a, b) => (b.pubDate?.getTime() ?? 0) - (a.pubDate?.getTime() ?? 0));
-    const candidates = orderedList.slice(0, getRouteLimit(ctx));
+    const candidates = list.slice(0, getRouteLimit(ctx));
 
     const items = await Promise.all(
         candidates.map((item) =>

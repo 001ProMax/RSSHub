@@ -7,13 +7,13 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 import { renderDescription } from './templates/description';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const limit = getRouteLimit(ctx, 50);
 
     const baseUrl = 'https://www.eeo.com.cn';
@@ -52,7 +52,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
         const processedItem: DataItem = {
             title,
             description,
-            pubDate: pubDate ? timezone(parseDate(pubDate), 8) : undefined,
+            pubDate: pubDate ? parseDate(pubDate, 8) : undefined,
             link: linkUrl,
             category: categories,
             author: authors,
@@ -73,28 +73,28 @@ export const handler = async (ctx: Context): Promise<Data> => {
     items = await pMap(
         items,
         (item) => {
-            if (!item.link) {
+            // only follow links on the site itself
+            if (!isOnSite(item.link, 'eeo.com.cn')) {
                 return item;
             }
 
-            return cache.tryGet(item.link, async (): Promise<DataItem> => {
+            return cache.tryGet(item.link!, async (): Promise<DataItem> => {
                 const detailResponse = await ofetch(item.link!);
                 const $$: CheerioAPI = load(detailResponse);
 
                 const title: string = $$('h1').first().text() || $$('h2.title').text() || item.title;
-                const articleHtml = $$('div.xx_boxsing, div#mainBody').html();
-                const description: string | undefined = articleHtml ? renderDescription({ description: articleHtml }) : (item.description ?? undefined);
+                const description: string | undefined = renderDescription({ description: $$('div.xx_boxsing, div#mainBody').html() || undefined });
                 const pubDateStr: string | undefined = $$('h1').next().find('span').first().text() || $$('div.from').text();
                 const authors: DataItem['author'] = $$('h1').next().contents().first().text() || $$('span.showMoreAuthor').text() || item.author;
 
                 const processedItem: DataItem = {
                     title,
                     description,
-                    pubDate: pubDateStr ? timezone(parseDate(pubDateStr), 8) : item.pubDate,
+                    pubDate: pubDateStr ? parseDate(pubDateStr, 8) : item.pubDate,
                     author: authors,
                     content: {
                         html: description,
-                        text: articleHtml ? $$('div.xx_boxsing, div#mainBody').text() : item.content?.text,
+                        text: $$('div.xx_boxsing, div#mainBody').text(),
                     },
                     language,
                 };

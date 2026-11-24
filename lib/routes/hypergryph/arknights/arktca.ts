@@ -4,12 +4,7 @@ import pMap from 'p-map';
 import type { Data, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-
-const parsePublicationDate = (value: string | undefined) => {
-    const date = value ? parseDate(value) : undefined;
-    return date && Number.isFinite(date.getTime()) ? date : undefined;
-};
+import { parseDate } from '@/utils/time';
 
 const rssDescription = '明日方舟期刊《回归线》 | 泰拉创作者联合会';
 const url = 'aneot.arktca.com';
@@ -90,7 +85,7 @@ async function handler(): Promise<Data> {
 
                 const pageDateInfo = pageInfo.children('span.page-date-info');
                 const date = pageDateInfo.children('meta').prop('content');
-                const pubDate = parsePublicationDate(date);
+                const pubDate = parseDate(date);
 
                 const pageCategoryInfo = pageInfo.find('span.page-category-info');
                 const category = pageCategoryInfo.children('meta').prop('content');

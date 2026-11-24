@@ -3,7 +3,7 @@ import pMap from 'p-map';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const apiBaseUrl = 'https://universal-api.panewslab.com';
 export const rootUrl = 'https://www.panewslab.com';
@@ -47,8 +47,3 @@ export const processArticles = (articles: Article[], fetchDetails = true): Promi
         },
         { concurrency: 3 }
     );
-
-export const getLimit = (value: string | undefined, defaultValue: number) => {
-    const limit = Number(value ?? defaultValue);
-    return Number.isFinite(limit) && limit >= 1 ? Math.floor(limit) : defaultValue;
-};

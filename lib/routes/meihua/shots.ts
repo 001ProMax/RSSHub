@@ -6,7 +6,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const config = {
     recommend: {
@@ -50,7 +50,7 @@ async function handler(ctx: Context) {
     const shotList: Array<DataItem & { link: string }> = data.shotsData.list.map((item) => ({
         title: item.title,
         link: `https://www.meihua.info/shots/${item.compositionId}`,
-        pubDate: item.gmtPublish !== undefined && item.gmtPublish !== null ? parseDate(item.gmtPublish) : undefined,
+        pubDate: parseDate(item.gmtPublish),
     }));
 
     const items = await pMap(

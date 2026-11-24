@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?/:id?',
@@ -73,8 +73,7 @@ async function handler(ctx) {
 
     const $ = load(response.data);
 
-    const legacy = $('.link_title');
-    const anchors = legacy.length ? legacy : $('[data-test-comp="SectionPageSectionWrapper"] a[href^="/article/"]');
+    const anchors = $('[data-test-comp="SectionPageSectionWrapper"] a[href^="/article/"]');
     const seen = new Set<string>();
     const list: Array<DataItem & { link: string }> = anchors.toArray().flatMap((element) => {
         const anchor = $(element);
@@ -97,12 +96,11 @@ async function handler(ctx) {
                 const { data: response } = await got(item.link);
                 const content = load(response);
                 content('.notify_wordings, #premium_block').remove();
-                const body = content('[data-test-comp="ArticleContent"]');
-                const description = body.length ? (content('[data-test-comp="ArticleCover"]').first().html() ?? '') + (body.html() ?? '') : content('#CMS_wrapper').html();
-                const published = content('meta[property="article:published_time"]').attr('content') || content('meta[itemprop="datePublished"]').attr('content');
+                const description = (content('[data-test-comp="ArticleCover"]').html() ?? '') + (content('[data-test-comp="ArticleContent"]').html() ?? '');
+                const published = content('meta[property="article:published_time"]').attr('content');
                 return {
                     description,
-                    author: content('meta[property="author"]').attr('content') || content('meta[property="dable:author"]').attr('content'),
+                    author: content('meta[property="author"]').attr('content'),
                     pubDate: published ? parseDate(published) : undefined,
                     category: content('meta[name="keywords"]').attr('content')?.split(','),
                     image: content('meta[property="og:image"]').attr('content'),

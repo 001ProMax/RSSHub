@@ -6,8 +6,7 @@ import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 interface NewsItem extends DataItem {
     link: string;
@@ -85,7 +84,7 @@ async function handler(ctx) {
         description: renderDescription({
             imglink: new URL(item.thumbnail, 'https://www.lovelive-anime.jp').href,
         }),
-        pubDate: timezone(parseDate(item.dspdate), 9),
+        pubDate: parseDate(item.dspdate, 9),
         category: item.categories.subcategory.map((category) => category.name),
     }));
 
@@ -99,13 +98,7 @@ async function handler(ctx) {
                 description: await cache.tryGet('lovelive-anime:article:' + item.link, async () => {
                     const detailResp = await got(item.link);
                     const $ = load(detailResp.data);
-                    const content = $('.p-article__content');
-                    for (const image of content.find('img')) {
-                        if (image.attribs.src) {
-                            image.attribs.src = new URL(image.attribs.src, item.link).href;
-                        }
-                    }
-                    return content.html();
+                    return $('.p-article__content').html();
                 }),
             }),
             { concurrency: 3 }

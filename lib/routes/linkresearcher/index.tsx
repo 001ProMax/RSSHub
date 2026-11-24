@@ -9,18 +9,18 @@ import type { Data, DataItem, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import type { DetailResponse, SearchResultItem } from './types';
 
 const renderBilingual = (zh: string[] = [], en: string[]) =>
     renderToString(
         <>
-            {Array.from({ length: Math.max(zh.length, en.length) }, (_, index) => (
+            {en.map((enText, index) => (
                 <>
                     {index === 0 ? null : <br />}
-                    {en[index] !== undefined && <p>{en[index]}</p>}
-                    {zh[index] !== undefined && <p>{zh[index]}</p>}
+                    <p>{enText}</p>
+                    <p>{zh[index]}</p>
                 </>
             ))}
         </>
@@ -124,7 +124,7 @@ async function handler(ctx: Context): Promise<Data> {
                     description: 'zhTextList' in response && 'enTextList' in response ? renderBilingual(response.zhTextList, response.enTextList) : response.content,
                 };
 
-                if ('paperList' in response && response.paperList[0]) {
+                if ('paperList' in response) {
                     const { doi, authors } = response.paperList[0];
                     dataItem.doi = doi;
                     dataItem.author = authors.map((author) => ({ name: author }));

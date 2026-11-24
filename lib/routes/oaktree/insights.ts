@@ -5,7 +5,7 @@ import type { Context } from 'hono';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const BASE_URL = 'https://www.oaktreecapital.com';
 const INSIGHTS_URL = `${BASE_URL}/insights`;
@@ -21,7 +21,7 @@ type Insight = {
     CssClassType: string;
 };
 
-const getArticleContent = ($: CheerioAPI): string | undefined => {
+const getArticleContent = ($: CheerioAPI) => {
     const content = $('.article-content > .row > .col-md-8');
     if (content.length === 0) {
         return;
@@ -31,7 +31,7 @@ const getArticleContent = ($: CheerioAPI): string | undefined => {
     content.find('h1, .podcast-poster, .podcast-logos, .d-flex.justify-content-between, #mediaPlayer').remove();
     content.children('br').remove();
 
-    return content.html() ?? undefined;
+    return content.html();
 };
 
 const parseItem = async (item: Insight): Promise<DataItem> => {

@@ -4,10 +4,9 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 const url = 'https://www.njit.edu.cn/index/tzgg.htm';
-const host = 'https://www.njit.edu.cn';
 
 export const route: Route = {
     path: '/tzgg',
@@ -49,7 +48,7 @@ async function handler() {
             return {
                 title: $item.find('.text .l2').text(),
                 link: new URL(href, url).href,
-                pubDate: parseDateInTimezone(date, 8),
+                pubDate: parseDate(date, 8),
             };
         });
 
@@ -72,11 +71,7 @@ async function handler() {
                 const single = {
                     title: notice.title,
                     link: itemUrl,
-                    description: $('.v_news_content')
-                        .html()!
-                        .replaceAll('src="/', () => `src="${new URL('.', host).href}`)
-                        .replaceAll('href="/', () => `href="${new URL('.', host).href}`)
-                        .trim(),
+                    description: $('.v_news_content').html()?.trim(),
                     pubDate: notice.pubDate,
                 };
                 return single;

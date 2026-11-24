@@ -4,7 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 export const route: Route = {
     path: '/conference-news',
@@ -53,7 +54,7 @@ async function handler() {
 
             return {
                 title: $link.text(),
-                link: href.startsWith('http') ? href : `${rootUrl}${href}`,
+                link: new URL(href, currentUrl).href,
                 pubDate: $el.find('time.datetime').attr('datetime') ? parseDate($el.find('time.datetime').attr('datetime')!) : undefined,
                 author: $el.find('.author__container--name').text().trim(),
                 image: $el.find('.field--name-field-teaser-image img').attr('src'),
@@ -64,20 +65,21 @@ async function handler() {
     const fullItems = await pMap(
         items,
         async (item) => {
+            // only follow links on the site itself
+            if (!isOnSite(item.link, 'tctmd.com')) {
+                return item;
+            }
+
             const detail = await cache.tryGet(`tctmd:detail-fields:v1:${item.link}`, async (): Promise<Partial<DataItem>> => {
                 const detailResponse = await got({ method: 'get', url: item.link });
                 const content = load(detailResponse.data);
                 const articleBody = content('.field--name-field-body-content').html() || '';
                 const introText = content('.field--name-field-intro-text').text().trim();
-                const date = content('time').first().attr('datetime');
-                const author = content('.node-meta__text a').first().text().trim();
                 return {
                     description: articleBody ? (introText ? `<p><strong>${introText}</strong></p>` : '') + articleBody : introText || undefined,
-                    pubDate: date ? parseDate(date) : undefined,
-                    author: author || undefined,
                 };
             });
-            return { ...detail, ...item, description: detail.description, pubDate: item.pubDate ?? detail.pubDate, author: item.author || detail.author };
+            return { ...item, description: detail.description };
         },
         { concurrency: 3 }
     );

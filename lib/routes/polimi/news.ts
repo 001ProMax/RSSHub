@@ -1,14 +1,8 @@
-import dayjs from 'dayjs';
-import timezone from 'dayjs/plugin/timezone.js';
-import utc from 'dayjs/plugin/utc.js';
 import type { Context } from 'hono';
 
 import type { Data, Route } from '@/types';
 import buildData from '@/utils/common-config';
-import { parseDate } from '@/utils/parse-date';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news/:language?',
@@ -36,10 +30,7 @@ async function handler(ctx: Context): Promise<Data> {
                 return href ? new URL(href, 'https://www.polimi.it').href : undefined;
             },
             description: ($) => $('.news-bodytext').html(),
-            pubDate: ($) => {
-                const datetime = $('time').attr('datetime');
-                return datetime ? (/^\d{4}-\d{2}-\d{2}$/.test(datetime) ? dayjs.tz(datetime, 'Europe/Rome').toDate() : parseDate(datetime)) : undefined;
-            },
+            pubDate: ($) => parseDate($('time').attr('datetime')!, undefined, 'Europe/Rome'),
         },
     });
     return { ...data, language: language === 'en' ? 'en' : 'it' };

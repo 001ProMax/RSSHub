@@ -4,8 +4,7 @@ import { renderToString } from 'hono/jsx/dom/server';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate, parseDateStrict } from '@/utils/time';
 
 const getRollNewsList = (pageid, lid, limit) =>
     got('https://feed.mix.sina.com.cn/api/roll/get', {
@@ -19,7 +18,7 @@ const getRollNewsList = (pageid, lid, limit) =>
             num: limit,
             page: 1,
             r: Math.random(),
-            _: Date.now(),
+            _: Temporal.Now.instant().epochMilliseconds,
         },
     });
 
@@ -29,8 +28,8 @@ const parseRollNewsList = (data): Array<DataItem & { link: string }> =>
         description: item.intro,
         link: item.url.replace('http://', 'https://'),
         author: item.media_name,
-        pubDate: item.intime ? parseDate(item.intime, 'X') : undefined,
-        updated: item.mtime ? parseDate(item.mtime, 'X') : undefined,
+        pubDate: parseDate(item.intime, 'X'),
+        updated: parseDate(item.mtime, 'X'),
     }));
 
 const parseArticle = async (item: DataItem & { link: string }): Promise<DataItem> => {
@@ -42,7 +41,7 @@ const parseArticle = async (item: DataItem & { link: string }): Promise<DataItem
 
         const metaPublishTime = $('meta[property="article:published_time"]').attr('content');
         const htmlPubDate = $('#pub_date, .date').text().trim();
-        const htmlDate = htmlPubDate ? timezone(parseDate(htmlPubDate, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY年MM月DD日 HH:mm', 'YYYY年MM月DD日HH:mm'], true), 8) : undefined;
+        const htmlDate = htmlPubDate ? parseDateStrict(htmlPubDate, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY年MM月DD日 HH:mm', 'YYYY年MM月DD日HH:mm'], 8) : undefined;
         const metaDate = metaPublishTime ? parseDate(metaPublishTime) : htmlDate; // 2023-05-08T08:39:31+08:00
         details.pubDate = metaDate;
         details.author = $('meta[property="article:author"]').attr('content');
@@ -80,7 +79,7 @@ const parseArticle = async (item: DataItem & { link: string }): Promise<DataItem
                     pid: 1,
                     ran: Math.random(),
                     r: item.link,
-                    ssid: `gusr_pc_${Date.now()}`,
+                    ssid: `gusr_pc_${Temporal.Now.instant().epochMilliseconds}`,
                     preload: 0,
                     uu: '',
                     isAuto: 1,
@@ -99,7 +98,7 @@ const parseArticle = async (item: DataItem & { link: string }): Promise<DataItem
                     ) : null}
                 </>
             );
-            details.pubDate = videoData.create_time ? parseDate(videoData.create_time, 'X') : undefined;
+            details.pubDate = parseDate(videoData.create_time, 'X');
         } else if (item.link.startsWith('https://news.sina.com.cn/') || item.link.startsWith('https://mil.news.sina.com.cn/')) {
             details.description = $('#article').html();
             details.category = $('meta[name="keywords"]').attr('content')!.split(',');

@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/release',
@@ -31,7 +31,7 @@ async function handler() {
             {
                 title: `Thunderbird ${version} release`,
                 guid: version,
-                pubDate: releasedDate ? parseDate(`${releasedDate} +0000`, 'MMMM D, YYYY ZZ') : undefined,
+                pubDate: parseDate(`${releasedDate} +0000`, 'MMMM D, YYYY ZZ'),
                 link: `https://www.thunderbird.net/en-US/thunderbird/${version}/releasenotes`,
                 description: content,
             },

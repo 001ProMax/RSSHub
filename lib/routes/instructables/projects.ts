@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/projects/:category?',
@@ -34,14 +34,6 @@ export const route: Route = {
     description: `| All | Circuits | Workshop | Craft | Cooking | Living | Outside | Teachers |
 | --- | -------- | -------- | ----- | ------- | ------ | ------- | -------- |
 |     | circuits | workshop | craft | cooking | living | outside | teachers |`,
-};
-
-const parsePublicationDate = (value?: string | number) => {
-    if (value === undefined || value === '') {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
 };
 
 async function handler(ctx) {
@@ -96,7 +88,7 @@ async function handler(ctx) {
             link: `https://${siteDomain}/${item.document.urlString}`,
             author: item.document.screenName,
             description: `<img src="${item.document.coverImageUrl}?auto=webp&crop=1.2%3A1&frame=1&width=500" width="500">`,
-            pubDate: parsePublicationDate(item.document.publishDate),
+            pubDate: parseDate(item.document.publishDate),
             category: item.document.primaryClassification,
         })),
     };

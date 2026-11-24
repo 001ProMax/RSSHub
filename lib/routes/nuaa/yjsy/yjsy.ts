@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import getCookie from '../utils/pypasswaf';
 
@@ -80,9 +80,6 @@ async function handler(ctx) {
                         const response = await got(itemUrl, gotConfig);
                         const $ = load(response.data);
                         const content = $('.wp_articlecontent');
-                        if (!content.length) {
-                            throw new Error('Article content was not found at ' + itemUrl);
-                        }
                         return content.html() ?? undefined;
                     }
                     return '';

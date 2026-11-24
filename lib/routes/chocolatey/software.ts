@@ -4,7 +4,7 @@ import type { Context } from 'hono';
 import NotFoundError from '@/errors/types/not-found';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDateStrict } from '@/utils/time';
 
 export const route: Route = {
     path: '/software/:name?',
@@ -35,15 +35,14 @@ async function handler(ctx: Context) {
                 const $tds = $(row).find('td');
                 const $version = $tds.filter('.version');
                 const href = $version.find('a').attr('href');
-                const version = $version.find('span').first().text();
-                const versionLink = href || (version ? `packages/${name}/${version}` : undefined);
+                const versionLink = href || `packages/${name}/${$version.find('span').text()}`;
                 const time = $tds.eq(3).text();
 
                 return {
                     title: $version.text().trim(),
-                    link: versionLink ? new URL(versionLink, 'https://community.chocolatey.org').href : link,
+                    link: new URL(versionLink, 'https://community.chocolatey.org').href,
                     description: `update_time: ${time}`,
-                    pubDate: parseDate(time),
+                    pubDate: parseDateStrict(time, 'dddd, MMMM D, YYYY'),
                 };
             }),
     };

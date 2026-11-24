@@ -1,10 +1,5 @@
 import { load } from 'cheerio';
-import dayjs from 'dayjs';
-import advancedFormat from 'dayjs/plugin/advancedFormat.js';
-import timezone from 'dayjs/plugin/timezone.js';
-import utc from 'dayjs/plugin/utc.js';
 import { raw } from 'hono/html';
-import { jsx } from 'hono/jsx';
 import { renderToString } from 'hono/jsx/dom/server';
 import { FetchError } from 'ofetch';
 import pMap from 'p-map';
@@ -12,7 +7,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { jsx } from '@/utils/jsx';
+import { formatDate, parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/app/:category{.+}?',
@@ -51,14 +47,6 @@ function handleDuplicates(array) {
     return Object.values(objects);
 }
 
-function parseSourceTime(value?: string | number | null) {
-    if ((typeof value !== 'number' && typeof value !== 'string') || (typeof value === 'string' && !value.trim())) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-}
-
 async function handler(ctx) {
     const category = ctx.req.param('category') ?? '';
     const headers = {
@@ -66,9 +54,6 @@ async function handler(ctx) {
         Connection: 'keep-alive',
         'User-Agent': 'Classic/6.70.0',
     };
-    dayjs.extend(utc);
-    dayjs.extend(timezone);
-    dayjs.extend(advancedFormat);
 
     const url = `https://jsonapp1.washingtonpost.com/fusion_prod/v2/${category}`;
     const response = await got.get(url, { headers });
@@ -83,8 +68,8 @@ async function handler(ctx) {
                     id: item.id,
                     title: item.headline.text,
                     link: item.link.url,
-                    pubDate: parseSourceTime(item.link.display_date),
-                    updated: parseSourceTime(item.link.last_modified),
+                    pubDate: parseDate(item.link.display_date),
+                    updated: parseDate(item.link.last_modified),
                 };
                 if (item.blurbs?.items[0]?.text) {
                     object.description = item.blurbs?.items[0]?.text;
@@ -117,11 +102,10 @@ async function handler(ctx) {
                     return {
                         title: response.data.title,
                         category: response.data.items.filter((entry) => entry.type === 'kicker' && entry.content).map((entry) => entry.content),
-                        author:
-                            response.data.items
-                                .filter((entry) => entry.type === 'byline')
-                                ?.flatMap((entry) => entry.authors?.map((author) => author.name) ?? [])
-                                ?.join(', ') || undefined,
+                        author: response.data.items
+                            .filter((entry) => entry.type === 'byline')
+                            .flatMap((entry) => entry.authors.map((author) => author.name))
+                            .join(', '),
                         description: renderDescription(response.data.items),
                         enclosure_url: audio?.rawUrl,
                         enclosure_type: audio ? 'audio/mpeg' : undefined,
@@ -241,7 +225,8 @@ const renderDescription = (content): string => {
                 }
 
                 if (entry.type === 'date' && entry.subtype === 'live-update') {
-                    return entry.content ? <span key={`date-${index}`}>{dayjs.tz(entry.content, 'America/New_York').locale('en').format('dddd, MMMM D, YYYY h:mm A z')}</span> : null;
+                    const date = entry.content ? parseDate(entry.content, undefined, 'America/New_York') : undefined;
+                    return date ? <span key={`date-${index}`}>{formatDate(date, 'dddd, MMMM D, YYYY h:mm A z', 'America/New_York')}</span> : null;
                 }
 
                 return null;

@@ -5,7 +5,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const renderMedia = (media) => {
     const video = {
@@ -92,7 +92,7 @@ export const route: Route = {
         });
 
         const handledTypes = new Set(['HeadlineNews', 'Story', 'Columnist', 'Recap', 'Media', 'Shortstop']);
-        const list: Array<{ title: string; link: string; author?: string; pubDate?: Date; description: string }> = response.feed
+        const list: Array<{ title: string; link: string; author?: string; pubDate?: Temporal.Instant; description: string }> = response.feed
             .filter((item) => handledTypes.has(item.data.now[0].type))
             .map((item) => {
                 const itemDetail = item.data.now[0];
@@ -102,7 +102,7 @@ export const route: Route = {
                     title: itemDetail.headline,
                     link: itemDetail.links.web.href,
                     author: itemDetail.byline,
-                    pubDate: item.date ? parseDate(item.date) : undefined,
+                    pubDate: parseDate(item.date),
                     // for videos and shortstops, no need to extract full text below
                     description: itemType === 'Media' ? renderMedia(itemDetail.video[0]) : itemType === 'Shortstop' ? itemDetail.headline : '',
                 };
@@ -124,11 +124,7 @@ export const route: Route = {
 
                         if (typeof article === 'string') {
                             const $ = load(article);
-                            const content = $('.Story__Body');
-                            if (!content.length) {
-                                throw new Error(`ESPN did not return the article body for ${item.link}`);
-                            }
-                            item.description = content.html() ?? '';
+                            item.description = $('.Story__Body').html() ?? '';
                             return item;
                         }
 

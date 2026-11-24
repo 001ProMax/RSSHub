@@ -1,18 +1,19 @@
-import { type Cheerio, type CheerioAPI, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document, type Element } from 'domhandler';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
+import type { Element } from 'domhandler';
 import type { Context } from 'hono';
 import pMap from 'p-map';
 
-import { type Data, type DataItem, type Language, type Route, ViewType } from '@/types';
+import type { Data, DataItem, Language, Route } from '@/types';
+import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { baseUrl, loadList } from './utils';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { id = 'gnxw' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 17);
 
@@ -37,7 +38,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
             const processedItem: DataItem = {
                 title,
-                pubDate: pubDateStr ? parseDate(`${pubDateStr.trim()}T00:00:00Z`) : undefined,
+                pubDate: pubDateStr ? parseDate(`${pubDateStr}T00:00:00Z`) : undefined,
                 link: linkUrl ? new URL(linkUrl, targetUrl).href : undefined,
                 language,
             };
@@ -59,8 +60,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                 const title: string = $$('div.content_title').text();
                 const body = $$('#zoom');
                 const description = body.html();
-                const textBody = copyNodes(body);
-                textBody.find('script, style').remove();
+                body.find('style').remove();
                 const pubDateStr: string | undefined = $$('div.gyj_ly')
                     .text()
                     .match(/发布时间：\s*([\d-]+\s+[\d:]+)/)?.[1];
@@ -69,11 +69,11 @@ export const handler = async (ctx: Context): Promise<Data> => {
                 const processedItem: DataItem = {
                     title,
                     description,
-                    pubDate: pubDateStr ? timezone(parseDate(pubDateStr), 8) : item.pubDate,
+                    pubDate: pubDateStr ? parseDate(pubDateStr, 8) : item.pubDate,
                     category: categories,
                     content: {
                         html: description,
-                        text: textBody.text(),
+                        text: body.text(),
                     },
                     language,
                 };
@@ -260,12 +260,3 @@ export const route: Route = {
     ],
     view: ViewType.Articles,
 };
-
-function copyNodes<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, node) => cloneNode(node, true));
-    const root = new Document(copy.toArray());
-    for (const node of copy) {
-        node.parent = root;
-    }
-    return copy;
-}

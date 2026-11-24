@@ -139,7 +139,7 @@ async function handler(ctx) {
                     <>
                         Monitor ID:{' '}
                         {link ? (
-                            <a href={link} target="_blank">
+                            <a href={link} target="_blank" rel="noreferrer">
                                 {id}
                             </a>
                         ) : (
@@ -179,7 +179,7 @@ async function handler(ctx) {
     return {
         title: 'Uptime Robot - RSS (enhanced)',
         description: rss.description,
-        link: rss.link ?? 'https://uptimerobot.com',
+        link: rss.link,
         item: items as DataItem[],
         image: 'https://uptimerobot.com/favicon.ico',
     };

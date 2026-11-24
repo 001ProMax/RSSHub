@@ -5,7 +5,7 @@
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import type { ApiResponse } from '../interfaces/api';
 import { getFeedLanguage, getLanguage } from '../utils';
@@ -52,7 +52,7 @@ async function handler(ctx) {
                 const parsedArticle = await ofetch<ApiResponse>('https://gw.ganjingworld.com/v1.1/content/query', {
                     query: { lang: 'zh-TW', query: 'basic,full,translations,like,share,save,view,tag_list', ids: item.id },
                 });
-                return parsedArticle.data.list[0]?.text ?? '';
+                return parsedArticle.data.list[0]?.text;
             });
 
             return {
@@ -61,7 +61,7 @@ async function handler(ctx) {
                 category: item.hashtags ?? undefined,
                 language: getLanguage(item.lang),
                 link: `https://www.ganjingworld.com/news/${item.id}`,
-                pubDate: Number.isFinite(item.time_scheduled) ? parseDate(item.time_scheduled) : undefined,
+                pubDate: parseDate(item.time_scheduled),
                 description,
             };
         })

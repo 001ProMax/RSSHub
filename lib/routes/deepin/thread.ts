@@ -3,7 +3,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/threads/:type?',
@@ -74,10 +74,8 @@ async function handler(ctx) {
             accept: 'application/json',
         },
     });
-    const orderedThreads = res.ThreadIndex;
-    const candidates = orderedThreads;
     const items = await pMap(
-        candidates,
+        res.ThreadIndex,
         (thread) => {
             const link = 'https://bbs.deepin.org/post/' + thread.id;
             return cache.tryGet(link, async () => {

@@ -2,7 +2,7 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'http://www.tqyb.com.cn';
 
@@ -41,7 +41,7 @@ async function handler() {
         link: 'http://www.tqyb.com.cn/gz/weatherAlarm/suddenWeather/',
         author: item.issuer,
         description: renderToString(<p>{item.content}</p>),
-        pubDate: typeof item.ddate === 'number' && Number.isFinite(item.ddate) ? parseDate(item.ddate) : undefined,
+        pubDate: parseDate(item.ddate),
         guid: `weather-tips:${item.ddate}:${item.title}`,
     }));
 

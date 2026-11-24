@@ -2,8 +2,8 @@ import { config } from '@/config';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/collection/:collectionID',
@@ -72,7 +72,7 @@ async function handler(ctx) {
                 .map((video) => `<video src='${video.originUrl}' poster='${video.video_img_url}' controls='controls'></video>`)
                 .join('') +
             item.post.content,
-        pubDate: Number.isFinite(item.post.publishTime) ? parseDate(item.post.publishTime) : undefined,
+        pubDate: parseDate(item.post.publishTime),
         author: item.post.blogInfo.blogNickName,
         category: item.post.tag.split(','),
     }));

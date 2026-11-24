@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/jw/tzgg',
@@ -47,12 +46,11 @@ async function handler() {
             const $item = $(item);
 
             const link = $item.attr('href');
-            const pubDate = $item.parent().find('span').text();
 
             return {
                 title: $item.text(),
                 link: link!.startsWith('http') ? link : `${rootUrl}${link!.replace(/^\./, '/tzgg')}`,
-                pubDate: pubDate ? timezone(parseDate(pubDate), 8) : undefined,
+                pubDate: parseDate($item.parent().find('span').text(), 8),
             };
         });
 
@@ -69,7 +67,7 @@ async function handler() {
                 const pubDate = content('meta[name="PubDate"]').attr('content');
 
                 item.author = content('meta[name="ContentSource"]').attr('content');
-                item.pubDate = pubDate ? timezone(parseDate(content('meta[name="PubDate"]').attr('content')!), 8) : item.pubDate;
+                item.pubDate = pubDate ? parseDate(content('meta[name="PubDate"]').attr('content')!, 8) : item.pubDate;
                 item.description = content('.TRS_UEDITOR').html();
 
                 return item;

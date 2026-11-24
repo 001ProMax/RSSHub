@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.mee.gov.cn/';
 const columns = {
@@ -79,20 +78,13 @@ async function handler(ctx) {
                 const detailResponse = await got(item.link);
                 const content = load(detailResponse.data);
                 try {
-                    const pubDate = content('meta[name=PubDate]').attr('content');
-                    item.pubDate = pubDate ? timezone(parseDate(pubDate), 8) : undefined;
+                    item.pubDate = parseDate(content('meta[name=PubDate]').attr('content')!, 8);
                     // Video news uses a separate article layout.
                     if (cate === 'spxw') {
                         item.title = content('meta[name=ArticleTitle]').attr('content')!;
                         // Disable automatic video playback.
                         const videoControl = content('.neiright_JPZ_GK_CP video');
                         videoControl.removeAttr('autoplay');
-                        // Resolve the native video source URL.
-                        const videoSource = content('.neiright_JPZ_GK_CP source');
-                        const videoHref = videoSource.attr('src');
-                        if (videoHref) {
-                            videoSource.attr('src', new URL(videoHref, item.link).href);
-                        }
                     }
                     item.description = content('.neiright_JPZ_GK_CP').html();
                 } catch {

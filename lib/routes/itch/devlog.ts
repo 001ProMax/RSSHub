@@ -5,8 +5,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 import { renderDescription } from './templates/description';
@@ -77,10 +77,9 @@ async function handler(ctx) {
 
                 const infoJson = content('script[type="application/ld+json"]:contains("@type":"BlogPosting")');
                 const info = JSON.parse(content(infoJson).text());
-                const date = info.datePublished ? parseDate(info.datePublished) : undefined;
                 return {
                     author: info.author.name,
-                    pubDate: date && Number.isFinite(date.getTime()) ? date : undefined,
+                    pubDate: parseDate(info.datePublished),
                     description: renderDescription({
                         images: content('.post_image')
                             .toArray()

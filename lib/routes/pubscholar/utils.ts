@@ -2,12 +2,13 @@ import crypto from 'node:crypto';
 
 import CryptoJS from 'crypto-js';
 
+import { sha1 } from '@/utils/hash';
+
 const salt = '6m6pingbinwaktg227gngifoocrfbo95';
 const key = CryptoJS.enc.Utf8.parse('eRtYuIoPaSdFgHqW');
 const iv = CryptoJS.enc.Utf8.parse('Nmc09JkLzX8765Vb');
 
 export const baseUrl = 'https://pubscholar.cn';
-const sha1 = (str: string) => crypto.createHash('sha1').update(str).digest('hex');
 export const uuidv4 = () => crypto.randomUUID();
 
 const generateNonce = (length: number): string => {
@@ -37,9 +38,8 @@ const hex32 = () =>
 
 export const getSignedHeaders = () => {
     const nonce = generateNonce(6);
-    const timestamp = Date.now().toString();
+    const timestamp = Temporal.Now.instant().epochMilliseconds.toString();
     // server-validated signature relies on JS default codepoint sort; salt starts with digit, nonce can collide on first char with different case
-    // oxlint-disable-next-line unicorn-js/require-array-sort-compare
     const signature = sha1([salt, timestamp, nonce].toSorted().join(''));
     return {
         nonce,

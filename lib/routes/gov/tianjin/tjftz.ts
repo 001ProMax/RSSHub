@@ -2,8 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 
 export const route: Route = {
     path: '/tjftz-notice/:channelId',
@@ -33,12 +32,10 @@ export const route: Route = {
             .toArray()
             .map((el) => {
                 const $ = load(el);
-                const date = $('span').text().trim();
-                const pubDate = date ? timezone(parseDate(date, 'YYYY-MM-DD', true), 8) : undefined;
                 return {
                     title: `天津保税区:${$('a').attr('title')}`,
                     link: `https://www.tjftz.gov.cn${$('a').attr('href')}`,
-                    pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
+                    pubDate: parseDateStrict($('span').text().trim(), 'YYYY-MM-DD', 8),
                     author: '天津保税区',
                     description: `
                         <h4>${noticeCate}</h4>

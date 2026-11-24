@@ -1,18 +1,16 @@
 import querystring from 'node:querystring';
 
 import { config } from '@/config';
-import type { DataItem, Route } from '@/types';
+import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import md5 from '@/utils/md5';
-import { parseDate } from '@/utils/parse-date';
+import { md5 } from '@/utils/hash';
 import { fallback, queryToBoolean } from '@/utils/readable-social';
-import timezone from '@/utils/timezone';
+import { toInstant } from '@/utils/time';
 
 import weiboUtils from './utils';
 
-const getPostTime = (pubDate: DataItem['pubDate']) => (typeof pubDate !== 'number' && !pubDate ? NaN : new Date(pubDate).getTime());
 export const route: Route = {
     path: '/user/:uid/:routeParams?',
     categories: ['social-media'],
@@ -27,7 +25,7 @@ export const route: Route = {
                 description: '',
             },
         ],
-        requirePuppeteer: true,
+        requirePuppeteer: false,
         antiCrawler: true,
         supportBT: false,
         supportPodcast: false,
@@ -62,7 +60,7 @@ async function handler(ctx) {
     let showRetweeted = '1';
     let showBloggerIcons = '0';
     if (ctx.req.param('routeParams')) {
-        if (isOneOf(ctx.req.param('routeParams'), ['1', '0'])) {
+        if (ctx.req.param('routeParams') === '1' || ctx.req.param('routeParams') === '0') {
             displayVideo = ctx.req.param('routeParams');
         } else {
             const routeParams = querystring.parse(ctx.req.param('routeParams'));
@@ -142,18 +140,18 @@ async function handler(ctx) {
                 const data = await cache.tryGet(key, () => weiboUtils.getShowData(uid, bid));
                 if (data && data.text) {
                     item.mblog.text = data.text;
-                    item.mblog.created_at = parseDate(data.created_at);
+                    item.mblog.created_at = weiboUtils.parseCreatedAt(data.created_at);
                     item.mblog.pics = data.pics;
                     if (retweeted_status && data.retweeted_status) {
                         retweeted_status = {
                             ...retweeted_status,
                             ...data.retweeted_status,
-                            created_at: parseDate(data.retweeted_status.created_at),
+                            created_at: weiboUtils.parseCreatedAt(data.retweeted_status.created_at),
                         };
                         item.mblog.retweeted_status = retweeted_status;
                     }
                 } else {
-                    item.mblog.created_at = timezone(created_at, 8);
+                    item.mblog.created_at = weiboUtils.parseCreatedAt(created_at);
                 }
                 // 转发的长微博处理
                 const retweet = retweeted_status;
@@ -192,13 +190,8 @@ async function handler(ctx) {
     const pinnedItems = resultItems.filter((item) => item.isPinned);
     const ordinaryItems = resultItems.filter((item) => !item.isPinned);
     if (pinnedItems.length > 0 && ordinaryItems.length > 0) {
-        const earliestOrdinaryPostTime = Math.min(...ordinaryItems.map((item) => getPostTime(item.pubDate)).filter((time) => Number.isFinite(time)));
-        if (Number.isFinite(earliestOrdinaryPostTime)) {
-            resultItems = resultItems.filter((item) => {
-                const postTime = getPostTime(item.pubDate);
-                return !item.isPinned || !Number.isFinite(postTime) || postTime >= earliestOrdinaryPostTime;
-            });
-        }
+        const earliestOrdinaryPostTime = Math.min(...ordinaryItems.map((item) => toInstant(item.pubDate)!.epochMilliseconds));
+        resultItems = resultItems.filter((item) => !item.isPinned || toInstant(item.pubDate)!.epochMilliseconds >= earliestOrdinaryPostTime);
     }
     return weiboUtils.sinaimgTvax({
         title: `${name}的微博`,
@@ -208,9 +201,4 @@ async function handler(ctx) {
         item: resultItems,
         allowEmpty: resultItems.length === 0 && cards.some((item) => item.mblog),
     });
-}
-
-function isOneOf<const T>(value: unknown, values: readonly T[]): value is T {
-    const candidates: readonly unknown[] = values;
-    return candidates.includes(value);
 }

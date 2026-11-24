@@ -1,20 +1,9 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function copyElements<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, element) => cloneNode(element, true));
-    const root = new Document(copy.toArray());
-    copy.each((_, element) => {
-        element.parent = root;
-    });
-    return copy;
-}
+import { parseDateStrict } from '@/utils/time';
 
 export const route: Route = {
     path: '/sy/whyw',
@@ -52,12 +41,16 @@ async function handler() {
         .map((item): DataItem => {
             const $item = $(item);
             const a = $item.find('a');
-            const date = copyElements($item.find('.time')).find('script').remove().end().text().trim();
-            const pubDate = date ? timezone(parseDate(date, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD'], true), 8) : undefined;
+            const date = $item
+                .find('.time')
+                .contents()
+                .filter((_, node) => node.type === 'text')
+                .text()
+                .trim();
             return {
                 title: a.text(),
                 link: new URL(a.attr('href')!, currentUrl).href,
-                pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
+                pubDate: parseDateStrict(date, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD'], 8),
             };
         });
 
@@ -66,12 +59,10 @@ async function handler() {
             cache.tryGet(item.link!, async () => {
                 const detailResponse = await got(item.link);
                 const content = load(detailResponse.data);
-                const date = content('meta[name="PubDate"]').attr('content');
-                const pubDate = date ? timezone(parseDate(date, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm'], true), 8) : undefined;
 
-                item.description = content('.article .TRS_UEDITOR').first().html() || content('.view').html();
+                item.description = content('.article .TRS_UEDITOR').html();
                 item.author = content('meta[name=ContentSource]').attr('content');
-                item.pubDate = pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : item.pubDate;
+                item.pubDate = parseDateStrict(content('meta[name="PubDate"]').prop('content'), ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm'], 8);
 
                 return item;
             })

@@ -1,15 +1,10 @@
 import { load } from 'cheerio';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc.js';
 import pMap from 'p-map';
 
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-dayjs.extend(utc);
+import { formatDate, parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/ranking',
@@ -32,23 +27,19 @@ async function getArticle(originalLink: string): Promise<Partial<DataItem>> {
     }
 
     const content = load(detailResponse);
-    const articleDate = detailResponse
-        .match(/<!--enpproperty[\s\S]*?<date>([^<]+)<\/date>/)?.[1]
-        ?.trim()
-        .replace(/:(\d{1,3})$/, (_, milliseconds: string) => `:${milliseconds.padStart(3, '0')}`);
-    const date = articleDate || content('.a_time').text().trim() || content('.article-info span').first().text().replace('发布时间：', '').trim();
+    const date = detailResponse.match(/<!--enpproperty[\s\S]*?<date>([^<]+)<\/date>/)[1].replace(/:(\d{1,3})$/, (_, milliseconds: string) => `:${milliseconds.padStart(3, '0')}`);
 
     return {
         link,
         description: content('.article-content').html() ?? undefined,
         author: content('.a_source').text().replace('来源： ', '') || undefined,
-        pubDate: date ? timezone(parseDate(date, articleDate ? 'YYYY-MM-DD HH:mm:ss:SSS' : undefined), 8) : undefined,
+        pubDate: parseDate(date, 'YYYY-MM-DD HH:mm:ss:SSS', 8),
     };
 }
 
 async function handler() {
     const rootUrl = 'https://www.sznews.com';
-    const currentUrl = `${rootUrl}/ranking/${dayjs().utcOffset(8).format('YYYY-MM-DD')}.json`;
+    const currentUrl = `${rootUrl}/ranking/${formatDate(Temporal.Now.instant(), 'YYYY-MM-DD', 8)}.json`;
 
     const response = await ofetch(currentUrl);
 

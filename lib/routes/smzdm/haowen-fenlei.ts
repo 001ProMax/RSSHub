@@ -6,8 +6,7 @@ import CaptchaError from '@/errors/types/captcha';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { getHeaders } from './utils';
 
@@ -64,7 +63,7 @@ async function handler(ctx) {
             description: payload[entry.article_content],
             image: payload[entry.article_pic],
             category: [payload[entry.article_channel_name], ...(payload[entry.article_tag] ?? []).map((tag) => payload[payload[tag].article_title])],
-            pubDate: timezone(parseDate(payload[entry.article_no_format_date]), 8),
+            pubDate: parseDate(payload[entry.article_no_format_date], 8),
         }));
 
     const out = await pMap(
@@ -81,9 +80,9 @@ async function handler(ctx) {
                     if ($('script[src*="captcha.qq.com/TCaptcha.js"]').length) {
                         throw new CaptchaError(`The article at ${item.link} requires a CAPTCHA.`);
                     }
-                    const description = $('article').html() ?? undefined;
+                    const description = $('article').html();
                     const releaseDate = $('meta[property="og:release_date"]').attr('content');
-                    const pubDate = releaseDate ? timezone(parseDate(releaseDate), 8) : undefined;
+                    const pubDate = releaseDate ? parseDate(releaseDate, 8) : undefined;
                     const author = $('meta[property="og:author"]').attr('content');
                     return { description, pubDate, author };
                 });

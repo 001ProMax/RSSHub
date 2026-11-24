@@ -3,7 +3,7 @@ import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 async function getPage(id) {
     const res = await got({
@@ -54,15 +54,7 @@ export const route: Route = {
 async function handler(ctx) {
     const id = ctx.req.param('id').split('+');
     const results = await pMap(id, (id) => getPage(id), { concurrency: 3 });
-    const seen = new Set<string>();
-    const items = results.flat().filter((item) => {
-        const link = new URL(item.link!, 'http://www.cst.zju.edu.cn/').href;
-        if (seen.has(link)) {
-            return false;
-        }
-        seen.add(link);
-        return true;
-    });
+    const items = results.flat();
 
     return {
         title: '浙江大学软件学院通知',

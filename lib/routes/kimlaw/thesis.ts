@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.kimlaw.or.kr';
 
@@ -42,13 +41,11 @@ async function handler() {
         .map((item): DataItem => {
             const $item = $(item);
             const a = $item.find('a.list_text_title');
-            const sourceDate = $item.find('.time').attr('title');
-            const date = sourceDate ? parseDate(sourceDate, 'YYYY-MM-DD HH:mm', true) : undefined;
             return {
                 title: a.text(),
                 link: `${baseUrl}${a.attr('href')}`,
                 author: $item.find('.name').text(),
-                pubDate: date && Number.isFinite(date.getTime()) ? timezone(date, 9) : undefined,
+                pubDate: parseDate($item.find('.time').attr('title')!, 9),
             };
         });
 

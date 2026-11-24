@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/topic/:topic',
@@ -53,17 +53,16 @@ async function handler(ctx): Promise<Data> {
         list,
         async (item) => ({
             ...item,
-            ...(await cache.tryGet(item.link!, async () => {
+            ...(await cache.tryGet(`thehindu:details:${item.link}`, async () => {
                 const { data: response } = await got(item.link);
                 const $ = load(response);
 
-                $('.position-relative, .articleblock-container, .article-ad, .comments-shares').remove();
-                const published = $('meta[itemprop="datePublished"]').attr('content');
-                const modified = $('meta[itemprop="dateModified"]').attr('content');
+                $('.position-relative, .articleblock-container, .article-ad, .comments-shares, .also-read').remove();
+                const published = $('meta[property="article:published_time"]').attr('content');
                 return {
-                    description: ($('h2.sub-title').prop('outerHTML') ?? '') + ($('div.article-picture').html() ?? '') + ($('div[itemprop="articleBody"]').html() ?? ''),
+                    description: ($('h2.sub-title').prop('outerHTML') ?? '') + ($('div.article-picture').html() ?? '') + ($('div.schemaDiv').html() ?? ''),
                     pubDate: published ? parseDate(published) : undefined,
-                    updated: modified ? parseDate(modified) : undefined,
+                    updated: parseDate($('meta[itemprop="dateModified"]').attr('content')!),
                     category: $('meta[property="article:tag"]')
                         .toArray()
                         .map((tag) => $(tag).attr('content')!),

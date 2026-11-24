@@ -5,26 +5,19 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function parsePublicationDate(value: string) {
-    const date = parseDate(value.trim(), 'YYYY-MM-DD HH:mm:ss', true);
-    return Number.isFinite(date.getTime()) ? timezone(date, 8) : undefined;
-}
+import { parseDateStrict } from '@/utils/time';
 
 async function fetchDetails(url: string) {
     const response = await ofetch(url);
     const $ = load(response);
-    const content = $('.v_news_content').first();
+    const content = $('.v_news_content');
     const attachments = $('form[name="_newscontent_fromname"] a[href*="DownloadAttachUrl"]')
-        .filter((_, link) => !$(link).closest('.v_news_content').length)
         .toArray()
         .map((link) => `<li>${$.html(link)}</li>`)
         .join('');
 
     return {
-        description: `${content.html() ?? ''}${attachments ? `<ul>${attachments}</ul>` : ''}` || undefined,
+        description: `${content.html()}${attachments ? `<ul>${attachments}</ul>` : ''}`,
     };
 }
 
@@ -78,7 +71,7 @@ async function handler(ctx: Context) {
             return {
                 title: a.attr('title') || a.text(),
                 link: new URL(a.attr('href')!, baseUrl).href,
-                pubDate: parsePublicationDate($item.find('span').text()),
+                pubDate: parseDateStrict($item.find('span').text(), 'YYYY-MM-DD HH:mm:ss', 8),
             };
         });
 

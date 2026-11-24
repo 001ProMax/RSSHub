@@ -4,16 +4,7 @@ import pMap from 'p-map';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function parsePublicationDate(value?: string) {
-    if (!value?.trim()) {
-        return;
-    }
-    const date = parseDate(value, 'YYYY-MM-DD');
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 8);
-}
+import { parseDate } from '@/utils/time';
 
 const typeMap = {
     tzgg: { name: 'tzgg', url: 'https://xc.hfut.edu.cn/1955/list.htm', root: 'https://xc.hfut.edu.cn', title: '合肥工业大学宣城校区 - 通知公告' },
@@ -48,7 +39,7 @@ async function parseArticle($) {
         const $item = $(item);
         const oriLink = $item.find('a').attr('href');
         const linkRes = new URL(oriLink, commLink).href;
-        const pubDate = parsePublicationDate($item.find('.news_meta').text());
+        const pubDate = parseDate($item.find('.news_meta').text(), 'YYYY-MM-DD', 8);
 
         return {
             title: $item.find('a').attr('title'),

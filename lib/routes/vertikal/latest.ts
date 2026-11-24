@@ -1,11 +1,10 @@
-import type { CheerioAPI } from 'cheerio';
 import { load } from 'cheerio';
 import pMap from 'p-map';
 
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/latest',
@@ -37,11 +36,10 @@ async function handler() {
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
-            const publishedDate = $item.find('.news-teaser__date').text();
             return {
                 title: $item.find('.news-teaser__title').text(),
                 link: `${baseUrl}${$item.find('.news-teaser').attr('href')}`,
-                pubDate: publishedDate ? parseDate(publishedDate, 'DD.MM.YYYY') : undefined,
+                pubDate: parseDate($item.find('.news-teaser__date').text(), 'DD.MM.YYYY'),
                 description: $item.find('.news-teaser__text').text(),
             };
         });
@@ -58,7 +56,7 @@ async function handler() {
 
 async function getArticle(item: DataItem): Promise<DataItem> {
     const { description, category, pubDate } = await cache.tryGet(`vertikal:detail:v2:${item.link}`, () => fetchArticle(item.link!));
-    return { ...item, description, category, pubDate: pubDate ?? item.pubDate };
+    return { ...item, description, category, pubDate };
 }
 
 async function fetchArticle(link: string): Promise<Pick<DataItem, 'description' | 'category' | 'pubDate'>> {
@@ -70,25 +68,6 @@ async function fetchArticle(link: string): Promise<Pick<DataItem, 'description' 
         .toArray()
         .map((tag) => $(tag).text().trim());
     content.find('.newsentry__date, .newsentry__title, .lazyimage-placeholder, .newsentry__tags, .newsentry__share, .newsentry__comments, .newsentry__write-comment').remove();
-    const publishedTime = getPublishedTime($);
-    return { description: content.html() ?? '', category, pubDate: publishedTime ? parseDate(publishedTime) : undefined };
-}
-
-function getPublishedTime($: CheerioAPI): string | undefined {
-    for (const script of $('script[type="application/ld+json"]').toArray()) {
-        let schema: unknown;
-        try {
-            schema = JSON.parse($(script).text());
-        } catch {
-            continue;
-        }
-        if (!schema || typeof schema !== 'object' || !('@graph' in schema) || !Array.isArray(schema['@graph'])) {
-            continue;
-        }
-        const article = schema['@graph'].find((entry) => entry && typeof entry === 'object' && entry['@type'] === 'Article');
-        if (article && typeof article.datePublished === 'string' && article.datePublished && Number.isFinite(Date.parse(article.datePublished))) {
-            return article.datePublished;
-        }
-    }
-    return undefined;
+    const publishedTime = JSON.parse($('script[type="application/ld+json"]').text())['@graph'].find((entry) => entry['@type'] === 'Article').datePublished;
+    return { description: content.html(), category, pubDate: parseDate(publishedTime) };
 }

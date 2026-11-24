@@ -8,10 +8,10 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { filter } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
 
@@ -53,7 +53,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                     const $$: CheerioAPI = load(detailResponse);
 
                     const title: string = $$('h1.my-2').text();
-                    const article = $$('div.ck-content').first();
+                    const article = $$('div.ck-content');
                     const description = article.html();
                     const pubDateStr = $$('meta[property="article:published_time"]').attr('content');
                     const upDatedStr = $$('meta[property="article:modified_time"]').attr('content');

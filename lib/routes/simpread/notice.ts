@@ -1,8 +1,7 @@
-import MarkdownIt from 'markdown-it';
-
 import type { Route } from '@/types';
+import MarkdownIt from '@/utils/markdown-it';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const md = MarkdownIt();
 
@@ -26,7 +25,7 @@ async function handler() {
             guid: `simpread:notice:${item.id}`,
             description: md.render(item.content),
             link: 'https://simpread.pro/changelog.html',
-            pubDate: item.date ? parseDate(`${item.date} +0000`, 'YYYY-MM-DD HH:mm ZZ') : undefined,
+            pubDate: parseDate(`${item.date} +0000`, 'YYYY-MM-DD HH:mm ZZ'),
             title: `${item.category.name}-${item.title}`,
             author: 'SimpRead',
             category: item.category.name,

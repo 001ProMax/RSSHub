@@ -7,10 +7,11 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
 
@@ -44,7 +45,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
             const processedItem: DataItem = {
                 title,
-                pubDate: pubDateStr ? parseDate(pubDateStr) : undefined,
+                pubDate: pubDateStr ? parseDate(pubDateStr, 'DD MMM YY') : undefined,
                 link: linkUrl,
                 author: authors,
                 language,
@@ -56,11 +57,12 @@ export const handler = async (ctx: Context): Promise<Data> => {
     items = (
         await Promise.all(
             items.map((item) => {
-                if (!item.link) {
+                // only follow links on the site itself
+                if (!isOnSite(item.link, 'bullionvault.com')) {
                     return item;
                 }
 
-                return cache.tryGet(item.link, async (): Promise<DataItem> => {
+                return cache.tryGet(item.link!, async (): Promise<DataItem> => {
                     const detailResponse = await ofetch(item.link!);
                     const $$: CheerioAPI = load(detailResponse);
                     const metadata = $$('script[type="application/ld+json"]')
@@ -76,7 +78,6 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
                     const title: string = $$('article.article h1').text();
                     const description = $$('div.content').html();
-                    const pubDateStr: string | undefined = $$('div.submitted').text().split(/,/).pop();
                     const categories: string[] = $$('meta[name="news_keywords"]').attr('content')?.split(/,/) ?? [];
                     const authorEls: Element[] = $$('div.view-author-bio').toArray();
                     const authors: DataItem['author'] = authorEls.map((authorEl) => {
@@ -92,14 +93,14 @@ export const handler = async (ctx: Context): Promise<Data> => {
                     const processedItem: DataItem = {
                         title,
                         description,
-                        pubDate: metadata?.datePublished ? parseDate(metadata.datePublished) : pubDateStr ? parseDate(pubDateStr) : item.pubDate,
+                        pubDate: parseDate(metadata.datePublished),
                         category: categories,
                         author: authors,
                         content: {
                             html: description,
                             text: description,
                         },
-                        updated: metadata?.dateModified ? parseDate(metadata.dateModified) : undefined,
+                        updated: parseDate(metadata.dateModified),
                         language,
                     };
 

@@ -2,8 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/physics',
@@ -47,12 +46,12 @@ async function handler() {
             // Extract the date in [YYYY-MM-DD] format.
             const dateText = span.text();
             const dateMatch = dateText.match(/\[(\d{4}-\d{2}-\d{2})\]/);
-            const pubDate = dateMatch ? timezone(parseDate(dateMatch[1], 'YYYY-MM-DD'), 8) : undefined;
+            const pubDate = dateMatch ? parseDate(dateMatch[1], 'YYYY-MM-DD', 8) : undefined;
 
             // Extract the title.
             const title = a.text().trim() || a.attr('title') || '';
 
-            // 从 onclick 属性中Extract the link.
+            // Extract the link from the onclick attribute.
             const onclick = a.attr('onclick') || '';
             const hrefMatch = onclick.match(/checkXnwk\(['"]([^'"]+)['"]/);
             const href = hrefMatch ? hrefMatch[1] : '';

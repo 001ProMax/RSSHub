@@ -2,8 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { processItems } from './utils';
 
@@ -30,14 +29,11 @@ async function handler() {
     const $ = load(response.data);
     const list = $('li.clearfix')
         .toArray()
-        .map((item) => {
-            const dateText = $(item).find('span.fr').text();
-            return {
-                title: $(item).find('a').text(),
-                link: new URL($(item).find('a').attr('href')!, host).href,
-                pubDate: dateText ? timezone(parseDate(dateText, 'YYYY-MM-DD'), 8) : undefined,
-            };
-        });
+        .map((item) => ({
+            title: $(item).find('a').text(),
+            link: new URL($(item).find('a').attr('href')!, host).href,
+            pubDate: parseDate($(item).find('span.fr').text(), 'YYYY-MM-DD', 8),
+        }));
 
     const items = await processItems(list);
 

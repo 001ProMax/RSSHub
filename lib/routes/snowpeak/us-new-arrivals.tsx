@@ -2,7 +2,7 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import type { DataItem, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const host = 'https://www.snowpeak.com';
 
@@ -46,7 +46,7 @@ async function handler() {
     const list: DataItem[] = response.products.map((product) => ({
         title: product.title,
         link: `${host}/products/${product.handle}`,
-        pubDate: product.published_at ? parseDate(product.published_at) : undefined,
+        pubDate: parseDate(product.published_at),
         category: product.tags,
         description:
             product.body_html +

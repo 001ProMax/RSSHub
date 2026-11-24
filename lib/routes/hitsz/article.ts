@@ -1,5 +1,4 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 import type { Context } from 'hono';
 import pMap from 'p-map';
 
@@ -7,19 +6,9 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { getTenderFeed } from './tender';
-
-function copyElements<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, element) => cloneNode(element, true));
-    const root = new Document(copy.toArray());
-    copy.each((_, element) => {
-        element.parent = root;
-    });
-    return copy;
-}
 
 export const route: Route = {
     path: '/article/:category?',
@@ -58,8 +47,7 @@ function parseCalendarDate(value: string) {
     if (!value) {
         return;
     }
-    const date = parseDate(value, 'YYYY-MM-DD');
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 8);
+    return parseDate(value, 'YYYY-MM-DD', 8);
 }
 
 async function handler(ctx: Context): Promise<Data> {
@@ -79,14 +67,14 @@ async function handler(ctx: Context): Promise<Data> {
         .toArray()
         .map((el): DataItem & { link: string } => {
             const element = $(el);
-            const anchor = element.find('a.title_o, .lecture_top a').first();
-            const titleLink = anchor.length ? anchor : element.children('a').first();
+            const anchor = element.find('a.title_o, .lecture_top a');
+            const titleLink = anchor.length ? anchor : element.children('a');
             const itemLink = new URL(titleLink.attr('href')!, host).href;
-            const summary = copyElements(element.find('.text').first());
+            const summary = element.find('.text');
             summary.find('.blue_text').remove();
-            const cover = element.find('.img').first().html() || '';
+            const cover = element.find('.img').html() || '';
             const description = cover + (summary.html() || '');
-            const date = element.find('.date_t').text() || element.find('span.date').first().text();
+            const date = element.find('.date_t').text() || element.find('span.date').text();
             return {
                 title: titleLink.text(),
                 link: itemLink,
@@ -107,15 +95,14 @@ async function handler(ctx: Context): Promise<Data> {
                 const $ = load(response.data);
                 const published = $('.detail_out .tip .item')
                     .filter((_, el) => $(el).text().startsWith('发布时间：'))
-                    .first()
                     .text()
                     .replace('发布时间：', '');
                 return {
-                    description: $('.wp_articlecontent').html() ?? $('.edittext').html() ?? undefined,
+                    description: $('.wp_articlecontent').html(),
                     pubDate: parseCalendarDate(published),
                 };
             });
-            return { ...item, description: detail.description || item.description, pubDate: detail.pubDate ?? item.pubDate };
+            return { ...item, ...detail };
         },
         { concurrency: 3 }
     );

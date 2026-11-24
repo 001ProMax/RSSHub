@@ -1,14 +1,14 @@
 import { load } from 'cheerio';
-import MarkdownIt from 'markdown-it';
 import pMap from 'p-map';
 import Parser from 'rss-parser';
 
 import { config } from '@/config';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
+import MarkdownIt from '@/utils/markdown-it';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const md = MarkdownIt({
     breaks: true,
@@ -54,7 +54,8 @@ const toDataItems = (item: Parser.Item & NyaaItem): DataItem[] => {
             guid: item.guid,
             pubDate: item.pubDate ? parseDate(item.pubDate) : undefined,
             description: item.description,
-            ...(item.link && { enclosure_url: item.link, enclosure_type: 'application/x-bittorrent' }),
+            enclosure_url: item.link,
+            enclosure_type: 'application/x-bittorrent',
         },
     ];
 };

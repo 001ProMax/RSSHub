@@ -6,11 +6,10 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { category = '' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 20);
 
@@ -31,7 +30,7 @@ export const handler = async (ctx) => {
 
             return {
                 title: $item.find('strong').text(),
-                pubDate: $item.find('div.list-dated').text().split(/\|/).pop()?.trim() ? timezone(parseDate($item.find('div.list-dated').text().split(/\|/).pop()!), 9) : undefined,
+                pubDate: parseDate($item.find('div.list-dated').text().split(/\|/).pop()!, 9),
                 link: new URL($item.find('a.links').prop('href')!, rootUrl).href,
                 author: $item.find('div.list-dated').text().split(/\|/, 1)[0],
                 language,
@@ -71,7 +70,7 @@ export const handler = async (ctx) => {
                 );
                 const image = $$('meta[property="og:image"]').prop('content');
 
-                item.title = title || item.title;
+                item.title = title;
                 item.description = description;
                 const publishedTime = $$('meta[property="article:published_time"]').prop('content');
                 item.pubDate = publishedTime ? parseDate(publishedTime) : item.pubDate;

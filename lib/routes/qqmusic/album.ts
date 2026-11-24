@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/album/:mid',
@@ -40,7 +40,7 @@ async function handler(ctx) {
             title: episode.songInfo.title,
             link: `https://y.qq.com/n/ryqq/songDetail/${episode.songInfo.mid}`,
             author: episode.songInfo.singer.map((singer) => singer.name).join(', '),
-            pubDate: episode.uploadTime ? parseDate(episode.uploadTime, 'YYYY-MM-DD') : undefined,
+            pubDate: parseDate(episode.uploadTime, 'YYYY-MM-DD'),
             description: `<img src="${cover}">`,
             itunes_duration: episode.songInfo.interval,
         })),

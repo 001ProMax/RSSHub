@@ -5,7 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?/:type?',
@@ -88,10 +88,8 @@ async function handler(ctx: Context) {
                 content('.fb-comments').prev().remove();
                 content('.code-block, .fb-comments').remove();
 
-                const description = content('.entry-content, .post-page-content').first().html();
-                const sourceDate = content('meta[property="article:published_time"]').attr('content');
-                const date = sourceDate ? parseDate(sourceDate) : undefined;
-                return { description, category, pubDate: date && Number.isFinite(date.getTime()) ? date : undefined };
+                const description = content('.entry-content, .post-page-content').html();
+                return { description, category, pubDate: parseDate(content('meta[property="article:published_time"]').attr('content')!) };
             });
             return { ...item, ...detail };
         },

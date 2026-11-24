@@ -1,8 +1,8 @@
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Language, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/live/:lang?',
@@ -71,7 +71,7 @@ async function handler(ctx) {
     });
 
     const items = response.data.data.data.news.map((item) => {
-        const audio = item.audioInfos?.find((audio) => audio.language === lang && audio.audioUrl);
+        const audio = item.audioInfos.find((audio) => audio.language === lang && audio.audioUrl);
         return {
             title: item.title || item.content,
             description: item.content,

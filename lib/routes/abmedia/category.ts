@@ -1,8 +1,8 @@
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.abmedia.io';
 const cateAPIUrl = `${rootUrl}/wp-json/wp/v2/categories`;
@@ -50,8 +50,7 @@ export const route: Route = {
 
 async function handler(ctx) {
     const category = ctx.req.param('category') ?? 'technology-development';
-    const requestedLimit = getRouteLimit(ctx, 25);
-    const limit = Math.min(Math.max(requestedLimit, 1), 100);
+    const limit = Math.min(getRouteLimit(ctx, 25), 100);
     const categoryId = await getCategoryId(category);
 
     const response = await got.get(`${postsAPIUrl}?categories=${categoryId}&page=1&per_page=${limit}`);

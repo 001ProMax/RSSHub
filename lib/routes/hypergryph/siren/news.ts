@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/siren/news',
@@ -15,11 +15,6 @@ export const route: Route = {
     maintainers: ['rikkablue'],
     handler,
     url: 'monster-siren.hypergryph.com/info',
-};
-
-const parsePublicationDate = (value: string) => {
-    const date = typeof value === 'string' ? parseDate(value, 'YYYY-MM-DD', true) : undefined;
-    return date && Number.isFinite(date.getTime()) ? new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())) : undefined;
 };
 
 async function handler() {
@@ -37,7 +32,7 @@ async function handler() {
         description: '塞壬唱片新闻',
         item: data.map((item) => ({
             title: item.title,
-            pubDate: parsePublicationDate(item.date),
+            pubDate: parseDate(item.date, 0),
             link: `https://monster-siren.hypergryph.com/info/${item.cid}`,
         })),
     };

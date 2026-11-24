@@ -2,15 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-
-function getPublicationDate(value?: string) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
+import { formatDate, parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/daily-papers/:cycle?/:voteFliter?',
@@ -63,10 +55,10 @@ async function handler(ctx) {
             break;
         case 'week':
             // We don't actually need to get the week number, because huggingface.co/papers/week/YYYY-W52 will redirect to the latest week
-            url = `https://huggingface.co/papers/week/${new Date().getFullYear()}-W52`;
+            url = `https://huggingface.co/papers/week/${Temporal.Now.zonedDateTimeISO('UTC').year}-W52`;
             break;
         case 'month':
-            url = `https://huggingface.co/papers/month/${new Date().toISOString().slice(0, 7)}`;
+            url = `https://huggingface.co/papers/month/${formatDate(Temporal.Now.instant(), 'YYYY-MM')}`;
             break;
         default:
             throw new Error(`Invalid cycle: ${cycle}`);
@@ -86,7 +78,7 @@ async function handler(ctx) {
             title: item.title,
             link: `https://arxiv.org/abs/${item.paper.id}`,
             description: item.paper.summary.replaceAll('\n', ' '),
-            pubDate: getPublicationDate(item.publishedAt),
+            pubDate: parseDate(item.publishedAt),
             author: item.paper.authors.map((author) => author.name).join(', '),
             upvotes: item.paper.upvotes,
         }))

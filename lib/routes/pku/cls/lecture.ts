@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const homeUrl = 'https://www.bio.pku.edu.cn/homes/Index/news_jz/7/7.html';
 
@@ -47,7 +47,7 @@ async function handler() {
                     .toArray()
                     .map((elem) => $.html(elem))
                     .join(''),
-                pubDate: $(item).find('.date').text() ? parseDate(`${$(item).find('.date').text().replaceAll('.', '-')}T00:00:00Z`) : undefined,
+                pubDate: parseDate(`${$(item).find('.date').text().replaceAll('.', '-')}T00:00:00Z`),
                 link: new URL($(item).attr('href')!, homeUrl).href,
             })),
     };

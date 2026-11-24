@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -73,8 +73,7 @@ async function handler() {
                 item.guid = item.link!.split('/').pop();
                 item.description = content('.card').html();
                 const sourceDate = detailResponse.data.match(/<br \/>(\d+-\d+-\d+)<\/div><\/a>/)?.[1];
-                const pubDate = sourceDate ? parseDate(sourceDate) : undefined;
-                item.pubDate = pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined;
+                item.pubDate = sourceDate ? parseDate(sourceDate) : undefined;
 
                 return { guid: item.guid, description: item.description, pubDate: item.pubDate };
             });

@@ -6,8 +6,7 @@ import type { Context } from 'hono';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/industries/:category?',
@@ -34,7 +33,7 @@ async function handler(ctx: Context) {
               const $ele = $(ele);
               return {
                   title: $ele.find('.cmp-mosaic-grid__title h4').text(),
-                  link: new URL($ele.find('a[href]').first().attr('href')!, rootUrl).href,
+                  link: new URL($ele.find('a[href]').attr('href')!, rootUrl).href,
                   description: $ele.find('.cmp-mosaic-grid__text .cmp-text').html(),
               };
           })
@@ -56,27 +55,29 @@ async function handler(ctx: Context) {
                       enclosure_url: item.link,
                       enclosure_type: 'application/pdf',
                   }
-                : cache.tryGet(item.link!, async () => {
+                : cache.tryGet(`deloitte:${item.link}`, async () => {
                       const detailResponse = await ofetch(item.link!);
                       const s = load(detailResponse);
 
-                      const content = s('.content-width-700--with-padding:has(.cmp-text), .bodyresponsivegridcontainer .cmp-text').filter((_, element) => !s(element).parents('.content-width-700--with-padding:has(.cmp-text)').length);
-                      normalizeImages(s, content);
-                      content.find('script, style, h1, .cmp-feedback-banner').remove();
-                      item.description = content.length
-                          ? content
-                                .toArray()
-                                .map((element) => s(element).html())
-                                .join('')
-                          : s('.cmp-text').html();
+                      // Read the date before cleaning the content: perspective pages keep their Article metadata inside it.
                       const article = s('script[type="application/ld+json"]')
                           .toArray()
                           .map((script) => JSON.parse(s(script).text()))
                           .find((entry) => entry['@type'] === 'Article');
                       if (article?.datePublished) {
                           const date = article.datePublished;
-                          item.pubDate = /^\d{4}年\d{1,2}月\d{1,2}日$/.test(date) ? timezone(parseDate(date, 'YYYY年M月D日'), 8) : parseDate(date);
+                          item.pubDate = /^\d{4}年\d{1,2}月\d{1,2}日$/.test(date) ? parseDate(date, 'YYYY年M月D日', 8) : parseDate(date);
                       }
+
+                      const content = s('.content-width-700--with-padding:has(.cmp-text), .bodyresponsivegridcontainer .cmp-text').filter((_, element) => !s(element).parents('.content-width-700--with-padding:has(.cmp-text)').length);
+                      normalizeImages(s, content);
+                      content.find('style, h1, .cmp-feedback-banner').remove();
+                      item.description = content.length
+                          ? content
+                                .toArray()
+                                .map((element) => s(element).html())
+                                .join('')
+                          : s('.cmp-text').html();
 
                       return item;
                   })

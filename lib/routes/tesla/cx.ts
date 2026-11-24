@@ -3,8 +3,8 @@ import { load } from 'cheerio';
 import type { Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -123,7 +123,7 @@ async function handler(ctx) {
             pageSize: limit,
             pageNumber: 0,
             benefitCategoryId: categoryObject?.id ?? undefined,
-            category: categoryObject ? undefined : category === '充电免停' ? 2 : undefined,
+            category: !categoryObject && category === '充电免停' ? 2 : undefined,
             city,
         },
     });
@@ -149,7 +149,7 @@ async function handler(ctx) {
         }),
         category: item.categories,
         guid: item.id,
-        pubDate: isOneOf(item.publishedAt, [undefined, null]) || item.publishedAt === '' ? undefined : parseDate(item.publishedAt),
+        pubDate: parseDate(item.publishedAt),
         parkingLocationId: item.parkingLocationId,
     }));
     items = await Promise.all(
@@ -193,9 +193,4 @@ async function handler(ctx) {
         subtitle: description,
         author,
     };
-}
-
-function isOneOf<const T>(value: unknown, values: readonly T[]): value is T {
-    const candidates: readonly unknown[] = values;
-    return candidates.includes(value);
 }

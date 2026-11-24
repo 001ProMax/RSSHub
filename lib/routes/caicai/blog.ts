@@ -4,8 +4,8 @@ import type { Context } from 'hono';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog/:lang?',
@@ -50,17 +50,15 @@ async function handler(ctx: Context) {
             cache.tryGet(post.link!, async () => {
                 const response = await ofetch<string>(post.link!);
                 const $ = load(response);
-                const article = $('article').first();
-                article.find('script, style').remove();
-                const metadata = JSON.parse($('script[type="application/ld+json"]').first().text() || '{}');
+                const metadata = JSON.parse($('script[type="application/ld+json"]').text());
                 return {
                     title: post.title ?? '',
                     link: post.link,
-                    description: article.html() || post.content,
+                    description: $('article').html(),
                     pubDate: post.isoDate ? parseDate(post.isoDate) : undefined,
                     author: post.creator,
                     category: post.categories,
-                    image: metadata.image?.[0],
+                    image: metadata.image[0],
                 };
             })
         )
@@ -71,7 +69,7 @@ async function handler(ctx: Context) {
         description: feed.description,
         link,
         language: lang === 'en' ? ('en' as const) : ('zh-CN' as const),
-        image: feed.image?.url ?? `${baseUrl}/favicon.ico`,
+        image: feed.image?.url,
         item: items,
     };
 }

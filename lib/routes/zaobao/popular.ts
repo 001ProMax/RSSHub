@@ -3,7 +3,7 @@ import { escapeText } from 'entities';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/popular/:period?',
@@ -32,7 +32,7 @@ async function handler(ctx) {
             link: article.href.split('?', 1)[0],
             pubDate: parseDate(article.timestamp, 'X'),
             category: [article.category_label],
-            description: `${article.thumbnail ? `<img src="${article.thumbnail}">` : ''}<p>${escapeText(article.summary)}</p>`,
+            description: `<img src="${article.thumbnail}"><p>${escapeText(article.summary)}</p>`,
         })),
     };
 }

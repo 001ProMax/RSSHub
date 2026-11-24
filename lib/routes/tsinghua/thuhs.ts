@@ -5,8 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 /*
  * Dictionary of supported text-based categories.
@@ -26,7 +25,7 @@ async function fetchArticleDetails(link: string): Promise<Pick<DataItem, 'descri
     const response = await ofetch(link);
     const $ = load(response);
 
-    return { description: $('.v_news_content').html() || '' };
+    return { description: $('.v_news_content').html() };
 }
 
 export const route: Route = {
@@ -93,7 +92,7 @@ async function handler(ctx: Context) {
             return {
                 title,
                 link: link ? new URL(link, targetUrl).href : '',
-                pubDate: time ? timezone(parseDate(time, 'YYYY-MM-DD'), 8) : undefined,
+                pubDate: time ? parseDate(time, 'YYYY-MM-DD', 8) : undefined,
             };
         })
         .filter((item) => item.link); // Filter out empty links

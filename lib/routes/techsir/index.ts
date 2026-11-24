@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -47,12 +47,12 @@ async function handler() {
                 });
 
                 const $ = load(response.data);
-                const description = $('#article-content').html() || $('.kg-card-markdown').html();
-                const date = $('time[itemprop="datePublished"]').attr('datetime') || $('meta[property="article:published_time"]').attr('content') || $('time.time').text();
+                const description = $('#article-content').html();
+                const date = $('time[itemprop="datePublished"]').attr('datetime');
                 return {
                     description,
-                    pubDate: date ? parseDateInTimezone(date, 8) : undefined,
-                    author: $('[itemprop="author"]').first().text() || $('a.author').text(),
+                    pubDate: date ? parseDate(date, 8) : undefined,
+                    author: $('[itemprop="author"]').text(),
                 };
             });
             return { ...item, ...detail };

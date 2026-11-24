@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -98,13 +98,11 @@ function parsePubDate(value?: string) {
     if (!value) {
         return;
     }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
+    return parseDate(value);
 }
 async function handler(ctx) {
     const channel = ctx.req.param('channel');
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isFinite(requestedLimit) && requestedLimit >= 1 ? Math.floor(requestedLimit) : 10;
+    const limit = ctx.req.query('limit') ? Number(ctx.req.query('limit')) : 10;
     const rootUrl = 'https://www.transcriptforest.com';
     const { data: firstResponse } = await got(rootUrl);
     const data = JSON.parse(firstResponse.match(/(\{"props".*"scriptLoader":\[\]\})<\/script>/)?.[1]);

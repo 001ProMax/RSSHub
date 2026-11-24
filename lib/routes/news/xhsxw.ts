@@ -4,9 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -36,14 +35,6 @@ export const route: Route = {
 
 type NewsItem = DataItem & { link: string; description: string };
 type Detail = { description?: string };
-
-function parsePublishedTime(value: string | number | null | undefined) {
-    if ([undefined, null, ''].includes(value as string | null | undefined)) {
-        return;
-    }
-    const date = parseDate(value!);
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 8);
-}
 
 async function handler(ctx) {
     const limit = getRouteLimit(ctx, 100);
@@ -79,7 +70,7 @@ async function handler(ctx) {
         author: item.author,
         category: item.keywords.split(/-|,/),
         guid: `news-${item.contentId}`,
-        pubDate: parsePublishedTime(item.publishTime),
+        pubDate: parseDate(item.publishTime, 8),
     }));
 
     items = await pMap(

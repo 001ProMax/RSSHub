@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const ROW_COUNT = 100;
 
@@ -99,8 +99,9 @@ async function handler() {
             AIRTABLE_HOST +
             $('script')
                 .text()
-                .match(/urlWithParams: "(.*?)"/)![1]
-                .replaceAll(String.raw`\u002F`, '/');
+                .match(/urlWithParams\s*=\s*"([^"]+)"/)![1]
+                .replaceAll(String.raw`\u002F`, '/')
+                .replace('allowMsgpackOfResult%22%3Atrue', 'allowMsgpackOfResult%22%3Afalse');
 
         // Cache it again
         cache.set(ENTRY_URL, dataSourceUrl);

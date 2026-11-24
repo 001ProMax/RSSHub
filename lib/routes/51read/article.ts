@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/article/:id',
@@ -51,7 +50,7 @@ async function handler(ctx) {
     if (updateTime) {
         const latestItem = item.find((chapter) => chapter.link === latestChapter);
         if (latestItem) {
-            latestItem.pubDate = timezone(parseDate(updateTime, 'YYYY-MM-DD HH:mm'), 8);
+            latestItem.pubDate = parseDate(updateTime, 'YYYY-MM-DD HH:mm', 8);
         }
     }
 
@@ -74,7 +73,7 @@ const buildItem = (url: string, bookUrl: string) =>
             },
         });
         const $ = load(html);
-        $('.wr-source-content div, .wr-source-content script, .js_chapter_more_text, .wr-source-content p[style*="text-align:center"]').remove();
+        $('.wr-source-content div, .js_chapter_more_text, .wr-source-content p[style*="text-align:center"]').remove();
 
         return {
             title: $('h1').text(),

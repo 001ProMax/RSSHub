@@ -5,15 +5,10 @@ import type { Context } from 'hono';
 import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
-function parseTimestamp(value: number | string) {
-    const date = value ? parseDate(value, 'X') : undefined;
-    return date && Number.isFinite(date.getTime()) ? date : undefined;
-}
-
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const limit = getRouteLimit(ctx, 20);
 
     const baseUrl = 'https://www.ifanr.com';
@@ -43,14 +38,14 @@ export const handler = async (ctx: Context): Promise<Data> => {
         const processedItem: DataItem = {
             title,
             description,
-            pubDate: parseTimestamp(pubDate),
+            pubDate: parseDate(pubDate, 'X'),
             link: new URL(linkUrl, baseUrl).href,
             guid,
             id: guid,
             content: {
                 html: description,
             },
-            updated: parseTimestamp(updated),
+            updated: parseDate(updated, 'X'),
             language,
             _extra: {
                 links: [

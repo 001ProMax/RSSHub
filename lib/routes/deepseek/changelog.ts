@@ -4,7 +4,7 @@ import type { Context } from 'hono';
 
 import type { Data, DataItem, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const extractChangelogItems = ($: CheerioAPI, updatesUrl: string): DataItem[] =>
     $('.theme-doc-markdown > div > div > h2')
@@ -21,12 +21,11 @@ const extractChangelogItems = ($: CheerioAPI, updatesUrl: string): DataItem[] =>
                 title: $title.text(),
                 link: anchor ? `${updatesUrl}#${anchor}` : updatesUrl,
                 ...(date && { pubDate: parseDate(`${date}T00:00:00Z`) }),
-                description:
-                    $content
-                        .not($title)
-                        .toArray()
-                        .map((element) => $.html(element))
-                        .join('') || undefined,
+                description: $content
+                    .not($title)
+                    .toArray()
+                    .map((element) => $.html(element))
+                    .join(''),
             };
         })
         .filter((item) => item.title);

@@ -6,8 +6,8 @@ import type { DataItem, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:section?/:type?/:value?/:minComments?',
@@ -62,7 +62,7 @@ Examples:
 
 type Story = Omit<DataItem, 'comments' | 'upvotes'> & {
     comments: string | number | undefined;
-    upvotes: string | number | undefined;
+    upvotes: string;
     origin?: string;
     onStory: string;
     currentComment: string;
@@ -73,7 +73,7 @@ const parseComments = (text: string): Story['comments'] => {
         return text;
     }
 
-    const match = text.match(/^(\d+)\s+comments?$/);
+    const match = /^(\d+)\s+comments?$/.exec(text);
     return match ? Number.parseInt(match[1]) : '';
 };
 
@@ -119,7 +119,6 @@ async function handler(ctx) {
         .map((thing) => {
             const $thing = $(thing);
             const date = $thing.find('.age').attr('title') ?? $thing.next().find('.age').attr('title');
-            const pubDate = date ? parseDate(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(date) ? `${date}Z` : date) : undefined;
             const storyLink = $thing.find('.onstory a');
             const origin = $thing.find('.titleline').children('a').attr('href');
             if (storyLink.length) {
@@ -131,7 +130,7 @@ async function handler(ctx) {
                 title: $thing.find('.titleline').children('a').text() || onStory,
                 category: $thing.find('.sitestr').text(),
                 author: $thing.find('.hnuser').text() || $thing.next().find('.hnuser').text(),
-                pubDate: pubDate && !Number.isNaN(pubDate.getTime()) ? pubDate : undefined,
+                pubDate: parseDate(`${date}Z`),
 
                 link: '',
                 // A story link the URL parser rejects (e.g. an invalid IDN host) falls back to the discussion page instead of failing the feed
@@ -191,16 +190,21 @@ async function handler(ctx) {
                 item.description = item.currentComment;
             }
 
+            const upvotes = /^\d+$/.test(item.upvotes) ? Number(item.upvotes) : undefined;
+
             return {
                 guid: item.guid,
                 title: item.title,
                 category: item.category,
                 author: item.author,
                 pubDate: item.pubDate,
-                description: item.description,
+                // Rows without a score (e.g. comments on /threads, job posts) get no points line
+                description: upvotes === undefined ? item.description : `<p>Points: ${upvotes}</p>${item.description}`,
                 link: type === 'sources' ? (item.origin ?? item.link) : item.link,
+                // The HN discussion page, which `sources` items no longer use as their link. Job posts take no comments
+                commentsUrl: item.comments === '' && !item.currentComment ? undefined : item.link,
                 comments: /^\d+$/.test(String(item.comments)) ? Number(item.comments) : item.comments === 'discuss' ? 0 : undefined,
-                upvotes: /^\d+$/.test(String(item.upvotes)) ? Number(item.upvotes) : undefined,
+                upvotes,
             };
         },
         { concurrency: 3 }

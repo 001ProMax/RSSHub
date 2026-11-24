@@ -5,9 +5,8 @@ import { renderToString } from 'hono/jsx/dom/server';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 
 type Attachment = {
     link: string;
@@ -76,8 +75,7 @@ export const route: Route = {
 };
 
 function parsePublicationDate(date: string) {
-    const pubDate = date ? timezone(parseDate(date, ['YYYY/MM/DD HH:mm:ss', 'YYYY/MM/DD HH:mm', 'YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY/MM/DD', 'YYYY-MM-DD'], true), 8) : undefined;
-    return pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined;
+    return parseDateStrict(date, ['YYYY/MM/DD HH:mm:ss', 'YYYY/MM/DD HH:mm', 'YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY/MM/DD', 'YYYY-MM-DD'], 8);
 }
 
 async function handler(ctx) {
@@ -104,7 +102,7 @@ async function handler(ctx) {
     const $ = load(response);
 
     let items = $($('a.pchide').length === 0 ? 'a[title]' : '.list-content a.pchide')
-        .slice(0, ctx.req.query('sorted') === 'false' ? limit : Math.max(15, limit))
+        .slice(0, limit)
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
@@ -131,7 +129,7 @@ async function handler(ctx) {
 
                 if (/news\.cn|www\.gov\.cn/.test(item.link!)) {
                     if (content('.year').text()) {
-                        item.pubDate = parsePublicationDate(`${content('.year').text()}/${content('.day').text()} ${content('.time').text()}`);
+                        item.pubDate = parsePublicationDate(`${content('.year').text()}/${content('.day').text()} ${content('.time').first().text()}`);
                         item.author = content('.source')
                             .text()
                             .replace(/来源：/, '')
@@ -163,7 +161,7 @@ async function handler(ctx) {
                         .map((a) => {
                             const $a = $(a);
                             return {
-                                link: new URL($a.attr('href')!, item.link!).href,
+                                link: new URL($a.attr('href')!, item.link).href,
                                 name: $a.text().trim(),
                             };
                         }),
@@ -173,11 +171,6 @@ async function handler(ctx) {
             })
         )
     );
-
-    if (ctx.req.query('sorted') !== 'false' && items.every((item) => item.pubDate instanceof Date && Number.isFinite(item.pubDate.getTime()))) {
-        items.sort((a, b) => (b.pubDate as Date).getTime() - (a.pubDate as Date).getTime());
-        items = items.slice(0, limit);
-    }
 
     return {
         title: $('title').text(),

@@ -4,9 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/fggz/:category{.+}?',
@@ -663,12 +662,11 @@ async function handler(ctx) {
         .toArray()
         .map((item): DataItem & { link: string } => {
             const $item = $(item);
-            const publishedDate = $item.next().text().trim();
 
             return {
                 title: $item.prop('title') || $item.text(),
                 link: new URL($item.prop('href')!, currentUrl).href,
-                pubDate: publishedDate ? timezone(parseDate(publishedDate, 'YYYY/MM/DD'), 8) : undefined,
+                pubDate: parseDate($item.next().text(), 'YYYY/MM/DD', 8),
             };
         });
 
@@ -680,16 +678,13 @@ async function handler(ctx) {
 
                 const content = load(detailResponse);
 
-                item.title = content('meta[name="ArticleTitle"]').prop('content') || item.title;
+                item.title = content('meta[name="ArticleTitle"]').prop('content');
                 item.description = content('div.TRS_Editor').html();
                 item.author = content('meta[name="ContentSource"]').prop('content');
-                item.category = [...new Set([content('meta[name="ColumnName"]').prop('content'), content('meta[name="ColumnType"]').prop('content'), ...(content('meta[name="Keywords"]').prop('content')?.split(/,|;/) ?? [])])].filter(
+                item.category = [...new Set([content('meta[name="ColumnName"]').prop('content'), content('meta[name="ColumnType"]').prop('content'), ...(content('meta[name="Keywords"]').prop('content').split(/,|;/) ?? [])])].filter(
                     Boolean
                 );
-                const publishedDate = content('meta[name="PubDate"]').prop('content');
-                if (publishedDate) {
-                    item.pubDate = timezone(parseDate(publishedDate), 8);
-                }
+                item.pubDate = parseDate(content('meta[name="PubDate"]').prop('content'), 8);
 
                 return item;
             }),

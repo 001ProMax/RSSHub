@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/hacs/repositories',
@@ -46,7 +46,7 @@ async function handler() {
             link: `https://github.com/${item.full_name}`,
             guid: item.full_name,
             category: item.topics,
-            updated: item.last_updated ? parseDate(item.last_updated) : undefined,
+            updated: parseDate(item.last_updated),
         })),
     };
 }

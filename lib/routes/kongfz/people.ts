@@ -2,8 +2,7 @@ import type { Context } from 'hono';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/people/:id',
@@ -38,10 +37,10 @@ async function handler(ctx: Context) {
 
         return {
             title: feed.title || feed.postTime,
-            guid: item.feedId === undefined ? undefined : `https://t.kongfz.com/detail/${item.feedId}`,
+            guid: `https://t.kongfz.com/detail/${item.feedId}`,
             link: `https://t.kongfz.com/detail/${feed.feedId}`,
             description,
-            pubDate: feed.postDateTime ? (/(?:Z|[+-]\d{2}:?\d{2})$/i.test(feed.postDateTime) ? parseDate(feed.postDateTime) : timezone(parseDate(feed.postDateTime), 8)) : undefined,
+            pubDate: parseDate(feed.postDateTime, 8),
         };
     });
 

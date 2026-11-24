@@ -14,7 +14,7 @@ const proxyIsPAC = Boolean(config.pacUri || config.pacScript);
 
 const { proxyUri, proxyObj, proxyUrlHandler } = proxyIsPAC ? pacProxy(config.pacUri, config.pacScript, config.proxy) : unifyProxy(config.proxyUri, config.proxy);
 
-const createDispatcher = (uri: string, minVersion?: SecureVersion): ProxyAgent | null => {
+const createDispatcher = (uri: string, minVersion?: SecureVersion, ecdhCurve?: string): ProxyAgent | null => {
     if (uri.startsWith('http')) {
         return new ProxyAgent({
             uri,
@@ -23,6 +23,7 @@ const createDispatcher = (uri: string, minVersion?: SecureVersion): ProxyAgent |
                 rejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED !== '0',
                 preferH2: true,
                 minVersion,
+                ecdhCurve,
             },
         });
     }
@@ -33,6 +34,7 @@ const createDispatcher = (uri: string, minVersion?: SecureVersion): ProxyAgent |
             requestTls: {
                 ALPNProtocols: ['h2', 'http/1.1'],
                 minVersion,
+                ecdhCurve,
             },
         });
     }
@@ -40,10 +42,10 @@ const createDispatcher = (uri: string, minVersion?: SecureVersion): ProxyAgent |
 };
 
 const dispatchers = new Map<string, ProxyAgent | null>();
-const getCachedDispatcher = (uri: string, minVersion?: SecureVersion) => {
-    const key = `${minVersion ?? ''} ${uri}`;
+const getCachedDispatcher = (uri: string, minVersion?: SecureVersion, ecdhCurve?: string) => {
+    const key = `${minVersion ?? ''} ${ecdhCurve ?? ''} ${uri}`;
     if (!dispatchers.has(key)) {
-        dispatchers.set(key, createDispatcher(uri, minVersion));
+        dispatchers.set(key, createDispatcher(uri, minVersion, ecdhCurve));
     }
     return dispatchers.get(key) ?? null;
 };
@@ -70,7 +72,7 @@ const PAC_REFRESH_INTERVAL = 60 * 60 * 1000;
 let pacRefreshAt = 0;
 
 const getPacResolver = async (pacAgent: PacProxyAgent<string>) => {
-    if (!pacAgent.resolver || Date.now() > pacRefreshAt) {
+    if (!pacAgent.resolver || performance.now() > pacRefreshAt) {
         try {
             await pacAgent.getResolver();
         } catch (error) {
@@ -78,7 +80,7 @@ const getPacResolver = async (pacAgent: PacProxyAgent<string>) => {
                 throw error;
             }
         }
-        pacRefreshAt = Date.now() + PAC_REFRESH_INTERVAL;
+        pacRefreshAt = performance.now() + PAC_REFRESH_INTERVAL;
     }
     return pacAgent.resolver!;
 };
@@ -111,12 +113,12 @@ const resolvePacProxy = async (pacAgent: PacProxyAgent<string>, url: string): Pr
     throw new Error(`PAC returned no proxy type undici supports for ${url}: ${result}`);
 };
 
-const getDispatcher = async (url: string, minVersion?: SecureVersion) => {
+const getDispatcher = async (url: string, minVersion?: SecureVersion, ecdhCurve?: string) => {
     if (agent instanceof PacProxyAgent) {
         const uri = await resolvePacProxy(agent, url);
-        return uri ? getCachedDispatcher(uri, minVersion) : null;
+        return uri ? getCachedDispatcher(uri, minVersion, ecdhCurve) : null;
     }
-    return proxyUri ? getCachedDispatcher(proxyUri, minVersion) : null;
+    return proxyUri ? getCachedDispatcher(proxyUri, minVersion, ecdhCurve) : null;
 };
 
 export default {

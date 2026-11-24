@@ -1,6 +1,4 @@
-import got from '@/utils/got';
-
-import { type GetMediumBrowser, isMediumChallenge } from './browser';
+import ofetch from '@/utils/ofetch';
 
 export type PostPreview = {
     mediumUrl: string;
@@ -20,34 +18,7 @@ const postPreviewFields = `
     extendedPreviewContent { isFullContent subtitle }
 `;
 
-async function browserGraphqlRequest(browser: Awaited<ReturnType<GetMediumBrowser>>, body, headers, retry = true): Promise<{ status: number; data: unknown; challenge: boolean }> {
-    const response = await browser.page.evaluate(
-        async ({ body, headers }) => {
-            const response = await fetch('https://medium.com/_/graphql', {
-                method: 'POST',
-                redirect: 'manual',
-                headers,
-                body,
-            });
-            return {
-                status: response.status,
-                data: response.ok ? await response.json() : undefined,
-                challenge: response.status === 403 && /cf-chl|challenge-platform|Just a moment/i.test(await response.text()),
-            };
-        },
-        { body: JSON.stringify([body]), headers }
-    );
-    if (retry && response.status === 403 && response.challenge) {
-        await browser.page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
-        if (new URL(browser.page.url()).origin !== 'https://medium.com') {
-            throw new Error('The Medium browser source redirected outside its expected origin.');
-        }
-        return browserGraphqlRequest(browser, body, headers, false);
-    }
-    return response;
-}
-
-async function graphqlRequest(body, cookie, getBrowser?: GetMediumBrowser) {
+async function graphqlRequest(body, cookie) {
     const headers = {
         accept: '*/*',
         'accept-language': 'en-US,en;q=0.9,zh;q=0.8,zh-CN;q=0.7',
@@ -71,42 +42,27 @@ async function graphqlRequest(body, cookie, getBrowser?: GetMediumBrowser) {
         'graphql-operation': body.operationName,
         cookie,
     };
-    let data;
-    try {
-        ({ data } = await got('https://medium.com/_/graphql', {
-            method: 'POST',
-            redirect: 'manual',
-            headers,
-            body: JSON.stringify([body]),
-        }));
-    } catch (error) {
-        if (!getBrowser || !isMediumChallenge(error)) {
-            throw error;
-        }
-        const browser = await getBrowser();
-        const publicHeaders = Object.fromEntries(Object.entries(headers).filter(([name]) => name !== 'cookie'));
-        const response = await browserGraphqlRequest(browser, body, publicHeaders);
-        if (response.status !== 200) {
-            throw new Error(`The Medium GraphQL source returned HTTP ${response.status}. Verify the session and try again later.`, { cause: error });
-        }
-        data = response.data;
-    }
-    if (!Array.isArray(data)) {
-        throw new TypeError('The Medium GraphQL source did not return its expected JSON response.');
-    }
+
+    const data = await ofetch('https://medium.com/_/graphql', {
+        method: 'POST',
+        redirect: 'manual',
+        headers,
+        body: JSON.stringify([body]),
+        minVersion: 'TLSv1.3',
+    });
     return data[0].data;
 }
 
-async function getFollowingFeedQuery(user, cookie, pagingLimit = 20, getBrowser?: GetMediumBrowser): Promise<Feed | undefined> {
-    return (await graphqlRequest(newFollowingFeedQuery(pagingLimit), cookie, getBrowser))?.followingFeed;
+async function getFollowingFeedQuery(user, cookie, pagingLimit = 20): Promise<Feed | undefined> {
+    return (await graphqlRequest(newFollowingFeedQuery(pagingLimit), cookie))?.followingFeed;
 }
 
-async function getWebInlineRecommendedFeedQuery(user, cookie, pagingLimit = 20, getBrowser?: GetMediumBrowser): Promise<Feed | undefined> {
-    return (await graphqlRequest(newWebInlineRecommendedFeedQuery(pagingLimit), cookie, getBrowser))?.webRecommendedFeed;
+async function getWebInlineRecommendedFeedQuery(user, cookie, pagingLimit = 20): Promise<Feed | undefined> {
+    return (await graphqlRequest(newWebInlineRecommendedFeedQuery(pagingLimit), cookie))?.webRecommendedFeed;
 }
 
-async function getWebInlineTopicFeedQuery(user, tagSlug, cookie, pagingLimit = 20, getBrowser?: GetMediumBrowser): Promise<Feed | undefined> {
-    return (await graphqlRequest(newWebInlineTopicFeedQuery(tagSlug, pagingLimit), cookie, getBrowser))?.personalisedTagFeed;
+async function getWebInlineTopicFeedQuery(user, tagSlug, cookie, pagingLimit = 20): Promise<Feed | undefined> {
+    return (await graphqlRequest(newWebInlineTopicFeedQuery(tagSlug, pagingLimit), cookie))?.personalisedTagFeed;
 }
 
 async function getUserCatalogMainContentQuery(user, catalogId, cookie, pagingLimit = 20) {

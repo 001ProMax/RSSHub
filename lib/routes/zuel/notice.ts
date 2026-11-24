@@ -5,7 +5,7 @@ import NotFoundError from '@/errors/types/not-found';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/notice',
@@ -56,7 +56,7 @@ async function handler() {
             return [
                 {
                     title: a.text(),
-                    pubDate: getPublicationDate($item.find('.Article_PublishDate').text()),
+                    pubDate: parseDate($item.find('.Article_PublishDate').text()),
                     link,
                 },
             ];
@@ -101,12 +101,4 @@ function getNoticeLink(href: string | undefined, baseUrl: string) {
     } catch {
         return;
     }
-}
-
-function getPublicationDate(value: string) {
-    if (!value.trim()) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
 }

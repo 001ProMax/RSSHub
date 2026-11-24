@@ -3,10 +3,11 @@ import pMap from 'p-map';
 
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
-import { parseDate } from '@/utils/parse-date';
-import { getPlaywrightPage, type Page } from '@/utils/playwright';
+import type { Page } from '@/utils/playwright';
+import { getPlaywrightPage } from '@/utils/playwright';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 const baseUrl = 'https://www.chengdu.gov.cn';
 const link = `${baseUrl}/cdsrmzf/c169603/list.shtml`;
@@ -29,19 +30,22 @@ export const route: Route = {
 };
 
 function getItem(item: DataItem, page: Page) {
+    // only follow links on the site itself
+    if (!isOnSite(item.link, 'chengdu.gov.cn')) {
+        return item;
+    }
     return cache.tryGet(item.link!, async () => {
         await page.goto(item.link!, { waitUntil: 'domcontentloaded' });
         await page.waitForSelector('.detail_content');
         const response = await page.content();
         const $ = load(response);
         const content = $('.detail_content');
-        content.find('script, style, button').remove();
         const date = $('meta[name="PubDate"]').attr('content');
         return {
             ...item,
             title: $('meta[name="ArticleTitle"]').attr('content') || item.title,
             description: content.html(),
-            pubDate: date ? timezone(parseDate(date), 8) : item.pubDate,
+            pubDate: date ? parseDate(date, 8) : item.pubDate,
             author: $('meta[name="ContentSource"]').attr('content'),
         };
     });
@@ -68,13 +72,10 @@ async function handler(ctx) {
         await page.locator('body').filter({ hasText: '"results":' }).waitFor();
         const apiText = await page.locator('body').textContent();
         const apiResponse: { results: NewsItem[] } = JSON.parse(apiText!);
-        if (!Array.isArray(apiResponse.results)) {
-            throw new TypeError('The news API no longer returns an article list.');
-        }
         const limit = getRouteLimit(ctx, 20);
         // Detail metadata can refine dates and titles from the search result.
         const candidateLimit = ctx.req.query('sorted') === 'false' ? limit : Math.max(20, limit);
-        const items = apiResponse.results.slice(0, candidateLimit).map((item): DataItem => ({ title: item.title, link: new URL(item.url, baseUrl).href, pubDate: timezone(parseDate(item.publishedTimeStr), 8) }));
+        const items = apiResponse.results.slice(0, candidateLimit).map((item): DataItem => ({ title: item.title, link: new URL(item.url, baseUrl).href, pubDate: parseDate(item.publishedTimeStr, 8) }));
         return { title: '成都市人民政府 - 政务要闻', link, language: 'zh-CN' as const, item: await pMap(items, (item) => getItem(item, page), { concurrency: 1 }) };
     } finally {
         await destroy();

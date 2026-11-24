@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/yjs',
@@ -37,17 +37,13 @@ async function handler() {
     const $ = load(response.data);
     const list = $('#wp_news_w4 a');
 
-    const items: Array<DataItem & { link: string }> = list.toArray().flatMap((element) => {
+    const items: Array<DataItem & { link: string }> = list.toArray().map((element) => {
         const $element = $(element);
-        const href = $element.attr('href');
         const title = $element
             .contents()
             .filter((_, node) => node.type === 'text')
             .text();
-        if (!href || !title) {
-            return [];
-        }
-        return { title, link: new URL(href, link).href, pubDate: parseDateInTimezone($element.find('span').text(), 8) };
+        return { title, link: new URL($element.attr('href')!, link).href, pubDate: parseDate($element.find('span').text(), 8) };
     });
     const item = await pMap(
         items,

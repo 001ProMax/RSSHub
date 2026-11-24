@@ -3,8 +3,8 @@ import type { Context } from 'hono';
 import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const languageCodes = {
     '': 'ko',
@@ -18,7 +18,7 @@ const languageCodes = {
 
 const isLanguageCode = (key: string): key is keyof typeof languageCodes => Object.hasOwn(languageCodes, key);
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { lang } = ctx.req.param();
     const limit = getRouteLimit(ctx, 500);
 
@@ -45,7 +45,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
             continue;
         }
         const version = versionMatch[1];
-        let pubDateStr: string | undefined = undefined;
+        let pubDateStr: string | undefined;
 
         // Extract dates without treating dotted version numbers as calendar dates.
         const specificDateMatch = headerLine.match(/(\d{4}\/\d{1,2}\/\d{1,2})/); // YYYY/MM/DD format
@@ -72,7 +72,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
         const existingItem = items.get(guid);
         if (existingItem) {
             if (existingItem.description !== description) {
-                existingItem.description = [existingItem.description, description].filter(Boolean).join('<br>');
+                existingItem.description = [existingItem.description, description].join('<br>');
                 existingItem.content = { html: existingItem.description };
             }
             continue;

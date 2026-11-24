@@ -1,10 +1,10 @@
-import { type Cheerio, type CheerioAPI, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import type { CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 const restoreReleaseSiblings = ($: CheerioAPI) => {
     // Unclosed list items on the source page can contain later release headings.
@@ -15,14 +15,7 @@ const restoreReleaseSiblings = ($: CheerioAPI) => {
         if (releaseStart === -1) {
             return;
         }
-        const leadingItem = clearContent(copyContent($item, $)).append(nodes.slice(0, releaseStart));
-        $item.replaceWith(
-            leadingItem.toString() +
-                nodes
-                    .slice(releaseStart)
-                    .map((node) => $.html(node))
-                    .join('')
-        );
+        $item.after(nodes.slice(releaseStart));
     });
 };
 export const route: Route = {
@@ -82,7 +75,7 @@ async function handler(ctx) {
             title: sectionTitle,
             link: anchor ? `${link}#${anchor}` : link,
             guid: `${platform}:${sectionTitle}`,
-            pubDate: publishedAt ? parseDateInTimezone(publishedAt, 8) : undefined,
+            pubDate: publishedAt ? parseDate(publishedAt, 8) : undefined,
             description: $heading
                 .nextUntil('p:has(strong)')
                 .toArray()
@@ -95,16 +88,4 @@ async function handler(ctx) {
         link,
         item: changelogs,
     };
-}
-function copyContent<T extends AnyNode>(selection: Cheerio<T>, $: CheerioAPI): Cheerio<T> {
-    const nodes = selection.toArray().map((node) => cloneNode(node, true));
-    const root = new Document(nodes);
-    for (const node of nodes) {
-        node.parent = root;
-    }
-    return $(nodes);
-}
-function clearContent<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    selection.empty();
-    return selection;
 }

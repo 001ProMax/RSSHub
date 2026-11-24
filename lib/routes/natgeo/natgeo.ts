@@ -4,15 +4,14 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 
 // https://www.natgeomedia.com/article/
 
 async function loadContent(link) {
     const data = await ofetch(link);
     const $ = load(data);
-    const dtStr = $('.content-title-area').find('h6').first().text().trim();
+    const dtStr = $('.content-title-area').find('h6').text();
 
     $('.splide__arrows, .slide-control, [class^="ad-"], style').remove();
 
@@ -22,7 +21,7 @@ async function loadContent(link) {
     }
     return {
         title: $('h1.content-title').text(),
-        pubDate: dtStr ? timezone(parseDate(dtStr), 8) : undefined,
+        pubDate: parseDateStrict(dtStr, 'MMM.\u{A0}DD\u{A0}YYYY', 8),
         description,
         category: $('.content-tag a')
             .toArray()

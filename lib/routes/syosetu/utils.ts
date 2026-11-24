@@ -1,23 +1,22 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
-import { NarouNovelFetch, type NarouSearchResult, SearchBuilder, SearchBuilderR18 } from 'narou';
+import { load } from 'cheerio';
+import type { NarouSearchResult } from 'narou';
+import { NarouNovelFetch, SearchBuilder, SearchBuilderR18 } from 'narou';
 
 import { config } from '@/config';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export function getNovelDates(novel: Pick<NarouSearchResult, 'general_firstup' | 'novelupdated_at'>): Partial<DataItem> {
     return {
-        pubDate: novel.general_firstup ? timezone(parseDate(novel.general_firstup, 'YYYY-MM-DD HH:mm:ss'), 9) : undefined,
-        updated: novel.novelupdated_at ? timezone(parseDate(novel.novelupdated_at, 'YYYY-MM-DD HH:mm:ss'), 9) : undefined,
+        pubDate: parseDate(novel.general_firstup, 'YYYY-MM-DD HH:mm:ss', 9),
+        updated: parseDate(novel.novelupdated_at, 'YYYY-MM-DD HH:mm:ss', 9),
     };
 }
 
-export async function fetchChapterPublicationDates(novelUrl: string): Promise<Map<string, Date>> {
+export async function fetchChapterPublicationDates(novelUrl: string): Promise<Map<string, Temporal.Instant | undefined>> {
     const response = await ofetch(novelUrl, {
         headers: {
             Cookie: 'over18=yes',
@@ -25,17 +24,16 @@ export async function fetchChapterPublicationDates(novelUrl: string): Promise<Ma
         },
     });
     const $ = load(response);
-    const dates = new Map<string, Date>();
+    const dates = new Map<string, Temporal.Instant | undefined>();
     for (const element of $('.p-eplist__sublist').toArray()) {
         const link = $('a.p-eplist__subtitle', element).attr('href');
-        const publication = copyNodes($('.p-eplist__update', element));
-        publication.children().remove();
-        const date = publication.text().match(/\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}/)?.[0];
+        const date = $('.p-eplist__update', element)
+            .text()
+            .match(/\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}/)?.[0];
         if (!link || !date) {
             continue;
         }
-        const publishedAt = date.replaceAll(/\s+/g, ' ');
-        dates.set(new URL(link, novelUrl).href.replace(/\/$/, ''), timezone(parseDate(publishedAt, 'YYYY/MM/DD HH:mm'), 9));
+        dates.set(new URL(link, novelUrl).href.replace(/\/$/, ''), parseDate(date, 'YYYY/MM/DD HH:mm', 9));
     }
     return dates;
 }
@@ -86,13 +84,4 @@ export async function fetchChapterContent(chapterUrl: string, chapter?: number):
             language: 'ja',
         };
     });
-}
-
-function copyNodes<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, node) => cloneNode(node, true));
-    const root = new Document(copy.toArray());
-    for (const node of copy) {
-        node.parent = root;
-    }
-    return copy;
 }

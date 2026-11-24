@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/column/:type/:category',
@@ -35,16 +35,12 @@ async function handler(ctx: Context) {
     return {
         title: `${name}的${category}最近更新-WeGene`,
         link,
-        item: data.map((item) => {
-            const dateValue = item.add_time;
-            const date = typeof dateValue === 'number' || (typeof dateValue === 'string' && dateValue.trim()) ? parseDate(item.add_time, 'X') : undefined;
-            return {
-                title: item.title,
-                link: `https://www.wegene.com/crowdsourcing/details/${item.id}`,
-                pubDate: date && Number.isFinite(date.getTime()) ? date : undefined,
-                author: item.user.user_name,
-                description: item.description,
-            };
-        }),
+        item: data.map((item) => ({
+            title: item.title,
+            link: `https://www.wegene.com/crowdsourcing/details/${item.id}`,
+            pubDate: parseDate(item.add_time, 'X'),
+            author: item.user.user_name,
+            description: item.description,
+        })),
     };
 }

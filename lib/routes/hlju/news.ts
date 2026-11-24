@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news/:category?',
@@ -89,7 +89,7 @@ async function handler(ctx) {
     const categoryName = $('.bgtitle_list').text().trim() || '黑大要闻';
 
     // Extract the first page of article links.
-    const list = $('a[href*="info/"]')
+    const list = $('table.winstyle110140 a[href*="info/"]')
         .toArray()
         .map((element) => {
             const item = $(element);
@@ -101,46 +101,38 @@ async function handler(ctx) {
             }
 
             // Read the publication date from the same table row.
-            const row = item.closest('tr');
-            const parent = row.length ? row : item.parent();
-            const dateMatch = parent.text().match(/(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})日?/);
+            const dateMatch = item
+                .closest('tr')
+                .text()
+                .match(/(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})日?/);
 
             return {
                 title,
                 link: new URL(link, listUrl).href,
-                pubDate: dateMatch ? parseDateInTimezone(`${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`, 8) : undefined,
+                pubDate: dateMatch ? parseDate(`${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`, 8) : undefined,
             } satisfies DataItem;
         })
         .filter((item): item is NonNullable<typeof item> => item !== null);
 
     const limit = getRouteLimit(ctx, 15);
     const candidateLimit = ctx.req.query('sorted') === 'false' ? limit : Math.max(15, limit);
-    const uniqueList = list.filter((item, index, arr) => arr.findIndex((i) => i.link === item.link) === index).slice(0, candidateLimit);
-
     const items = await pMap(
-        uniqueList,
+        list.slice(0, candidateLimit),
         async (item) => {
-            if (new URL(item.link).hostname !== new URL(baseUrl).hostname) {
-                return item;
-            }
-
             const details = await cache.tryGet(`hlju:article-details:${item.link}`, async () => {
                 const detailResponse = await ofetch(item.link);
                 const $detail = load(detailResponse);
                 const content = $detail('.v_news_content');
                 content.find('style, .print, .share').remove();
                 const description = content.html();
-                if (!description?.trim()) {
-                    throw new Error(`The Heilongjiang University article has no main content: ${item.link}`);
-                }
 
                 const timeMatch = $detail('.timestyle110144')
                     .text()
                     .match(/(\d{4}[-/]\d{2}[-/]\d{2})\s*(\d{2}:\d{2}(?::\d{2})?)/);
-                const pubDate = timeMatch ? parseDateInTimezone(`${timeMatch[1].replaceAll('/', '-')} ${timeMatch[2]}`, 8) : undefined;
+                const pubDate = timeMatch ? parseDate(`${timeMatch[1].replaceAll('/', '-')} ${timeMatch[2]}`, 8) : undefined;
                 return {
                     description,
-                    ...(pubDate && !Number.isNaN(pubDate.getTime()) && { pubDate }),
+                    ...(pubDate && { pubDate }),
                 };
             });
 

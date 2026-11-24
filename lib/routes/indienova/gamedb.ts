@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate, parseRelativeDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate, parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     name: 'GameDB 游戏库',
@@ -39,7 +38,6 @@ async function handler(ctx) {
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
-            const date = $item.find('small').first().text();
             return {
                 title: $item
                     .find('span')
@@ -47,7 +45,7 @@ async function handler(ctx) {
                     .filter((_, el) => el.nodeType === 3)
                     .text(),
                 link: new URL($item.find('a').attr('href')!, baseUrl).href,
-                pubDate: date ? parseRelativeDate(date) : undefined,
+                pubDate: parseRelativeDate($item.find('small').first().text()),
             };
         });
 
@@ -68,8 +66,8 @@ async function handler(ctx) {
                 article.find('#showHiddenText').remove();
 
                 item.description = [$('.cover-image').prop('outerHTML'), $('.tab-container').html(), article.html()].join('');
-                const releaseDate = $('.gamedb-release').text().replaceAll(/[()]/g, '').trim();
-                item.pubDate = releaseDate ? timezone(parseDate(releaseDate), 8) : item.pubDate;
+                const releaseDate = $('.gamedb-release').text().replaceAll(/[()]/g, '');
+                item.pubDate = releaseDate ? parseDate(releaseDate, 8) : item.pubDate;
 
                 return item;
             }),

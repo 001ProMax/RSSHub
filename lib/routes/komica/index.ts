@@ -7,9 +7,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 const parsePost = ($: CheerioAPI, post: Cheerio<Element>, base: string): DataItem => {
@@ -23,19 +22,18 @@ const parsePost = ($: CheerioAPI, post: Cheerio<Element>, base: string): DataIte
         .match(/(\d{4}\/\d{2}\/\d{2})\(.\) (\d{2}:\d{2}:\d{2})/);
 
     post.find('.quote .postvote-slot').remove();
-    const date = dateMatch ? parseDate(`${dateMatch[1]} ${dateMatch[2]}`, 'YYYY/MM/DD HH:mm:ss', true) : undefined;
 
     return {
         title: post.find('.title').text(),
         link: `${base}pixmicat.php?res=${no}`,
         guid: `komica:${base}${no}`,
         author: post.find('.name').text(),
-        pubDate: date && Number.isFinite(date.getTime()) ? timezone(date, 8) : undefined,
+        pubDate: dateMatch ? parseDateStrict(`${dateMatch[1]} ${dateMatch[2]}`, 'YYYY/MM/DD HH:mm:ss', 8) : undefined,
         category: post
             .find('.category a[href*="mode=category"]')
             .toArray()
             .map((a) => $(a).text()),
-        description: (image ? (isVideo ? `<video src="${image}"${thumbnail ? ` poster="${thumbnail}"` : ''} controls></video><br>` : `<img src="${image}"><br>`) : '') + (post.find('.quote').html() ?? ''),
+        description: (image ? (isVideo ? `<video src="${image}" poster="${thumbnail}" controls></video><br>` : `<img src="${image}"><br>`) : '') + (post.find('.quote').html() ?? ''),
     };
 };
 
@@ -51,7 +49,7 @@ const handler = async (ctx: Context): Promise<Data> => {
     const html = await ofetch(listUrl);
     const $ = load(html);
 
-    const links = $('tr[class^="ListRow"] a[href^="pixmicat.php?res="]')
+    const links = $('tr[class*="ListRow"] a[href^="pixmicat.php?res="]')
         .toArray()
         .map((a) => new URL($(a).attr('href')!, baseUrl).href)
         .slice(0, limit);
@@ -80,18 +78,18 @@ export const route: Route = {
     url: 'komica1.org',
     maintainers: ['TonyRL'],
     handler,
-    example: '/komica/gita/00b/動畫',
+    example: '/komica/gaia/00b/動畫',
     parameters: {
-        host: '子網域，即討論板網址中 `*.komica1.org` 的第一段，如 `gita`',
+        host: '子網域，即討論板網址中 `*.komica1.org` 的第一段，如 `gaia`',
         board: '討論板路徑，如 `00b`',
         category: '類別（列表模式），如 `動畫`、`漫畫`、`掛圖`、`新番捏他`、`新番實況`、`模型`、`軍武`；留空為整個版面',
     },
-    description: '例如綜合避難所 <https://gita.komica1.org/00b/> 對應 `/komica/gita/00b`，其「動畫」列表對應 `/komica/gita/00b/動畫`。',
+    description: '例如綜合避難所 <https://gaia.komica1.org/00b/> 對應 `/komica/gaia/00b`，其「動畫」列表對應 `/komica/gaia/00b/動畫`。',
     categories: ['bbs'],
     radar: [
         {
-            source: ['gita.komica1.org/:board/'],
-            target: '/gita/:board',
+            source: ['gaia.komica1.org/:board/'],
+            target: '/gaia/:board',
         },
     ],
 };

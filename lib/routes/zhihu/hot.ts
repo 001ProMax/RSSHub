@@ -2,7 +2,7 @@ import { config } from '@/config';
 import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/hot/:category?',
@@ -50,7 +50,7 @@ async function handler(ctx) {
         return {
             link: `https://www.zhihu.com/question/${questionId}`,
             title: item.target.title,
-            author: item.target.author?.name,
+            author: item.target.author.name,
             pubDate: parseDate(item.target.created * 1000),
             description: item.target.excerpt ? `<p>${item.target.excerpt}</p>` : '',
         };

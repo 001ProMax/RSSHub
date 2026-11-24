@@ -1,34 +1,33 @@
 import { escapeAttribute, escapeText } from 'entities';
-import { type Helpers, Innertube, YTNodes } from 'youtubei.js';
+import type { Helpers } from 'youtubei.js';
+import { Innertube, YTNodes } from 'youtubei.js';
 
 import { config } from '@/config';
 import type { Data, DataItem } from '@/types';
 import cache from '@/utils/cache';
-import { parseDate, parseRelativeDate } from '@/utils/parse-date';
+import { parseDate, parseRelativeDate } from '@/utils/time';
 
 import { formatDescription, getVideoUrl, renderYoutube } from '../utils';
 import { getSrtAttachmentBatch } from './subtitles';
 
 let innertubePromise: Promise<Innertube> | undefined;
-const getInnertube = () => {
-    if (!innertubePromise) {
-        // Lazy init to avoid network calls during import time (e.g. when building)
-        innertubePromise = recoverFailure(
-            Innertube.create({
-                fetch: (input, init) => {
-                    const url = input instanceof Request ? input.url : input.toString();
-                    return fetch(url, {
-                        method: input?.method,
-                        ...init,
-                    });
-                },
-            }),
-            () => {
-                innertubePromise = undefined;
-            }
-        );
+const getInnertube = async () => {
+    // Lazy init to avoid network calls during import time (e.g. when building)
+    innertubePromise ??= Innertube.create({
+        fetch: (input, init) => {
+            const url = input instanceof Request ? input.url : input.toString();
+            return fetch(url, {
+                method: input?.method,
+                ...init,
+            });
+        },
+    });
+    try {
+        return await innertubePromise;
+    } catch (error) {
+        innertubePromise = undefined;
+        throw error;
     }
-    return innertubePromise;
 };
 type VideoLockupView = YTNodes.LockupView & { content_id: string };
 const isVideoLockup = (video: Helpers.YTNode): video is VideoLockupView => video instanceof YTNodes.LockupView && video.content_id !== undefined;
@@ -140,7 +139,7 @@ export const getStreamsByChannelId = async ({ channelId, embed }: { channelId: s
 export const getDataByPlaylistId = async ({ playlistId, embed }: { playlistId: string; embed: boolean; isJsonFeed: boolean }): Promise<Data> => {
     const innertube = await getInnertube();
     const playlist = await innertube.getPlaylist(playlistId);
-    const videos = await playlist.videos;
+    const videos = playlist.videos;
     return {
         title: `${playlist.info.title || playlistId} by ${playlist.info.author.name} - YouTube`,
         link: `https://www.youtube.com/playlist?list=${playlistId}`,
@@ -173,11 +172,3 @@ export const getShowsByChannelId = async (channelId: string): Promise<Data> => {
             }),
     };
 };
-async function recoverFailure<T>(promise: Promise<T>, onFailure: () => void): Promise<T> {
-    try {
-        return await promise;
-    } catch (error) {
-        onFailure();
-        throw error;
-    }
-}

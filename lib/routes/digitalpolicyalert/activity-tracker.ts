@@ -5,9 +5,8 @@ import type { Context } from 'hono';
 import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const createSearchParams = (queryString: string, limit: number = 30): URLSearchParams => {
     const params = new URLSearchParams(queryString);
@@ -16,10 +15,10 @@ const createSearchParams = (queryString: string, limit: number = 30): URLSearchP
     return params;
 };
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { filters } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
-    const params: URLSearchParams = createSearchParams(filters, ctx.req.query('sorted') === 'false' ? limit : Math.max(30, limit));
+    const params: URLSearchParams = createSearchParams(filters, limit);
 
     const baseUrl = 'https://digitalpolicyalert.org';
     const apiBaseUrl = 'https://api.globaltradealert.org';
@@ -63,7 +62,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
         const processedItem: DataItem = {
             title,
             description,
-            pubDate: pubDate ? timezone(parseDate(pubDate), 0) : undefined,
+            pubDate: pubDate ? parseDate(pubDate, 0) : undefined,
             link: linkUrl ? new URL(linkUrl, baseUrl).href : undefined,
             category: categories,
             author: authors,
@@ -76,9 +75,6 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
         return processedItem;
     });
-    if (ctx.req.query('sorted') !== 'false') {
-        items = items.toSorted((a, b) => (b.pubDate ? new Date(b.pubDate).getTime() : 0) - (a.pubDate ? new Date(a.pubDate).getTime() : 0));
-    }
     items = items.slice(0, limit);
 
     return {

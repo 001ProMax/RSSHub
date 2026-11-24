@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseRelativeDate } from '@/utils/parse-date';
+import { parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/library',
@@ -37,7 +37,7 @@ async function handler() {
                 title: name.text(),
                 link,
                 description: description.text(),
-                pubDate: date ? parseRelativeDate(date) : undefined,
+                pubDate: parseRelativeDate(date),
             };
         });
     return {

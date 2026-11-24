@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/admission/sszs',
@@ -40,11 +40,10 @@ async function handler() {
         description: '北京大学研究生院通知公告',
         item: list.toArray().map((item) => {
             const $item = $(item);
-            const date = $item.find('.zsxxCont_list_time').text();
             return {
                 title: $item.find('.zsxxCont_list_txt').text(),
                 link: $item.find('li a').attr('href'),
-                pubDate: date ? parseDate(`${date}T00:00:00Z`) : undefined,
+                pubDate: parseDate(`${$item.find('.zsxxCont_list_time').text()}T00:00:00Z`),
             };
         }),
     };

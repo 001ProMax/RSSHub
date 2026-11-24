@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/tw/feeds/:category',
@@ -46,12 +45,12 @@ async function handler(ctx) {
             const details = await cache.tryGet(`ithome:tw-article:${link}`, async () => {
                 const response = await got(link);
                 const $ = load(response.data);
-                const date = $('.submitted .created').first().text();
+                const date = $('.submitted .created').text();
                 return {
                     title: $('.page-header').text(),
                     author: $('.author a').text(),
                     description: $('article').eq(0).html(),
-                    pubDate: date && Number.isFinite(parseDate(date, 'YYYY-MM-DD', true).getTime()) ? parseDateInTimezone(date, 8) : undefined,
+                    pubDate: parseDate(date, 8),
                     link,
                 };
             });

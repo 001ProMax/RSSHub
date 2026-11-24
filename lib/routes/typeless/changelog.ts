@@ -2,13 +2,13 @@ import { promisify } from 'node:util';
 import { gunzip as gunzipCallback } from 'node:zlib';
 
 import { load } from 'cheerio';
-import markdownit from 'markdown-it';
 import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
+import markdownit from '@/utils/markdown-it';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const gunzip = promisify(gunzipCallback);
 
@@ -31,15 +31,6 @@ export const route: Route = {
     handler,
     url: 'www.typeless.com/help/release-notes',
 };
-
-function getReleaseDate(value: string | undefined) {
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        return;
-    }
-    // Preserve the source calendar day without introducing the host timezone.
-    const date = parseDate(`${value}T00:00:00Z`);
-    return Number.isFinite(date.getTime()) && date.toISOString().startsWith(`${value}T`) ? date : undefined;
-}
 
 async function handler() {
     const baseUrl = 'https://www.typeless.com';
@@ -78,8 +69,8 @@ async function handler() {
             return {
                 title: features.title,
                 description: md.render(features.content),
-                pubDate: getReleaseDate(item.date),
-                link: features.learnMore ? new URL(features.learnMore, baseUrl).href : undefined,
+                pubDate: parseDate(`${item.date}T00:00:00Z`),
+                link: new URL(features.learnMore || `/help/release-notes/${platform.appPlatform}#${item.date}`, baseUrl).href,
                 category: [platform.appPlatform],
                 guid: `typeless:${platform.appPlatform}:${item.version}`,
             };

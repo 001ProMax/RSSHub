@@ -6,13 +6,12 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category } = ctx.req.param();
-    const requestedLimit = getRouteLimit(ctx, 100);
-    const limit = Math.min(Math.max(requestedLimit, 1), 100);
+    const limit = Math.min(getRouteLimit(ctx, 100), 100);
 
     const apiSlug = 'wp-json/wp/v2';
     const baseUrl = 'https://60s.aa1.cn';
@@ -30,8 +29,8 @@ export const handler = async (ctx: Context): Promise<Data> => {
     if (category && !categoryObj) {
         throw new InvalidParameterError(`Category "${category}" was not found.`);
     }
-    const categoryId: number | undefined = categoryObj?.id ?? undefined;
-    const categorySlug: string | undefined = categoryObj?.slug ?? undefined;
+    const categoryId: number | undefined = categoryObj?.id;
+    const categorySlug: string | undefined = categoryObj?.slug;
 
     const response = await ofetch(apiUrl, {
         query: {
@@ -63,7 +62,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                 avatar: author.avatar_urls?.['96'] ?? author.avatar_urls?.['48'] ?? author.avatar_urls?.['24'] ?? undefined,
             })) ?? [];
         const guid: string = item.guid?.rendered ?? item.guid;
-        const image: string | undefined = item._embedded?.['wp:featuredmedia']?.[0].source_url ?? undefined;
+        const image: string | undefined = item._embedded?.['wp:featuredmedia']?.[0].source_url;
         const updated: number | string = item.modified_gmt ?? pubDate;
 
         const processedItem: DataItem = {

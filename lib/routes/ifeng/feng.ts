@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { extractDoc, renderVideo } from './utils';
 
@@ -29,11 +28,6 @@ export const route: Route = {
 | ---- | ----- |
 | doc  | video |`,
 };
-
-function parseNewsDate(value: string) {
-    const date = value?.trim() ? parseDate(value.trim(), 'YYYY-MM-DD HH:mm:ss', true) : undefined;
-    return date && Number.isFinite(date.getTime()) ? timezone(date, 8) : undefined;
-}
 
 async function handler(ctx) {
     const { id, type } = ctx.req.param();
@@ -59,7 +53,7 @@ async function handler(ctx) {
 
     const list: Array<DataItem & { link: string }> = contentData.map((item) => ({
         title: item.title,
-        pubDate: parseNewsDate(item.newsTime),
+        pubDate: parseDate(item.newsTime, 8),
         author: mediaName,
         link: new URL(item.url, 'https://ishare.ifeng.com').href,
     }));
@@ -67,20 +61,22 @@ async function handler(ctx) {
     const items = await pMap(
         list,
         async (item) => {
-            const response = await cache.tryGet(`ifeng:article-html:${item.link}`, async () => (await got(item.link)).data);
-            const $ = load(response);
-            const articleData = JSON.parse(
-                $('script')
-                    .text()
-                    .match(/var allData = (\{.*?\});/)![1]
-            );
-            const description = type === 'doc' ? extractDoc(articleData.docData.contentData.contentList) : type === 'video' ? renderVideo(articleData.videoInfo) : undefined;
-            return {
-                ...item,
-                description,
-                category: articleData.keywords.split(','),
-                author: articleData.docData?.editorName ?? item.author,
-            };
+            const detail = await cache.tryGet(`ifeng:feng:${type}:${item.link}`, async () => {
+                const { data: response } = await got(item.link);
+                const $ = load(response);
+                const articleData = JSON.parse(
+                    $('script')
+                        .text()
+                        .match(/var allData = (\{.*?\});/)![1]
+                );
+                const description = type === 'doc' ? extractDoc(articleData.docData.contentData.contentList) : type === 'video' ? renderVideo(articleData.videoInfo) : undefined;
+                return {
+                    description,
+                    category: articleData.keywords.split(','),
+                    author: articleData.docData?.editorName ?? item.author,
+                };
+            });
+            return { ...item, ...detail };
         },
         { concurrency: 3 }
     );

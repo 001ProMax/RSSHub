@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?',
@@ -64,22 +63,6 @@ function resolveLink(href: string | undefined, baseUrl: string) {
     }
 }
 
-function parseArticleDate(value: string | undefined) {
-    const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?$/);
-    if (!match) {
-        return;
-    }
-    const [, year, month, day, hour, minute, second = '0', offset] = match;
-    const calendar = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-    if (calendar.getUTCFullYear() !== Number(year) || calendar.getUTCMonth() !== Number(month) - 1 || calendar.getUTCDate() !== Number(day) || Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) {
-        return;
-    }
-    const date = parseDate(value!);
-    if (Number.isFinite(date.getTime())) {
-        return offset ? date : timezone(date, 9);
-    }
-}
-
 async function handler(ctx) {
     const { category = 'news' } = ctx.req.param();
     const url = `https://www.yomiuri.co.jp/${category}`;
@@ -97,12 +80,11 @@ async function handler(ctx) {
                 const a = $item.find('h3 a');
                 return {
                     title: a.text(),
-                    link: resolveLink(a.attr('href'), url),
-                    pubDate: parseArticleDate($item.find('time').attr('datetime')),
+                    link: `https://www.yomiuri.co.jp${a.attr('href')}`,
+                    pubDate: parseDate($item.find('time').attr('datetime')!, 9),
                     locked: $item.find('.icon-locked').length,
                 };
-            })
-            .filter((item) => item.link);
+            });
     } else {
         $('.p-category-reading-recommend').remove();
         list = $('.layout-contents__main .c-list-title')
@@ -114,7 +96,7 @@ async function handler(ctx) {
                 return {
                     title: a.text(),
                     link: resolveLink(a.attr('href'), url),
-                    pubDate: parseArticleDate(parent.find('time').attr('datetime')),
+                    pubDate: parseDate(parent.find('time').attr('datetime')!, 9),
                     locked: parent.find('.c-list-member-only').length,
                 };
             })
@@ -143,12 +125,12 @@ async function handler(ctx) {
                 return {
                     description: mainContent.html(),
                     author: author.length ? author : undefined,
-                    pubDate: parseArticleDate($('meta[property="article:published_time"]').attr('content')),
-                    updated: parseArticleDate($('meta[property="article:modified_time"]').attr('content')),
-                    category: $('.p-header-category__breadcrumbs li a').last().text() || $('.p-header-category-breadcrumbs li a').last().text() || undefined,
+                    pubDate: parseDate($('meta[property="article:published_time"]').attr('content')!),
+                    updated: parseDate($('meta[property="article:modified_time"]').attr('content')!),
+                    category: $('.p-header-category__breadcrumbs li a').last().text(),
                 };
             });
-            return { ...item, ...article, pubDate: article.pubDate ?? item.pubDate, title: article.category ? `[${article.category}] ${item.title}` : item.title };
+            return { ...item, ...article, title: `[${article.category}] ${item.title}` };
         },
         { concurrency: 3, stopOnError: false }
     );

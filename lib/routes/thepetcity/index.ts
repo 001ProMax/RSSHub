@@ -3,7 +3,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { termsMap } from './terms-map';
 
@@ -41,7 +41,7 @@ async function handler(ctx) {
         title: post.title,
         description: post.description,
         link: `${baseUrl}${post.url}`,
-        pubDate: post.post_date ? parseDate(post.post_date) : undefined,
+        pubDate: parseDate(post.post_date),
         guid: post.guid,
         api: `${baseUrl}/node_api/v1/articles/${post.id}`,
     }));

@@ -5,15 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-
-function parseNewsDate(value?: string) {
-    if (!value || !/^\d{4}\.\d{2}\.\d{2}_\d{2}:\d{2}:\d{2}$/.test(value)) {
-        return;
-    }
-    const date = parseDate(value.replaceAll('.', '-').replace('_', ' '), 'YYYY-MM-DD HH:mm:ss', true);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
+import { parseDateStrict } from '@/utils/time';
 
 export const route: Route = {
     path: '/dispute-settlement/:year?',
@@ -26,7 +18,7 @@ export const route: Route = {
 };
 
 async function handler(ctx: Context) {
-    const { year = new Date().getFullYear() } = ctx.req.param();
+    const { year = Temporal.Now.zonedDateTimeISO('UTC').year } = ctx.req.param();
 
     const rootUrl = 'https://www.wto.org';
     const currentUrl = `${rootUrl}/library/news/news_${year}_e.js`;
@@ -39,7 +31,7 @@ async function handler(ctx: Context) {
     const list = data
         .filter((item) =>
             item
-                .match(/ni_subject:"(.*)",/)?.[1]
+                .match(/ni_subject:"(.*)",/)![1]
                 .split('#')
                 .includes('DISP')
         )
@@ -49,7 +41,13 @@ async function handler(ctx: Context) {
                 title: item.match(/ni_head:"(.*)",/)![1],
                 link: new URL(item.match(/nl_url:"(.*)",/)![1], rootUrl).href,
                 description: item.match(/ni_intro:"(.*)",/)![1],
-                pubDate: parseNewsDate(item.match(/ni_date:"(.*)",/)?.[1]),
+                pubDate: parseDateStrict(
+                    item
+                        .match(/ni_date:"(.*)",/)![1]
+                        .replaceAll('.', '-')
+                        .replace('_', ' '),
+                    'YYYY-MM-DD HH:mm:ss'
+                ),
             };
         });
 
@@ -61,9 +59,9 @@ async function handler(ctx: Context) {
                 const header = new TextDecoder().decode(bytes.slice(0, 4096));
                 const charset = header.match(/<meta[^>]+charset\s*=\s*["']?([\w-]+)/i)?.[1] || 'utf-8';
                 const $ = load(new TextDecoder(charset).decode(bytes));
-                return { description: $('#mainContent').html() || undefined } satisfies Pick<DataItem, 'description'>;
+                return { description: $('#mainContent').html() } satisfies Pick<DataItem, 'description'>;
             });
-            return { ...item, description: `${item.description ? `<p>${item.description}</p>` : ''}${detail.description || ''}` };
+            return { ...item, description: `<p>${item.description}</p>${detail.description}` };
         },
         { concurrency: 3 }
     );

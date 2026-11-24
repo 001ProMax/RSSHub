@@ -4,9 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -36,7 +35,7 @@ async function handler(ctx) {
     const posts: Array<DataItem & { link: string }> = sourcePosts.slice(0, getRouteLimit(ctx, 10)).map((item) => ({
         title: item.title,
         link: `${baseUrl}${item.path}`,
-        pubDate: item.date ? timezone(parseDate(item.date), 8) : undefined,
+        pubDate: parseDate(item.date, 'YYYY.MM.DD', 8),
     }));
     const items = await pMap(
         posts,
@@ -47,14 +46,11 @@ async function handler(ctx) {
                 const $ = load(response);
                 $('img').each((_, image) => {
                     const $image = $(image);
-                    const imageSource = $image.attr('data-original') ?? $image.attr('src');
-                    if (imageSource) {
-                        $image.attr('src', new URL(imageSource, item.link).href);
-                    }
+                    $image.attr('src', $image.attr('data-original'));
                 });
                 $('.head-mask').remove();
                 $('div.lover-box').remove();
-                return { description: $('article').first().html() };
+                return { description: $('article').html() };
             })),
         }),
         { concurrency: 3 }

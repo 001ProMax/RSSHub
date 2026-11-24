@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/yzb',
@@ -37,15 +36,10 @@ async function handler() {
     const $ = load(response.data);
     const items = $('.news_list > li')
         .toArray()
-        .flatMap((item) => {
+        .map((item) => {
             const $item = $(item);
             const anchor = $item.find('.news_title a');
-            const href = anchor.attr('href');
-            const title = anchor.attr('title') || anchor.text();
-            if (!href || !title) {
-                return [];
-            }
-            return { title, link: new URL(href, link).href, pubDate: timezone(parseDate($item.find('.news_meta').text(), 'YYYY-MM-DD'), 8) };
+            return { title: anchor.attr('title') || anchor.text(), link: new URL(anchor.attr('href')!, link).href, pubDate: parseDate($item.find('.news_meta').text(), 'YYYY-MM-DD', 8) };
         });
 
     const detailedItems = await pMap(
@@ -55,7 +49,7 @@ async function handler() {
             description: await cache.tryGet(`scau:article:v1:${item.link}`, async () => {
                 const response = await got(item.link);
                 const article = load(response.data);
-                return article('.wp_articlecontent, .content-l > .detail').first().html() ?? undefined;
+                return article('.wp_articlecontent, .content-l > .detail').html();
             }),
         }),
         { concurrency: 3 }

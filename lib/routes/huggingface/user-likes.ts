@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 interface LikedRepo {
     name: string;
@@ -26,14 +26,6 @@ const getRepoLink = (repo: LikedRepo): string => {
             return `https://huggingface.co/${repo.name}`;
     }
 };
-
-function getPublicationDate(value?: string) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
 
 export const route: Route = {
     path: '/activity/:user/likes',
@@ -76,7 +68,7 @@ async function handler(ctx) {
             link: getRepoLink(like.repo),
             description: `${user} liked this ${repoType}.`,
             category: [repoType],
-            pubDate: getPublicationDate(like.createdAt),
+            pubDate: parseDate(like.createdAt),
         };
     });
 

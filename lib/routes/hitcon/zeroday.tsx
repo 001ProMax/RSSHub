@@ -4,10 +4,8 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, DataItem, Route } from '@/types';
-import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getPlaywrightPage } from '@/utils/playwright';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     name: '漏洞',
@@ -35,30 +33,15 @@ export const route: Route = {
 const baseUrl = 'https://zeroday.hitcon.org/vulnerability';
 
 async function getList(url: string) {
+    const { page, destroy } = await getPlaywrightPage(url, { noGoto: true, closeTimeout: 0 });
     try {
-        return await ofetch(url);
-    } catch (error) {
-        if ((error as { statusCode?: number }).statusCode !== 403) {
-            throw error;
-        }
-        const { page, destroy } = await getPlaywrightPage(url, { noGoto: true, closeTimeout: 0 });
-        try {
-            await page.route('**/*', (route) => (['document', 'script', 'xhr', 'fetch'].includes(route.request().resourceType()) ? route.continue() : route.abort()));
-            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-            await page.waitForSelector('.zdui-strip-list > li', { timeout: 10000 });
-            return await page.content();
-        } finally {
-            await destroy();
-        }
+        await page.route('**/*', (route) => (['document', 'script', 'xhr', 'fetch'].includes(route.request().resourceType()) ? route.continue() : route.abort()));
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.waitForSelector('.zdui-strip-list > li', { timeout: 10000 });
+        return await page.content();
+    } finally {
+        await destroy();
     }
-}
-
-function parsePublicationDate(value: string) {
-    if (!value.trim()) {
-        return;
-    }
-    const date = parseDate(value, 'YYYY/MM/DD');
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 8);
 }
 
 const titleMap = {
@@ -109,8 +92,8 @@ async function handler(ctx: Context): Promise<Data> {
                 title: title.text(),
                 link: title.attr('href'),
                 description,
-                pubDate: parsePublicationDate(date),
-                author: reporter || undefined,
+                pubDate: parseDate(date, 'YYYY/MM/DD', 8),
+                author: reporter,
             };
         });
 

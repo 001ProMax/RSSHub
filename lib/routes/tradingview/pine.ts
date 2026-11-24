@@ -2,7 +2,8 @@ import { load } from 'cheerio';
 
 import type { Language, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/pine/:version?',
@@ -25,20 +26,18 @@ export const route: Route = {
 };
 
 function parsePubDate(id: string) {
-    const match = id.match(/^([a-z]+)(?:-[a-z]+)?-(\d{4})$/);
+    const match = /^([a-z]+)(?:-[a-z]+)?-(\d{4})$/.exec(id);
     if (!match) {
         return;
     }
     // Release notes specify a month or a month range, normalized to its start in UTC.
     const month = `${match[1].charAt(0).toUpperCase()}${match[1].slice(1)}`;
-    const date = parseDate(`${month} 1, ${match[2]} +00:00`, 'MMMM D, YYYY Z');
-    return Number.isFinite(date.getTime()) ? date : undefined;
+    return parseDate(`${month} 1, ${match[2]} +00:00`, 'MMMM D, YYYY Z');
 }
 
 async function handler(ctx) {
     const { version = 'v5' } = ctx.req.param();
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isFinite(requestedLimit) && requestedLimit >= 1 ? Math.floor(requestedLimit) : 100;
+    const limit = getRouteLimit(ctx, 100);
 
     const rootUrl = 'https://www.tradingview.com';
     const currentUrl = new URL(`pine-script-docs/${version}/release-notes/`, rootUrl).href;

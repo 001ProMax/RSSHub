@@ -1,9 +1,8 @@
-import { type Cheerio, type CheerioAPI, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -31,16 +30,16 @@ async function handler() {
             const link = element.find('h2 > a').attr('href');
             const description = element.find('p.note').text();
             const dateraw = element.find('time').text();
-            const category = copyContent(element.find('.meta .cat'), $);
-            category.find('i').remove();
+            element.find('.meta .cat i').remove();
             return {
                 title: title!,
                 description,
                 link,
                 image: element.find('a.focus img.thumb').attr('src'),
-                category: category
+                category: element
+                    .find('.meta .cat')
                     .toArray()
-                    .map((category) => $(category).text().trim())
+                    .map((category) => $(category).text())
                     .filter(Boolean),
                 pubDate: parseDate(dateraw, 'YYYY-MM-DD'),
             };
@@ -50,12 +49,4 @@ async function handler() {
         link: url,
         item: list,
     };
-}
-function copyContent<T extends AnyNode>(selection: Cheerio<T>, $: CheerioAPI): Cheerio<T> {
-    const nodes = selection.toArray().map((node) => cloneNode(node, true));
-    const root = new Document(nodes);
-    for (const node of nodes) {
-        node.parent = root;
-    }
-    return $(nodes);
 }

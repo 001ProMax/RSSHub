@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/ai/:type?',
@@ -77,8 +76,8 @@ export const route: Route = {
                 const link = href ? new URL(href, `${baseUrl}/xwzx/${type}.htm`).href : undefined;
 
                 // Extract the publication date.
-                const dateStr = dateCell.text().trim();
-                const pubDate = dateStr ? (dateStr.includes('/') ? timezone(parseDate(dateStr, 'YYYY/MM/DD'), 8) : timezone(parseDate(dateStr), 8)) : undefined;
+                const dateStr = dateCell.text();
+                const pubDate = dateStr.includes('/') ? parseDate(dateStr, 'YYYY/MM/DD', 8) : parseDate(dateStr, 8);
 
                 // Extract the publisher.
                 const source = sourceCell.text();
@@ -102,9 +101,6 @@ export const route: Route = {
                     const $ = load(response);
 
                     const $description = $('.v_news_content').length ? $('.v_news_content') : $('#txt');
-                    if (!$description.length) {
-                        throw new Error(`Could not find the AI notice content: ${item.link}`);
-                    }
                     return { description: $description.html() };
                 });
                 return { ...item, ...detail };

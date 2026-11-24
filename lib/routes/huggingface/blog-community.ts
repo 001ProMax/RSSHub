@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog-community/:sort?',
@@ -77,11 +77,6 @@ interface CommunityBlogApiResponse {
     };
 }
 
-function getPublicationDate(publishedAt: string | undefined) {
-    const date = publishedAt ? parseDate(publishedAt) : undefined;
-    return date && !Number.isNaN(date.getTime()) ? date : undefined;
-}
-
 async function handler(ctx) {
     const { sort = 'trending' } = ctx.req.param();
     const { posts } = await ofetch<CommunityBlogApiResponse>(`https://huggingface.co/api/blog/community?sort=${sort}`);
@@ -89,7 +84,7 @@ async function handler(ctx) {
     const lists = posts.map((item) => ({
         title: item.title,
         link: `https://huggingface.co${item.url}`,
-        pubDate: getPublicationDate(item.publishedAt),
+        pubDate: parseDate(item.publishedAt),
         author: item.authorsData?.[0]?.fullname || item.authorsData?.[0]?.name,
         upvotes: item.upvotes,
         image: item.thumbnail ? new URL(item.thumbnail, 'https://huggingface.co').href : undefined,
@@ -101,10 +96,7 @@ async function handler(ctx) {
             const details = await cache.tryGet(item.link, async () => {
                 const response = await ofetch(item.link);
                 const $ = load(response);
-                const content = $('.blog-content > .relative.overflow-clip').first();
-                if (!content.length) {
-                    throw new Error(`HuggingFace article content was not found at ${item.link}`);
-                }
+                const content = $('.blog-content > .relative.overflow-clip');
                 content.find('.absolute.not-prose').remove();
                 return {
                     description: content.html(),

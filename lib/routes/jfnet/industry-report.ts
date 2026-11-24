@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const HOST = 'https://www.jfnet.or.jp';
 const INDEX = `${HOST}/industry_report/?c=29&y=0`; // c=29 → 月次レポート only
@@ -50,7 +50,7 @@ const parseIndex = (html: string): Array<Omit<MarketReportExtra, 'released_at'> 
         .filter((r): r is NonNullable<typeof r> => r !== null);
 };
 
-export const handler = async (): Promise<Data> => {
+const handler = async (): Promise<Data> => {
     const [entries, media] = await Promise.all([
         cache.tryGet(INDEX, async () => {
             const html = await ofetch(INDEX);

@@ -5,7 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:type?/:id?',
@@ -48,18 +48,12 @@ async function handler(ctx: Context) {
                 const detailResponse = await ofetch(item.link!);
                 const content = load(detailResponse);
 
-                const metadata = content('script[type="application/ld+json"]')
-                    .toArray()
-                    .flatMap((script) => {
-                        const data = JSON.parse(content(script).text());
-                        return Array.isArray(data) ? data : (data['@graph'] ?? [data]);
-                    })
-                    .find((entry) => entry['@type'] === 'BlogPosting');
+                const metadata = JSON.parse(content('script[type="application/ld+json"]').text());
                 return {
                     author: content('.post-author').text(),
                     description: content('#content').html()!,
-                    pubDate: parseSourceDate(metadata?.datePublished),
-                    updated: parseSourceDate(metadata?.dateModified),
+                    pubDate: parseDate(metadata.datePublished),
+                    updated: parseDate(metadata.dateModified),
                 };
             })),
         }),
@@ -71,12 +65,4 @@ async function handler(ctx: Context) {
         link: currentUrl,
         item: items,
     };
-}
-
-function parseSourceDate(value?: string): Date | undefined {
-    if (typeof value !== 'string' || !value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
 }

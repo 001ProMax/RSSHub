@@ -5,11 +5,12 @@ import { renderToString } from 'hono/jsx/dom/server';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const getRelease = (link: string) =>
     cache.tryGet(link, async (): Promise<DataItem> => {
-        const detailResponse = await got(link, { minVersion: 'TLSv1.3' });
+        // releases can be on an artist's own domain
+        const detailResponse = await got(link, { minVersion: 'TLSv1.3', publicOnly: true });
         const content = load(detailResponse.data);
         const data = JSON.parse(content('[data-tralbum]').attr('data-tralbum')!);
         const image = content('#tralbumArt img').attr('src');
@@ -20,13 +21,13 @@ export const getRelease = (link: string) =>
             title: data.current.title,
             author: data.artist,
             image,
-            pubDate: data.current.publish_date ? parseDate(data.current.publish_date) : undefined,
+            pubDate: parseDate(data.current.publish_date),
             category: content('.tralbum-tags a.tag')
                 .toArray()
                 .map((tag) => content(tag).text()),
             description: renderToString(
                 <>
-                    {image ? <img src={image} /> : null}
+                    <img src={image} />
                     <div>{raw(about)}</div>
                     {data.current.credits ? <p style="white-space: pre-line">{data.current.credits}</p> : null}
                     <ol>

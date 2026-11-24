@@ -3,8 +3,7 @@ import type { Element } from 'domhandler';
 import pMap from 'p-map';
 
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 import { fixArticleContent } from '@/utils/wechat-mp';
 
 const ProcessFeed = (list: Element[], cache, current) =>
@@ -24,7 +23,7 @@ const ProcessFeed = (list: Element[], cache, current) =>
                 if (new URL($url).hostname === 'mp.weixin.qq.com') {
                     const timestamp = data.match(/\bct\s*=\s*["'](\d+)["']/)?.[1];
                     return {
-                        title: $('meta[property="og:title"]').attr('content') || $('#activity-name').text(),
+                        title: $('meta[property="og:title"]').attr('content'),
                         description: fixArticleContent($('#js_content')),
                         link: $url,
                         author: $('meta[name="author"]').attr('content') || $('#js_name').text(),
@@ -46,7 +45,7 @@ const ProcessFeed = (list: Element[], cache, current) =>
                     title,
                     description: $(current.selector.content).html()! + ($('ul[style]').length ? $('ul[style]').html() : '')!,
                     link: $url,
-                    pubDate: dateMatch ? timezone(parseDate(dateMatch[0], 'YYYY-MM-DD HH:mm'), 8) : undefined, // The source line combines publication time and view count.
+                    pubDate: dateMatch ? parseDate(dateMatch[0], 'YYYY-MM-DD HH:mm', 8) : undefined, // The source line combines publication time and view count.
                     author: '深圳大学研究生招生网',
                 };
                 return single;

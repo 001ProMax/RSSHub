@@ -5,8 +5,8 @@ import pMap from 'p-map';
 import type { Data, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import type { NextDataEpisode } from './types';
 
@@ -50,7 +50,7 @@ async function handler(ctx: Context): Promise<Data> {
     const values = Object.values<{ __typename: string }>(apolloState);
     const episodes = values.filter((value): value is NextDataEpisode => value.__typename === 'Episode');
     const items = await pMap(
-        (ctx.req.query('sorted') === 'false' ? episodes : episodes.toSorted((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))).slice(0, limit),
+        (ctx.req.query('sorted') === 'false' ? episodes : episodes.toSorted((a, b) => b.publishedAt.localeCompare(a.publishedAt))).slice(0, limit),
         async (item) => {
             const episodeUrl = `https://kakuyomu.jp/works/${id}/episodes/${item.id}`;
             const description = await cache.tryGet(`kakuyomu:body:${episodeUrl}`, async () => {
@@ -63,7 +63,7 @@ async function handler(ctx: Context): Promise<Data> {
                 title: item.title,
                 link: episodeUrl,
                 description,
-                pubDate: item.publishedAt ? parseDate(item.publishedAt) : undefined,
+                pubDate: parseDate(item.publishedAt),
                 guid: item.id,
             };
         },

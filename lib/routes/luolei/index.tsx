@@ -1,10 +1,10 @@
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
 import rssParser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const rootUrl = 'https://luolei.org';
     const { data: response } = await got(`${rootUrl}/rss.xml`);
     const feed = await rssParser.parseString(response);
@@ -15,22 +15,21 @@ export const handler = async (ctx) => {
     return {
         title: feed.title,
         description: feed.description,
-        link: feed.link ?? rootUrl,
+        link: feed.link,
         language: feed.language,
         image: feed.image?.url,
         item: feed.items.slice(0, getRouteLimit(ctx, 50)).map((item) => {
             if (!item.title || !item.link) {
                 throw new Error('The Luolei RSS feed contains an entry without a title or link');
             }
-            const date = item.isoDate ?? item.pubDate;
             return {
                 title: item.title,
                 link: item.link,
                 guid: item.guid,
-                description: item['content:encoded'] ?? item.content,
-                author: item.creator ?? item.author,
+                description: item['content:encoded'],
+                author: item.creator,
                 category: item.categories,
-                pubDate: date ? parseDate(date) : undefined,
+                pubDate: item.isoDate ? parseDate(item.isoDate) : undefined,
             };
         }),
     };

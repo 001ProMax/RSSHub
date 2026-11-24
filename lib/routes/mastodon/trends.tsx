@@ -5,7 +5,7 @@ import ConfigNotFoundError from '@/errors/types/config-not-found';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import utils from './utils';
 
@@ -56,9 +56,9 @@ async function handler(ctx) {
                   link: item.url,
                   description: renderToString(
                       <>
-                          {item.image && <img src={item.image} alt={item.image_description ?? ''} />}
+                          {item.image && <img src={item.image} alt={item.image_description} />}
                           {item.description && <p>{item.description}</p>}
-                          {type === 'tags' && item.history?.[0] && (
+                          {type === 'tags' && (
                               <p>
                                   {item.history[0].uses} posts by {item.history[0].accounts} accounts
                               </p>

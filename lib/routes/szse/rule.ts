@@ -4,20 +4,18 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 async function getArticle(link: string): Promise<Pick<DataItem, 'title' | 'description' | 'pubDate' | 'author' | 'content' | 'language'>> {
     const { data: detailResponse } = await got(link);
     const $ = load(detailResponse);
-    const description = $('div#desContent').html() ?? undefined;
-    const pubDate = $('div.time span').text().trim();
+    const description = $('div#desContent').html();
 
     return {
         title: $('h2.title').text(),
         description,
-        pubDate: pubDate ? timezone(parseDate(pubDate, 'YYYY-MM-DD'), 8) : undefined,
+        pubDate: parseDate($('div.time span').text(), 'YYYY-MM-DD', 8),
         author: $('meta[name="author"]').prop('content'),
         content: {
             html: description,
@@ -27,7 +25,7 @@ async function getArticle(link: string): Promise<Pick<DataItem, 'title' | 'descr
     };
 }
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { channel = 'allrules/bussiness' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
 
@@ -56,7 +54,7 @@ export const handler = async (ctx) => {
 
     let items: Array<DataItem & { link: string }> = response.data.slice(0, limit).map((item) => ({
         title: item.doctitle,
-        pubDate: item.docpubtime === undefined || item.docpubtime === null || String(item.docpubtime).trim() === '' ? undefined : parseDate(item.docpubtime, 'x'),
+        pubDate: parseDate(item.docpubtime, 'x'),
         link: item.docpuburl,
         category: item.navigation,
     }));

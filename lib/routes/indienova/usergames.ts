@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/usergames',
@@ -56,8 +55,8 @@ async function handler() {
                 const $ = load(response);
 
                 item.description = [$('.cover-image').prop('outerHTML'), $('.tab-container').html(), $('.swiper-wrapper').prop('outerHTML'), $('.postcontent').html()].join('');
-                const releaseDate = $('.gamedb-release').text().replaceAll(/[()]/g, '').trim();
-                item.pubDate = releaseDate ? timezone(parseDate(releaseDate), 8) : undefined;
+                const releaseDate = $('.gamedb-release').text().replaceAll(/[()]/g, '');
+                item.pubDate = releaseDate ? parseDate(releaseDate, 8) : undefined;
 
                 return item;
             }),

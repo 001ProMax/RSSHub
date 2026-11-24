@@ -4,8 +4,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://xwxy.gdufs.edu.cn';
 
@@ -21,7 +21,6 @@ const titleMap = {
     announcements: '公告',
     media: '媒体聚焦',
 };
-const linkAttributes = ['src', 'href'];
 const datePattern = /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/;
 
 const handler = async (ctx) => {
@@ -30,7 +29,7 @@ const handler = async (ctx) => {
         throw new InvalidParameterError('category must be news, notices, announcements, or media.');
     }
 
-    const link = `${baseUrl}${pathMap[category] ?? pathMap.news}`;
+    const link = `${baseUrl}${pathMap[category]}`;
 
     const response = await got(link);
     if (!response.body) {
@@ -48,7 +47,7 @@ const handler = async (ctx) => {
             const li = a.closest('li');
             const contextText = (li && li.text()) || a.text();
             const dateText = a.find('i').text().trim() || (li && li.find('i').text().trim()) || (li && li.find('time').text().trim()) || (contextText.match(datePattern)?.[0] ?? '');
-            const pubDate: Date | undefined = dateText ? parseDate(dateText) : undefined;
+            const pubDate: Temporal.Instant | undefined = dateText ? parseDate(dateText) : undefined;
             const title = [a.find('h5').text(), a.attr('title'), a.text(), contextText.replace(datePattern, '')].find((value) => value && /\S/.test(value)) || '';
             // Skip entries without a link.
             if (!href) {
@@ -61,7 +60,7 @@ const handler = async (ctx) => {
                 pubDate,
             };
         })
-        .filter((v): v is { title: string; link: string; pubDate: Date | undefined } => !!v && !!v.title && !!v.link);
+        .filter((v): v is { title: string; link: string; pubDate: Temporal.Instant | undefined } => !!v && !!v.title && !!v.link);
 
     const limit = Math.max(10, getRouteLimit(ctx, 10));
     const limitedItems = items.slice(0, limit);
@@ -91,24 +90,7 @@ const handler = async (ctx) => {
                 }
                 const $$ = load(articleResponse.body);
 
-                const $content = $$('.v_news_content');
-
-                // Resolve media and article links against the article URL.
-                $content.find('img, a').each((_, el) => {
-                    const $el = $$(el);
-                    for (const attr of linkAttributes) {
-                        const v = $el.attr(attr);
-                        if (v && !v.startsWith('http')) {
-                            try {
-                                $el.attr(attr, new URL(v, item.link).href);
-                            } catch {
-                                // ignore malformed url
-                            }
-                        }
-                    }
-                });
-
-                const content = $content.html();
+                const content = $$('.v_news_content').html();
                 // Read author and editor metadata.
                 const metaTexts = $$('.show01 p i')
                     .toArray()
@@ -118,36 +100,20 @@ const handler = async (ctx) => {
                 // Exclude publication labels and dates from the author list.
                 const authors = metaTexts.filter((t) => !t.includes('发布时间')).filter((t) => !datePattern.test(t));
 
-                // Keep the article date available as a fallback for undated list entries.
-                let pubDateRecovered: string | number | Date | undefined;
-                const dateTextInMeta = metaTexts.find((t) => datePattern.test(t));
-                if (dateTextInMeta) {
-                    const matched = dateTextInMeta.match(datePattern)?.[0];
-                    if (matched) {
-                        try {
-                            pubDateRecovered = parseDate(matched);
-                        } catch {
-                            // ignore parse error
-                        }
-                    }
-                }
-
                 return {
                     description: content,
                     author: authors.join(', '),
-                    pubDate: pubDateRecovered,
                 };
             });
             return {
                 ...item,
                 ...detail,
-                pubDate: item.pubDate ?? detail.pubDate,
             };
         })
     );
 
     return {
-        title: `广外新传学院-${titleMap[category] ?? titleMap.news}`,
+        title: `广外新传学院-${titleMap[category]}`,
         link,
         description: '广东外语外贸大学新闻与传播学院官网-新闻中心',
         item: enhancedItems,

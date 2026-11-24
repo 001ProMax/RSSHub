@@ -4,8 +4,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.chinathinktanks.org.cn';
 
@@ -52,17 +51,14 @@ async function handler(ctx) {
     const link = url.href;
     const response = await ofetch(link);
     const $ = load(response);
-    const list = $('a[href^="/article/"]')
-        .filter((_, element) => $(element).find('article').length > 0)
+    const list = $('.grid > a[href^="/article/"]')
         .toArray()
         .map((element): DataItem => {
             const node = $(element);
-            const date = node.find('article .border-t span').last().text();
             return {
                 title: node.find('h3').first().text(),
                 link: new URL(node.attr('href')!, baseUrl).href,
-                author: node.find('article .border-t span').first().text() || undefined,
-                pubDate: date ? timezone(parseDate(date, 'YYYY-MM-DD'), 8) : undefined,
+                author: node.find('article .border-t span').first().text(),
             };
         });
     const items = await Promise.all(
@@ -70,9 +66,8 @@ async function handler(ctx) {
             cache.tryGet(item.link!, async () => {
                 const response = await ofetch(item.link!);
                 const content = load(response);
-                const article = content('article').first();
-                const date = article.find('header time').text();
-                item.title = article.find('h1').text() || item.title;
+                const article = content('article');
+                item.title = article.find('h1').text();
                 item.description = article.find('.article-content').html();
                 item.author = article.find('header .lucide-user').parent().text() || item.author;
                 item.category = article
@@ -81,15 +76,13 @@ async function handler(ctx) {
                     .find('span')
                     .toArray()
                     .map((element) => content(element).text());
-                if (date) {
-                    item.pubDate = timezone(parseDate(date, 'YYYY-MM-DD'), 8);
-                }
+                item.pubDate = parseDate(article.find('header time').text(), 'YYYY-MM-DD', 8);
                 return item;
             })
         )
     );
     return {
-        title: `中国智库网 —— ${$('h1').first().text()}`,
+        title: `中国智库网 —— ${$('h1').text()}`,
         link,
         item: items,
     };

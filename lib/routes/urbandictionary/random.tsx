@@ -2,7 +2,7 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/random',
@@ -54,7 +54,7 @@ async function handler() {
         guid: item.permalink,
         enclosure_url: item.play_sound_url || undefined,
         enclosure_type: item.play_sound_url ? 'audio/mpeg' : undefined,
-        pubDate: item.written_on ? parseDate(item.written_on) : undefined,
+        pubDate: parseDate(item.written_on),
         author: item.author,
     }));
 

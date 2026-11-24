@@ -1,24 +1,16 @@
 import { load } from 'cheerio';
-import { FetchError } from 'ofetch';
 import pMap from 'p-map';
 
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
-import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import { getPlaywrightPage, type Page } from '@/utils/playwright';
+import type { Page } from '@/utils/playwright';
+import { getPlaywrightPage } from '@/utils/playwright';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
 const sourceOrigins = new Set(['https://www.dx2025.com', 'https://www.dx2035.cn']);
 
-function isExpiredCertificate(error: unknown): error is Error {
-    return error instanceof Error && (('code' in error && error.code === 'CERT_HAS_EXPIRED') || isExpiredCertificate(error.cause));
-}
-
-async function fetchHtml(url: string, page?: Page): Promise<string> {
-    if (!page) {
-        const { data } = await got(url);
-        return data;
-    }
+async function fetchHtml(url: string, page: Page): Promise<string> {
     const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
     if (!response?.ok() || !sourceOrigins.has(new URL(page.url()).origin)) {
         throw new Error(`DX2025 did not provide its public page: ${url}`);
@@ -67,13 +59,6 @@ export const route: Route = {
 };
 
 async function handler(ctx) {
-    try {
-        return await fetchFeed(ctx);
-    } catch (error) {
-        if (!(error instanceof FetchError) || !isExpiredCertificate(error)) {
-            throw error;
-        }
-    }
     const { page, destroy } = await getPlaywrightPage('https://www.dx2025.com', { noGoto: true, closeTimeout: 0, javaScriptEnabled: false });
     try {
         await page.route('**/*', (route) => (route.request().resourceType() === 'document' ? route.continue() : route.abort()));
@@ -83,7 +68,7 @@ async function handler(ctx) {
     }
 }
 
-async function fetchFeed(ctx, page?: Page) {
+async function fetchFeed(ctx, page: Page) {
     const type = ctx.req.param('type') || '';
     const category = ctx.req.param('category') || '';
 
@@ -106,8 +91,12 @@ async function fetchFeed(ctx, page?: Page) {
 
     const items = await pMap(
         list,
-        (item) =>
-            cache.tryGet(item.link!, async () => {
+        (item) => {
+            // only follow links on the site itself
+            if (!isOnSite(item.link, 'dx2025.com', 'dx2035.cn')) {
+                return item;
+            }
+            return cache.tryGet(item.link!, async () => {
                 const detailResponse = await fetchHtml(item.link!, page);
                 const content = load(detailResponse);
 
@@ -117,8 +106,9 @@ async function fetchFeed(ctx, page?: Page) {
                 item.pubDate = pubDate ? parseDate(pubDate) : undefined;
 
                 return item;
-            }),
-        { concurrency: page ? 1 : 10 }
+            });
+        },
+        { concurrency: 1 }
     );
 
     return {

@@ -1,8 +1,7 @@
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 interface MediaItem {
     ID: string;
@@ -60,12 +59,8 @@ export const route: Route = {
             title: item.TITLE,
             link: 'news/' + item.MEDIA_CD,
             description: item.READ_COPY ?? undefined,
-            pubDate: item.PUBLISH_DATE ? timezone(parseDate(item.PUBLISH_DATE, 'YYYY-MM-DD'), 9) : undefined,
-            category: item.MEDIA_TYPES
-                ? item.MEDIA_TYPES.split(',')
-                      .map((id) => tagIdNameMapping[id.replaceAll('"', '').trim()])
-                      .filter(Boolean)
-                : [],
+            pubDate: parseDate(item.PUBLISH_DATE, 'YYYY-MM-DD', 9),
+            category: item.MEDIA_TYPES ? item.MEDIA_TYPES.split(',').map((id) => tagIdNameMapping[id.replaceAll('"', '')]) : [],
         }));
         return {
             title: `ISCT News - ${lang}`,

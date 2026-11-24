@@ -5,8 +5,8 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -25,6 +25,9 @@ const parseFlightData = (buf: Buffer) => {
         } else {
             end = buf.indexOf(0x0a, colon);
             value = buf.toString('utf8', colon + 1, end);
+        }
+        if (end < i) {
+            throw new Error('Unterminated row in flight payload');
         }
         rows.set(id, value);
         i = end + 1;
@@ -152,8 +155,7 @@ async function handler(ctx: Context) {
                 });
                 item.title = title;
                 item.description = description;
-                const publishedTime = meta('article:published_time');
-                item.pubDate = publishedTime ? parseDate(publishedTime) : undefined;
+                item.pubDate = parseDate(meta('article:published_time'));
                 item.category = metaProps.filter((props) => props.property === 'article:tag').map((props) => props.content);
                 item.author = meta('article:author');
                 item.content = {
@@ -162,8 +164,7 @@ async function handler(ctx: Context) {
                 };
                 item.image = image;
                 item.banner = image;
-                const modifiedTime = meta('article:modified_time');
-                item.updated = modifiedTime ? parseDate(modifiedTime) : undefined;
+                item.updated = parseDate(meta('article:modified_time'));
 
                 return item;
             }),

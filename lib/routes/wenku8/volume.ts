@@ -27,7 +27,7 @@ export const route: Route = {
 
 async function handler(ctx) {
     const id = ctx.req.param('id');
-    if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)) || Number(id) <= 0) {
+    if (!/^\d+$/.test(id)) {
         throw new InvalidParameterError('id must be a positive integer novel ID.');
     }
     const aid = Number(id);
@@ -58,7 +58,7 @@ async function handler(ctx) {
                         .filter((line) => line.trim())
                         .map((line) => `<p>${escapeText(line.trim())}</p>`)
                         .join(''),
-                    guid: Buffer.from(`${vid}${chapter[1]}`).toString('base64'),
+                    guid: Buffer.from(`${vid}${chapter[1]}`).toBase64(),
                     link: lastestChapters[index]?.link,
                 }))
                 .filter((chapter) => chapter.description)

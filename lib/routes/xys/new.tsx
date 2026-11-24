@@ -1,14 +1,15 @@
 import { load } from 'cheerio';
 import { escapeText } from 'entities';
-import { renderToString } from 'hono/jsx/dom/server';
 import iconv from 'iconv-lite';
 import pMap from 'p-map';
 
+import { renderYoutube } from '@/routes/youtube/utils';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDateStrict } from '@/utils/time';
 
 function getYouTubeVideoId(url: URL) {
     const videoId = url.hostname === 'youtu.be' ? url.pathname.slice(1) : url.pathname === '/watch' ? url.searchParams.get('v') : undefined;
@@ -42,7 +43,7 @@ async function fetchArticle(link: string) {
     const url = new URL(link);
     if (['youtube.com', 'www.youtube.com', 'youtu.be'].includes(url.hostname)) {
         const videoId = getYouTubeVideoId(url);
-        return { description: videoId ? renderDescription(videoId) : undefined, author: undefined };
+        return { description: videoId ? renderYoutube(true, videoId) : undefined, author: undefined };
     }
 
     const response = await ofetch.raw<ArrayBuffer, 'arrayBuffer'>(link, { responseType: 'arrayBuffer' });
@@ -90,24 +91,22 @@ async function handler(ctx) {
 
     const $ = load(data);
 
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const validLimit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0;
-    const limit = validLimit ? requestedLimit : 30;
+    const limit = getRouteLimit(ctx);
     let items = $('li a')
-        .slice(4, validLimit ? undefined : 30)
+        .slice(4, limit ? undefined : 30)
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
             let link = $item.attr('href');
             /^https?:\/\//.test(link!) || (link = rootUrl + '/' + link!.replace(/^\//, ''));
             const dateText = $item.parent().text().trim().slice(0, 8);
-            const date = /^\d{2}\.\d{2}\.\d{2}$/.test(dateText) ? parseDate(dateText, 'YY.MM.DD', true) : undefined;
+            const date = /^\d{2}\.\d{2}\.\d{2}$/.test(dateText) ? parseDateStrict(dateText, 'YY.MM.DD') : undefined;
             const url = new URL(link!);
             const isYouTubePage = ['youtube.com', 'www.youtube.com', 'youtu.be'].includes(url.hostname) && !getYouTubeVideoId(url);
             return {
                 title: $item.text(),
                 link,
-                pubDate: date && Number.isFinite(date.getTime()) ? date : undefined,
+                pubDate: date,
                 guid: isYouTubePage ? `${link}#xys-${dateText}` : undefined,
             };
         })
@@ -129,5 +128,3 @@ async function handler(ctx) {
         item: items,
     };
 }
-
-const renderDescription = (youTube: string): string => renderToString(<>{youTube ? <iframe width="560" height="315" src={`https://www.youtube-nocookie.com/embed/${youTube}`} frameborder="0" allowfullscreen></iframe> : null}</>);

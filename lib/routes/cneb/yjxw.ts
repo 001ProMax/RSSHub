@@ -4,9 +4,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const indexs = {
     gnxw: 0,
@@ -14,10 +13,9 @@ const indexs = {
 };
 
 interface VideoInfo {
-    errcode: number;
-    cover_pic?: string;
+    cover_pic: string;
     synopsis?: string;
-    om_info?: { title?: string };
+    om_info: { title: string };
 }
 
 export const route: Route = {
@@ -80,7 +78,7 @@ async function handler(ctx) {
             return {
                 title: a.text(),
                 link: a.attr('href'),
-                pubDate: timezone(parseDate($item.find('span').text()), 8),
+                pubDate: parseDate($item.find('span').text(), 8),
             };
         });
 
@@ -97,23 +95,17 @@ async function handler(ctx) {
 
                 const videoState = content('script[statesync="video"]')
                     .text()
-                    .trim()
                     .match(/^window\.__STATE_video__\s*=\s*(\{[\s\S]*\});?$/);
                 if (videoState) {
                     const video: VideoInfo = JSON.parse(videoState[1]).payloads.sharevideo;
-                    if (video.errcode !== 0) {
-                        throw new Error(`Video metadata is unavailable at ${item.link}`);
-                    }
                     const description = content('<div/>');
-                    if (video.cover_pic) {
-                        description.append(content('<img/>').attr('src', video.cover_pic));
-                        item.image = video.cover_pic;
-                    }
+                    description.append(content('<img/>').attr('src', video.cover_pic));
+                    item.image = video.cover_pic;
                     if (video.synopsis && video.synopsis !== item.title) {
                         description.append(content('<p/>').text(video.synopsis));
                     }
                     item.description = description.html();
-                    item.author = video.om_info?.title;
+                    item.author = video.om_info.title;
                 } else {
                     content('.w940 .editor').remove();
                     item.description = content('.w940').html();

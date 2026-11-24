@@ -32,12 +32,7 @@ async function handler(ctx: Context) {
 
     const body = await getUserArticleList(userId);
     const articles = parseUserArticleList(body);
-    if (ctx.req.query('sorted') === 'false' || articles.list.every((item) => item.pubDate && Number.isFinite(new Date(item.pubDate).getTime()))) {
-        if (ctx.req.query('sorted') !== 'false') {
-            articles.list.sort((a, b) => new Date(b.pubDate!).getTime() - new Date(a.pubDate!).getTime());
-        }
-        articles.list = articles.list.slice(0, getRouteLimit(ctx));
-    }
+    articles.list = articles.list.slice(0, getRouteLimit(ctx));
     if (detail) {
         articles.list = await pMap(articles.list, getUserArticle, { concurrency: 3 });
     }

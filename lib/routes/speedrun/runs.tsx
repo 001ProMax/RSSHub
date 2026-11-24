@@ -4,7 +4,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/runs/:scope?/:name?',
@@ -58,9 +58,9 @@ async function handler(ctx) {
         item: response.data.map((run) => ({
             title: `${run.game.data.names.international} - ${run.category.data.name} - ${run.times.primary.replace(/^PT/, '').toLowerCase()}`,
             link: run.weblink,
-            author: run.players.data.map((player) => player.names?.international ?? player.name).join(', '),
+            author: run.players.data.map((player) => player.names.international).join(', '),
             category: run.category.data.name,
-            pubDate: run.status['verify-date'] || run.submitted ? parseDate(run.status['verify-date'] ?? run.submitted) : undefined,
+            pubDate: parseDate(run.status['verify-date']),
             description: renderToString(
                 <>
                     {run.comment && <p style="white-space: pre-wrap">{run.comment}</p>}

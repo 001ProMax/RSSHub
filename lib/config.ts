@@ -24,6 +24,7 @@ type ConfigEnvKeys =
     | 'DISABLE_IPV6'
     | 'REQUEST_RETRY'
     | 'REQUEST_TIMEOUT'
+    | 'REQUEST_MAX_RESPONSE_SIZE'
     | 'REQUEST_AUTO_SELECT_FAMILY'
     | 'REQUEST_RATE_LIMITS'
     | 'WORDPRESS_ALLOWED_DOMAINS'
@@ -176,6 +177,7 @@ type ConfigEnvKeys =
     | 'MIHOYO_COOKIE'
     | 'MINIFLUX_INSTANCE'
     | 'MINIFLUX_TOKEN'
+    | 'MISSKEY_API_HOST'
     | 'MISSKEY_ACCESS_TOKEN'
     | 'MIXI2_AUTH_TOKEN'
     | 'MIXI2_AUTH_KEY'
@@ -197,6 +199,7 @@ type ConfigEnvKeys =
     | 'PIXIV_BYPASS_DOH'
     | 'PIXIV_IMG_PROXY'
     | 'PKUBBS_COOKIE'
+    | 'PRODUCTHUNT_ACCESS_TOKEN'
     | 'QINGTING_ID'
     | 'READWISE_ACCESS_TOKEN'
     | 'REUTERS_AUTH_TOKEN'
@@ -294,6 +297,7 @@ export type Config = {
     disableIPv6: boolean;
     requestRetry: number;
     requestTimeout: number;
+    requestMaxResponseSize: number;
     requestAutoSelectFamily?: boolean;
     requestRateLimits: HostRateLimits;
     ua: string;
@@ -582,6 +586,7 @@ export type Config = {
         token?: string;
     };
     misskey: {
+        apiHost: string;
         accessToken?: string;
     };
     mixi2: {
@@ -629,6 +634,9 @@ export type Config = {
     };
     pkubbs: {
         cookie?: string;
+    };
+    producthunt: {
+        accessToken?: string;
     };
     qingting: {
         id?: string;
@@ -845,6 +853,7 @@ const calculateValue = () => {
         disableIPv6: toBoolean(envs.DISABLE_IPV6, false),
         requestRetry: toInt(envs.REQUEST_RETRY, 2), // 请求失败重试次数
         requestTimeout: toInt(envs.REQUEST_TIMEOUT, 30000), // Milliseconds to wait for the server to end the response before aborting the request
+        requestMaxResponseSize: toInt(envs.REQUEST_MAX_RESPONSE_SIZE, 16 * 1024 * 1024), // Bytes a response body may have after its Content-Encoding is decoded
         requestAutoSelectFamily: envs.REQUEST_AUTO_SELECT_FAMILY === undefined ? undefined : toBoolean(envs.REQUEST_AUTO_SELECT_FAMILY, false),
         requestRateLimits: parseHostRateLimits(envs.REQUEST_RATE_LIMITS),
         ua: envs.UA || (toBoolean(envs.NO_RANDOM_UA, false) ? TRUE_UA : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'),
@@ -1135,6 +1144,7 @@ const calculateValue = () => {
             token: envs.MINIFLUX_TOKEN || '',
         },
         misskey: {
+            apiHost: envs.MISSKEY_API_HOST || 'misskey.io',
             accessToken: envs.MISSKEY_ACCESS_TOKEN,
         },
         mixi2: {
@@ -1182,6 +1192,9 @@ const calculateValue = () => {
         },
         pkubbs: {
             cookie: envs.PKUBBS_COOKIE,
+        },
+        producthunt: {
+            accessToken: envs.PRODUCTHUNT_ACCESS_TOKEN,
         },
         qingting: {
             id: envs.QINGTING_ID,
@@ -1336,7 +1349,7 @@ const calculateValue = () => {
     Object.assign(value, _value);
 };
 calculateValue();
-(async () => {
+void (async () => {
     if (!envs.REMOTE_CONFIG) {
         return;
     }

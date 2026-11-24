@@ -5,13 +5,13 @@ import type { Context } from 'hono';
 import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { parseContent } from './parser';
 import { renderDescription } from './templates/description';
 import { baseUrl, imageBaseUrl } from './util';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { id } = ctx.req.param();
     const limit = Number(ctx.req.query('limit') ?? '30');
 

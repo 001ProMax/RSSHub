@@ -5,7 +5,7 @@ import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import { getSubPath } from '@/utils/common-utils';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const defaultCategories = {
     sub: 'new',
@@ -54,12 +54,10 @@ export async function handler(ctx) {
         .map((item): DataItem => {
             const $item = $(item);
 
-            const pubDate = $item.parent().parent().find('time[datetime]').attr('datetime');
-
             return {
                 link: `${rootUrl}${$item.attr('href')}`,
                 author: $item.parent().parent().find('.text-dark').last().text(),
-                pubDate: pubDate ? parseDate(pubDate) : undefined,
+                pubDate: parseDate($item.parent().parent().find('time[datetime]').attr('datetime')!),
                 title: `${$item.parent().parent().find('.align-middle').text()} ${$item.text().replace(/ - SubHD/, '')}`,
             };
         });

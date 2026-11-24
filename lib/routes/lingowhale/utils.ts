@@ -5,11 +5,12 @@ import { load } from 'cheerio';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const baseUrl = 'https://lingowhale.com';
 export const apiUrl = 'https://api-public.lingowhale.com/api/lingowhale/v1';
-export const headers = { imei: `IMEI-${randomUUID().toUpperCase()}` };
+let headers: { imei: string };
+export const getHeaders = () => (headers ??= { imei: `IMEI-${randomUUID().toUpperCase()}` });
 
 export const parseChannel = (channel) => ({
     title: channel.name,

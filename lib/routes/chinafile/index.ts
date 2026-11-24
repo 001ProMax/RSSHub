@@ -1,24 +1,14 @@
 import { load } from 'cheerio';
-import dayjs from 'dayjs';
-import timezone from 'dayjs/plugin/timezone.js';
-import utc from 'dayjs/plugin/utc.js';
 import type { Context } from 'hono';
 import Parser from 'rss-parser';
 
 import type { Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate, parseDateStrict } from '@/utils/time';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
-
-function parseFeedDate(date?: string) {
-    return date
-        ? dayjs(parseDate(date.replace(' - ', ' ').replace('am', ' am').replace('pm', ' pm')))
-              .tz('America/New_York', true)
-              .toDate()
-        : undefined;
+function parseFeedDate(date: string) {
+    return parseDateStrict(date, 'dddd, MMMM D, YYYY - h:mma', 'America/New_York');
 }
 
 export const route: Route = {
@@ -83,7 +73,7 @@ async function handler(ctx: Context) {
                 return {
                     title: item.title,
                     id: item.guid,
-                    pubDate: publishedAt ? parseDate(publishedAt) : parseFeedDate(item.pubDate),
+                    pubDate: publishedAt ? parseDate(publishedAt) : parseFeedDate(item.pubDate!),
                     updated: updatedAt,
                     author: item.creator,
                     link: url,

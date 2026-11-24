@@ -24,6 +24,7 @@ const createBrowserMocks = () => {
         close: vi.fn(() => Promise.resolve()),
         cookies: vi.fn(),
         newPage: vi.fn(() => Promise.resolve(mockPage)),
+        on: vi.fn(),
     };
 
     mockBrowser = {
@@ -117,7 +118,7 @@ describe('playwright', () => {
         expect(browser?.isConnected()).toBe(true);
         await browser?.close();
         expect(browser?.isConnected()).toBe(false);
-    }, 10000);
+    }, 30000);
 
     it('getPlaywrightPage', async () => {
         const { getPlaywrightPage } = await import('./playwright');
@@ -125,19 +126,31 @@ describe('playwright', () => {
         const page = playwright.page;
         context = playwright.context;
         const browser = context.browser();
-        const startTime = Date.now();
+        const startTime = performance.now();
 
         const html = await page.evaluate(() => document.body.getHTML());
         expect(html.length).toBeGreaterThan(0);
 
         expect(browser?.isConnected()).toBe(true);
-        const sleepTime = 31 * 1000 - (Date.now() - startTime);
+        const sleepTime = 31 * 1000 - (performance.now() - startTime);
         if (sleepTime > 0) {
             await wait(sleepTime);
         }
         expect(browser?.isConnected()).toBe(false);
         context = null;
     }, 45000);
+
+    it('limits the length of page.content()', async () => {
+        const { default: playwright } = await import('./playwright');
+        context = await playwright();
+        const page = await context.newPage();
+
+        await page.setContent('<p>small</p>');
+        expect(await page.content()).toContain('<p>small</p>');
+
+        await page.evaluate(() => document.body.append('x'.repeat(5 * 1024 * 1024)));
+        await expect(page.content()).rejects.toThrow('too large to parse');
+    }, 10000);
 });
 
 describe('getPlaywrightPage (mocked)', () => {
@@ -348,6 +361,37 @@ describe('getPlaywrightPage (mocked)', () => {
         expect(contextOptions.userAgent).not.toMatch(/HeadlessChrome/i);
     });
 
+    it('keeps certificate validation enabled for a local browser', async () => {
+        resetMocks();
+        launch.mockResolvedValue(mockBrowser);
+        mockBrowser.close.mockResolvedValue(undefined);
+
+        const getPlaywrightPage = await loadPlaywright();
+        await getPlaywrightPage('https://example.com', { noGoto: true });
+        const certificateArg = expect.stringContaining('--ignore-certificate-errors');
+        expect(launch).toHaveBeenCalledWith(expect.objectContaining({ args: expect.not.arrayContaining([certificateArg]) }));
+        expect(mockBrowser.newContext.mock.calls[0][0].ignoreHTTPSErrors).toBeUndefined();
+    });
+
+    it.each([
+        ['PLAYWRIGHT_WS_ENDPOINT', connect],
+        ['PLAYWRIGHT_CDP_ENDPOINT', connectOverCDP],
+    ] as const)('keeps certificate validation enabled with %s', async (endpointVar, connector) => {
+        resetMocks();
+        connect.mockResolvedValue(mockBrowser);
+        connectOverCDP.mockResolvedValue(mockBrowser);
+        mockBrowser.close.mockResolvedValue(undefined);
+        process.env[endpointVar] = 'ws://localhost:3000/?token=abc';
+
+        const getPlaywrightPage = await loadPlaywright();
+        await getPlaywrightPage('https://example.com', { noGoto: true, useConfiguredEndpoint: true });
+
+        const launchOptions = JSON.parse(new URL(connector.mock.calls[0][0]).searchParams.get('launch') || '{}');
+        expect(launchOptions.args ?? []).not.toContainEqual(expect.stringContaining('--ignore-certificate-errors'));
+        expect(launchOptions.ignoreHTTPSErrors).toBeUndefined();
+        expect(mockBrowser.newContext.mock.calls[0][0].ignoreHTTPSErrors).toBeUndefined();
+    });
+
     it('supports extending the browser auto close timeout', async () => {
         vi.useFakeTimers();
         try {
@@ -364,6 +408,30 @@ describe('getPlaywrightPage (mocked)', () => {
             });
 
             await vi.advanceTimersByTimeAsync(89999);
+            expect(close).not.toHaveBeenCalled();
+
+            await vi.advanceTimersByTimeAsync(1);
+            expect(close).toHaveBeenCalled();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('still closes a browser whose caller owns the lifetime but never reaches destroy', async () => {
+        vi.useFakeTimers();
+        try {
+            resetMocks();
+            launch.mockResolvedValue(mockBrowser);
+            mockBrowser.close.mockResolvedValue(undefined);
+
+            const getPlaywrightPage = await loadPlaywright();
+            const close = mockBrowser.close;
+            await getPlaywrightPage('https://example.com', {
+                closeTimeout: 0,
+                noGoto: true,
+            });
+
+            await vi.advanceTimersByTimeAsync(299999);
             expect(close).not.toHaveBeenCalled();
 
             await vi.advanceTimersByTimeAsync(1);

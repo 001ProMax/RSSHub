@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 import { fetchArticle } from '@/utils/wechat-mp';
 
 const baseTitle = '上海交通大学研究生招生网招考信息';
@@ -42,12 +42,12 @@ async function handler(ctx) {
         .toArray()
         .map((elem): DataItem & { link: string } => {
             const $item = $(elem);
-            const month = $item.find('.month').text().trim();
+            const month = $item.find('.month').text();
             const day = $item.find('.day').text().trim();
             return {
                 link: new URL(elem.attribs.href, pageUrl).href,
                 title: $item.find('.title').text(),
-                pubDate: month && day ? parseDate(`${month}.${day} +0000`, 'YYYY.MM.DD ZZ') : undefined,
+                pubDate: parseDate(`${month}.${day} +0000`, 'YYYY.MM.DD ZZ'),
             };
         });
 

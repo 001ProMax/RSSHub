@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const languages = {
     english: 'https://sputniknews.com',
@@ -169,10 +169,7 @@ async function handler(ctx) {
                 content('div.article__article-info[data-type="article"]').remove();
 
                 content('img[data-srcset]').each((_, image) => {
-                    const srcset = content(image).attr('data-srcset');
-                    if (srcset) {
-                        content(image).attr('srcset', srcset);
-                    }
+                    content(image).attr('srcset', content(image).attr('data-srcset'));
                 });
 
                 return { pubDate, category, description: content('.article').html() };

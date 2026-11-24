@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const handler: Route['handler'] = async () => {
     const item = await cache.tryGet('raycast:changelog:v3', async () => {
@@ -23,8 +23,8 @@ const handler: Route['handler'] = async () => {
                 return {
                     title: `Version ${version}`,
                     description: html,
-                    link: new URL($item.find('a[href^="/changelog/"]').first().attr('href')!, 'https://www.raycast.com').href,
-                    pubDate: date ? parseDate(`${date} +0000`, 'MMMM D, YYYY ZZ') : undefined,
+                    link: new URL($item.find('a[href^="/changelog/"]').attr('href')!, 'https://www.raycast.com').href,
+                    pubDate: parseDate(`${date} +0000`, 'MMMM D, YYYY ZZ'),
                 };
             });
     });

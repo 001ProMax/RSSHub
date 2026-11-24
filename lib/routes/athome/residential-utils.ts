@@ -11,7 +11,7 @@ import { clean } from '@/routes/temposmart/utils';
 import logger from '@/utils/logger';
 import { getPlaywrightPage } from '@/utils/playwright';
 
-export const HOST = 'https://www.athome.co.jp';
+const HOST = 'https://www.athome.co.jp';
 /** 都道府県 / 市区町村 slugs as the site spells them (tokyo, minato-city, yokohama_naka-city). */
 const SLUG = /^[a-z\d_-]+$/;
 export const DEFAULT_LIMIT = 20;
@@ -38,7 +38,7 @@ const ALLOWED_RESOURCES = new Set(['document', 'script', 'xhr', 'fetch']);
 
 /** One list page, rendered until its SSR state is attached. A page that never settles is an error, never an empty feed. */
 export const fetchAthomeList = async (url: string): Promise<string> => {
-    const startedAt = Date.now();
+    const startedAt = performance.now();
     const { page, destroy } = await getPlaywrightPage(url, {
         gotoConfig: { waitUntil: 'commit', timeout: NAV_TIMEOUT },
         onBeforeLoad: async (p) => {
@@ -46,7 +46,7 @@ export const fetchAthomeList = async (url: string): Promise<string> => {
         },
     });
     try {
-        await page.waitForSelector('#serverApp-state', { state: 'attached', timeout: Math.max(3000, LIST_DEADLINE_MS - (Date.now() - startedAt)) });
+        await page.waitForSelector('#serverApp-state', { state: 'attached', timeout: Math.max(3000, LIST_DEADLINE_MS - (performance.now() - startedAt)) });
         return await page.content();
     } catch (error) {
         let blocked = false;
@@ -55,7 +55,7 @@ export const fetchAthomeList = async (url: string): Promise<string> => {
         } catch {
             // The page may already be gone; the message below still names the failure.
         }
-        logger.warn(`athome: ${url} failed after ${Date.now() - startedAt}ms (blocked=${blocked}): ${String(error)}`);
+        logger.warn(`athome: ${url} failed after ${Math.round(performance.now() - startedAt)}ms (blocked=${blocked}): ${String(error)}`);
         throw new Error(
             blocked
                 ? `athome: the site's authentication page did not resolve within ${LIST_DEADLINE_MS}ms; reduce polling frequency`
@@ -67,7 +67,12 @@ export const fetchAthomeList = async (url: string): Promise<string> => {
     }
 };
 
-type State = Record<string, unknown>;
+interface StateEntry {
+    data?: { propertyListData?: { propertyList?: RentBuilding[] } };
+    body?: string;
+}
+
+type State = Record<string, StateEntry | undefined>;
 
 export const stateOf = (html: string): State => {
     const raw = load(html)('#serverApp-state').text();
@@ -121,14 +126,11 @@ interface RentBuilding {
  * by different agents, kept as `raw.same_room_ids`.
  */
 export const parseAthomeChintai = (state: State): ListedUnit[] => {
-    const firstView = state['first-view-ITEMS'] as { data?: { propertyListData?: { propertyList?: RentBuilding[] } } } | undefined;
-    const buildings = firstView?.data?.propertyListData?.propertyList;
+    const buildings = state['first-view-ITEMS']?.data?.propertyListData?.propertyList;
     if (!Array.isArray(buildings)) {
         throw new TypeError('athome: the SSR state holds no 賃貸 listing data; the page structure may have changed');
     }
-    const units: ListedUnit[] = [];
-    const seen = new Set<string>();
-    for (const b of buildings) {
+    return buildings.flatMap((b) => {
         const name = clean(b.bukkenNm);
         const floors = clean(b.kaidate);
         const building = {
@@ -144,33 +146,33 @@ export const parseAthomeChintai = (state: State): ListedUnit[] => {
             built: clean(b.chikunengetsu),
         };
         const rooms = b.roomList ?? [];
-        for (const r of rooms) {
+        return rooms.flatMap((r): ListedUnit[] => {
             const id = clean(r.bukkenNo);
-            if (id === null || seen.has(id)) {
-                continue;
+            if (id === null) {
+                return [];
             }
-            seen.add(id);
-            units.push({
-                id,
-                link: `${HOST}/chintai/${id}/`,
-                raw: {
-                    ...building,
-                    floor: clean(r.kai),
-                    room_no: clean(r.roomNumber),
-                    price: manYen(r.chinryo),
-                    management_fee: clean(r.managementFee),
-                    deposit: clean(r.deposit),
-                    key_money: clean(r.keyMoney),
-                    layout: clean(r.madori),
-                    area: clean(r.area),
-                    same_room_ids: r.heyaNayoseBukkenNoList?.join(',') || null,
+            return [
+                {
+                    id,
+                    link: `${HOST}/chintai/${id}/`,
+                    raw: {
+                        ...building,
+                        floor: clean(r.kai),
+                        room_no: clean(r.roomNumber),
+                        price: manYen(r.chinryo),
+                        management_fee: clean(r.managementFee),
+                        deposit: clean(r.deposit),
+                        key_money: clean(r.keyMoney),
+                        layout: clean(r.madori),
+                        area: clean(r.area),
+                        same_room_ids: r.heyaNayoseBukkenNoList?.join(',') || null,
+                    },
+                    tags: r.isNewMark ? ['新着'] : [],
+                    image: image(r.roomThumbnail) ?? image(b.imageList?.[0]?.imageUrl),
                 },
-                tags: r.isNewMark ? ['新着'] : [],
-                image: image(r.roomThumbnail) ?? image(b.imageList?.[0]?.imageUrl),
-            });
-        }
-    }
-    return units;
+            ];
+        });
+    });
 };
 
 interface SaleUnit {
@@ -197,14 +199,10 @@ interface SaleUnit {
     osusumeComment?: { comment?: string } | null;
 }
 
-interface ResponseEnvelope {
-    body?: string;
-}
-
 /** The 売買 list keeps the SSR pass's whole HTTP response: the units are in its `body` (held as text), three layers down. */
 const saleListOf = (state: State): SaleUnit[] => {
     const key = Object.keys(state).find((k) => k.includes('/sell-living/bukken/list/first-view'));
-    const body = key === undefined ? undefined : (state[key] as ResponseEnvelope).body;
+    const body = key === undefined ? undefined : state[key]?.body;
     const list = body === undefined ? undefined : (JSON.parse(body) as { data?: { bukkenData?: { bukkenList?: SaleUnit[] } } }).data?.bukkenData?.bukkenList;
     if (!Array.isArray(list)) {
         throw new TypeError('athome: the SSR state holds no 売買 listing data; the page structure may have changed');
@@ -229,51 +227,48 @@ const splitTitle = (title: string | null, layout: string | null): { building: st
  * `tochiMs` is the plot: for a house that is the unit's own 土地面積, for a condominium the whole
  * building's 敷地面積, so it only becomes `land_area` for houses.
  */
-export const parseAthomeBuy = (state: State, propertyType: string): ListedUnit[] => {
-    const units: ListedUnit[] = [];
-    const seen = new Set<string>();
-    for (const b of saleListOf(state)) {
+export const parseAthomeBuy = (state: State, propertyType: string): ListedUnit[] =>
+    saleListOf(state).flatMap((b): ListedUnit[] => {
         const id = clean(b.bukkenNo);
         const kind = clean(b.seoRoma);
-        if (id === null || kind === null || seen.has(id)) {
-            continue;
+        if (id === null || kind === null) {
+            return [];
         }
-        seen.add(id);
         const layout = clean(b.madori);
         const isHouse = kind === 'kodate';
         const syumoku = clean(b.syumokuNm);
-        units.push({
-            id,
-            link: `${HOST}/${kind}/${id}/`,
-            raw: {
-                property_type: propertyType,
-                syumoku,
-                ...splitTitle(clean(b.title), layout),
-                price: manYen(b.kakaku),
-                layout,
-                area: clean(b.areaInfo?.area),
-                land_area: isHouse ? clean(b.tochiMs) : null,
-                site_area: isHouse ? null : clean(b.tochiMs),
-                floor: clean(b.kaidateKai),
-                floors: clean(b.kaidateKai),
-                built: clean(b.bukkenInfo?.chikunengetsu),
-                structure: clean(b.bukkenInfo?.construction),
-                address: clean(b.location),
-                access:
-                    (b.bukkenAccess ?? [])
-                        .map((a) => clean(a?.name))
-                        .filter((a): a is string => a !== null)
-                        .join('\n') || null,
-                land_rights: clean(b.tochiKenriNm),
-                yield: clean(b.rimawari),
-                tsubo_unit_price: clean(b.tsuboTanka),
-                coverage_ratio: clean(b.buildingToLandRatio),
-                floor_area_ratio: clean(b.floorAreaRatio),
-                comment: clean(b.osusumeComment?.comment),
+        return [
+            {
+                id,
+                link: `${HOST}/${kind}/${id}/`,
+                raw: {
+                    property_type: propertyType,
+                    syumoku,
+                    ...splitTitle(clean(b.title), layout),
+                    price: manYen(b.kakaku),
+                    layout,
+                    area: clean(b.areaInfo?.area),
+                    land_area: isHouse ? clean(b.tochiMs) : null,
+                    site_area: isHouse ? null : clean(b.tochiMs),
+                    floor: clean(b.kaidateKai),
+                    floors: clean(b.kaidateKai),
+                    built: clean(b.bukkenInfo?.chikunengetsu),
+                    structure: clean(b.bukkenInfo?.construction),
+                    address: clean(b.location),
+                    access:
+                        (b.bukkenAccess ?? [])
+                            .map((a) => clean(a?.name))
+                            .filter((a): a is string => a !== null)
+                            .join('\n') || null,
+                    land_rights: clean(b.tochiKenriNm),
+                    yield: clean(b.rimawari),
+                    tsubo_unit_price: clean(b.tsuboTanka),
+                    coverage_ratio: clean(b.buildingToLandRatio),
+                    floor_area_ratio: clean(b.floorAreaRatio),
+                    comment: clean(b.osusumeComment?.comment),
+                },
+                tags: [...(b.isOption?.isNewMark ? ['新着'] : []), ...(b.ownerChangeFlg ? ['オーナーチェンジ'] : []), ...(syumoku !== null && syumoku !== propertyType ? [syumoku] : [])],
+                image: image(b.images?.[0]?.originalImageUrl),
             },
-            tags: [...(b.isOption?.isNewMark ? ['新着'] : []), ...(b.ownerChangeFlg ? ['オーナーチェンジ'] : []), ...(syumoku !== null && syumoku !== propertyType ? [syumoku] : [])],
-            image: image(b.images?.[0]?.originalImageUrl),
-        });
-    }
-    return units;
-};
+        ];
+    });

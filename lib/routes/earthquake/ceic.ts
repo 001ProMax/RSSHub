@@ -1,8 +1,8 @@
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/ceic/:type?',
@@ -66,7 +66,7 @@ const magnitudes = { 0: 6, 5: 3, 8: 4, 9: 5 };
 
 async function handler(ctx) {
     let type = Number(ctx.req.param('type') ?? '1');
-    if (!Number.isSafeInteger(type) || !Object.hasOwn(typeMappings, type)) {
+    if (!Object.hasOwn(typeMappings, type)) {
         throw new InvalidParameterError('Invalid earthquake type. Use 1, 2, 5, 7, 8, 9, or 0.');
     }
     // Preserve the existing aliases for types omitted from the route documentation.
@@ -75,21 +75,14 @@ async function handler(ctx) {
     }
     const baseUrl = 'https://www.ceic.ac.cn';
     const earthquakes = await ofetch<Earthquake[]>(`${baseUrl}/data/data.json`);
-    const now = Date.now();
-    const yearAgo = new Date(now);
-    yearAgo.setUTCFullYear(yearAgo.getUTCFullYear() - 1);
-    const earliest = type === 1 || type === 2 ? now - type * 24 * 60 * 60 * 1000 : yearAgo.getTime();
+    const nowZdt = Temporal.Now.zonedDateTimeISO('UTC');
+    const now = nowZdt.epochMilliseconds;
+    const earliest = type === 1 || type === 2 ? now - type * 24 * 60 * 60 * 1000 : nowZdt.subtract({ years: 1 }).epochMilliseconds;
     const items = earthquakes
         // Match the official table's exclusion of minor Beijing events.
         .filter((earthquake) => !(earthquake.location.startsWith('北京') && earthquake.magnitude < 2))
-        .map((earthquake) => {
-            const pubDate = parseDate(`${earthquake.time.replace(' ', 'T')}+08:00`);
-            if (!Number.isFinite(pubDate.getTime())) {
-                throw new TypeError(`CEIC returned an invalid earthquake time for ${earthquake.id}. Please check the official table.`);
-            }
-            return { earthquake, pubDate };
-        })
-        .filter(({ earthquake, pubDate }) => pubDate.getTime() >= earliest && (type === 1 || type === 2 || (type === 7 ? earthquake.magnitude < 3 : earthquake.magnitude >= magnitudes[type])))
+        .map((earthquake) => ({ earthquake, pubDate: parseDate(`${earthquake.time.replace(' ', 'T')}+08:00`)! }))
+        .filter(({ earthquake, pubDate }) => pubDate.epochMilliseconds >= earliest && (type === 1 || type === 2 || (type === 7 ? earthquake.magnitude < 3 : earthquake.magnitude >= magnitudes[type])))
         // The previous route always exposed at most 20 events, even with a larger limit.
         .slice(0, Math.min(20, getRouteLimit(ctx, 20)))
         .map(({ earthquake, pubDate }) => ({

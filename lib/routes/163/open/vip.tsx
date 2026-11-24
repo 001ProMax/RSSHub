@@ -5,7 +5,7 @@ import { renderToString } from 'hono/jsx/dom/server';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/open/vip',
@@ -48,7 +48,7 @@ const renderDescription = (data, description) => {
     return renderToString(
         <>
             {chapterList?.length ? (
-                <div class="toc">
+                <div className="toc">
                     {chapterList.map((chapter, chapterIndex) => (
                         <>
                             <h3>

@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import type { Data, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.imf.org';
 const searchUrl = `${rootUrl}/en/publications/search`;
@@ -16,7 +16,7 @@ interface SearchResponse {
         title: string;
         clickUri: string;
         raw: {
-            imfdate?: number;
+            imfdate: number;
             imfdescription?: string;
             imfauthor?: string[];
             author?: string;
@@ -80,9 +80,9 @@ async function handler(ctx: Context): Promise<Data> {
             title: item.title,
             link: item.clickUri,
             description: item.raw.imfdescription,
-            pubDate: item.raw.imfdate ? parseDate(item.raw.imfdate) : undefined,
+            pubDate: parseDate(item.raw.imfdate),
             author: item.raw.imfauthor?.join('; ') || item.raw.author,
-            category: item.raw.imfkeywords?.flatMap((keywords) => keywords.split(',').map((keyword) => keyword.trim())),
+            category: item.raw.imfkeywords?.flatMap((keywords) => keywords.split(',')),
         })),
     };
 }

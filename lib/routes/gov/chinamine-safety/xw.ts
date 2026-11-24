@@ -2,9 +2,8 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { fetchData, processItems, rootUrl } from './util';
 
@@ -74,12 +73,11 @@ async function handler(ctx) {
         .toArray()
         .map((item) => {
             const $item = $(item);
-            const pubDate = $item.parent().find('span').text();
 
             return {
                 title: $item.text(),
                 link: new URL($item.prop('href')!, currentUrl).href,
-                pubDate: pubDate ? timezone(parseDate(pubDate), 8) : undefined,
+                pubDate: parseDate($item.parent().find('span').text(), 8),
             };
         });
 

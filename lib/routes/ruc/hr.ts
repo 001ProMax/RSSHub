@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/hr/:category?',
@@ -54,7 +54,7 @@ async function handler(ctx) {
             const $item = $(item);
             const href = $item.attr('href');
             const title = $item.text();
-            return href && title ? [{ title, link: new URL(href, currentUrl).href }] : [];
+            return href ? [{ title, link: new URL(href, currentUrl).href }] : [];
         });
 
     items = await pMap(
@@ -68,14 +68,11 @@ async function handler(ctx) {
 
                 const content = load(detailResponse.data);
 
-                const description = content('.article, .neirong').first().html();
-                if (!description?.trim()) {
-                    throw new Error(`RUC personnel article content is unavailable: ${item.link}`);
-                }
+                const description = content('.article, .neirong').html();
                 const date = content('.articleAuthor')
                     .text()
                     .match(/\d{4}-\d{2}-\d{2}/)?.[0];
-                return { description, pubDate: date ? parseDateInTimezone(date, 8) : undefined };
+                return { description, pubDate: date ? parseDate(date, 8) : undefined };
             });
             return { ...item, ...detail };
         },

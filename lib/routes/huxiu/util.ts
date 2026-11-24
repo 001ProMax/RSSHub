@@ -5,7 +5,7 @@ import { getMimeType } from 'hono/utils/mime';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
@@ -34,7 +34,7 @@ const cleanUpHTML = (data) => {
     $('em.vote__bar, div.vote__btn, div.vote__time').remove();
     $('p img').each((_, e) => {
         const $e = $(e);
-        const src = $e.prop('src') || $e.prop('_src');
+        const src = $e.prop('src');
         if (src) {
             const paragraph = $e.closest('p')[0];
             if (paragraph && 'tagName' in paragraph) {
@@ -76,18 +76,6 @@ const cleanUpHTML = (data) => {
     });
 
     return $.html();
-};
-
-const parsePublicationDate = (value: string | number | undefined) => {
-    if (([undefined, null, ''] as unknown[]).includes(value)) {
-        return;
-    }
-    const timestamp = Number(value);
-    if (!Number.isFinite(timestamp) || timestamp <= 0) {
-        return;
-    }
-    const date = parseDate(timestamp, 'X');
-    return Number.isFinite(date.getTime()) ? date : undefined;
 };
 
 const normalizeText = (value?: string) => {
@@ -311,7 +299,7 @@ const fetchItem = async (item) => {
             }),
             author: buildBriefAuthor(data) ?? item.author,
             category: buildBriefCategories({ brief, brief_column: briefColumn, club_info: clubInfo }),
-            pubDate: parsePublicationDate(brief.publish_time),
+            pubDate: parseDate(brief.publish_time, 'X'),
             upvotes: Number(brief.agree_num ?? item.upvotes ?? 0),
             comments: Number(brief.total_comment_num ?? brief.comment_num ?? item.comments ?? 0),
         };
@@ -345,7 +333,7 @@ const fetchItem = async (item) => {
         }),
         author: data.user_info?.username ?? item.author,
         category: buildCategories(data),
-        pubDate: parsePublicationDate(data.dateline ?? data.publish_time),
+        pubDate: parseDate(data.dateline ?? data.publish_time, 'X'),
         upvotes: Number(data.agreenum ?? item.upvotes ?? 0),
         comments: Number(data.commentnum ?? data.total_comment_num ?? item.comments ?? 0),
     };
@@ -374,12 +362,11 @@ const generateNonce = () => {
  * @returns {string} signature - The calculated signature value.
  */
 const generateSignature = () => {
-    const timestamp = Math.round(Date.now() / 1000).toString();
+    const timestamp = Math.round(Temporal.Now.instant().epochMilliseconds / 1000).toString();
 
     const appSecret = 'hUzaABtNfDE-6UiyaYhfsmjW-8dnoyVc';
     const nonce = generateNonce();
     // server-validated signature relies on JS default codepoint sort; localeCompare reorders mixed-case nonce vs lowercase appSecret
-    // oxlint-disable-next-line unicorn-js/require-array-sort-compare
     const r = [appSecret, timestamp, nonce].toSorted();
     return {
         nonce,
@@ -402,7 +389,7 @@ const audioQualities = [
  * @returns {Object} - An object containing the processed audio data.
  */
 const processAudioInfo = (info) => {
-    const quality = info ? audioQualities.find((quality) => typeof info[quality.path] === 'string' && info[quality.path]) : undefined;
+    const quality = info ? audioQualities.find((quality) => info[quality.path]) : undefined;
 
     if (quality === undefined) {
         return {
@@ -531,7 +518,7 @@ const mapItem = (item) => {
         }),
         author: extractAuthor(item),
         guid: identifiers.guid,
-        pubDate: parsePublicationDate(timestamp),
+        pubDate: timestamp ? parseDate(timestamp, 'X') : undefined,
         ...counts,
     };
 };

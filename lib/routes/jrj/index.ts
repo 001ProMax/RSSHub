@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const options = {
     '103': '财经资讯',
@@ -92,7 +92,7 @@ async function handler(ctx) {
         const link = item.pcInfoUrl;
         const title = item.title;
         const author = item.paperMediaSource;
-        const pubDate = item.makeDate ? parseDate(item.makeDate) : undefined;
+        const pubDate = parseDate(item.makeDate);
 
         return {
             title,

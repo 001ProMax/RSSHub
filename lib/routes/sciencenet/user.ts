@@ -6,8 +6,8 @@ import NotFoundError from '@/errors/types/not-found';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/user/:id',
@@ -34,8 +34,7 @@ export const route: Route = {
 
 async function handler(ctx) {
     const id = ctx.req.param('id');
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isFinite(requestedLimit) && requestedLimit >= 1 ? Math.floor(requestedLimit) : 50;
+    const limit = getRouteLimit(ctx, 50);
 
     const rootUrl = 'https://blog.sciencenet.cn';
     const currentUrl = `${rootUrl}/u/${id}`;
@@ -85,7 +84,7 @@ async function handler(ctx) {
 
                 const content = load(iconv.decode(detailResponse.data, 'gbk'));
 
-                return { author: content('.xs2').text(), description: content('#blog_article').html(), pubDate: timezone(parseDate(content('.xg1').eq(5).text()), 8) };
+                return { author: content('.xs2').text(), description: content('#blog_article').html(), pubDate: parseDate(content('.xg1').eq(5).text(), 8) };
             })),
         }),
         { concurrency: 3 }

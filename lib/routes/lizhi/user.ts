@@ -2,8 +2,8 @@ import type { Context } from 'hono';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/user/:id',
@@ -30,7 +30,7 @@ async function handler(ctx: Context) {
         title: item.voiceInfo.name,
         description: item.voiceDetailProperty.text,
         link: `https://www.lizhi.fm/voice/${item.voiceInfo.voiceId}?band=${item.userInfo.band}`,
-        pubDate: Number.isFinite(item.voiceInfo.createTime) ? parseDate(item.voiceInfo.createTime * 1000) : undefined,
+        pubDate: parseDate(item.voiceInfo.createTime * 1000),
         enclosure_url: item.voicePlayProperty.trackUrl,
         enclosure_type: 'audio/mpeg',
         itunes_duration: item.voiceInfo.duration,

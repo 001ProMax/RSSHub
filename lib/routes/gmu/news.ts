@@ -5,8 +5,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const newsTypes = {
     gyyw: { title: '赣医要闻', url: '/index/gyyw.htm' },
@@ -63,7 +62,7 @@ export const route: Route = {
     handler,
 };
 
-export async function handler(ctx: Context) {
+async function handler(ctx: Context) {
     const type = ctx.req.param?.('type') || 'gyyw';
     if (!Object.hasOwn(newsTypes, type)) {
         throw new InvalidParameterError(`Unknown news type "${type}". Available types: ${Object.keys(newsTypes).join(', ')}.`);
@@ -84,33 +83,30 @@ export async function handler(ctx: Context) {
             const a = element.find('a');
             const dateText = element.find('.sj .p2').length ? `${element.find('.sj .p2').text()}-${element.find('.sj .p1').text()}` : element.find('.sj').text();
             const href = a.attr('href');
-            const title = a.attr('title') || a.find('.bt, .p_bt').text();
+            const title = a.attr('title');
 
             if (!href || !title) {
                 return null;
             }
-
-            const publicationDate = dateText ? parseDate(dateText) : undefined;
-            const pubDate = publicationDate && !Number.isNaN(publicationDate.getTime()) ? timezone(publicationDate, 8) : undefined;
 
             const fullLink = new URL(href, link).href;
 
             const detail = await cache.tryGet(`gmu:news:${fullLink}:content`, async () => {
                 const contentResponse = await got(fullLink);
                 const content = load(contentResponse.data);
-                return { description: content('.v_news_content').html() ?? undefined };
+                return { description: content('.v_news_content').html() };
             });
 
             return {
                 title,
                 link: fullLink,
-                pubDate,
+                pubDate: parseDate(dateText, 8),
                 ...detail,
             };
         })
     );
 
-    const result = items.filter((item): item is { title: string; link: string; pubDate: Date | undefined; description: string | undefined } => item !== null);
+    const result = items.filter((item): item is { title: string; link: string; pubDate: Temporal.Instant; description: string | null } => item !== null);
 
     return {
         title: `赣南医科大学 - ${newsType.title}`,

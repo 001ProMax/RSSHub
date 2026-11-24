@@ -5,23 +5,12 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://www.txks.org.cn/index/work.html';
 
-function getPublicationDate(value: string): Date | undefined {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        return;
-    }
-    const date = parseDate(`${value}T00:00:00Z`);
-    return Number.isFinite(date.getTime()) && date.toISOString().startsWith(`${value}T`) ? date : undefined;
-}
-
-function removeFontPresetting($: CheerioAPI): string {
+function removeFontPresetting($: CheerioAPI): string | null {
     const content = $('#contentTxt');
-    if (content.length === 0) {
-        throw new Error('The source article does not contain its main content element');
-    }
     content.find('[style]').each((_, element) => {
         const style = $(element).attr('style') || '';
         const cleanedStyle = style.replaceAll(/font-family:[^;]*;?/gi, '').trim();
@@ -35,10 +24,10 @@ function removeFontPresetting($: CheerioAPI): string {
         const cssText = $(styleElement).html() || '';
         $(styleElement).html(cssText.replaceAll(/font-family:[^;]*;?/gi, ''));
     });
-    return content.html() || '';
+    return content.html();
 }
 
-async function getArticleItem(item: { date?: Date; title: string; link: string }): Promise<DataItem> {
+async function getArticleItem(item: { date?: Temporal.Instant; title: string; link: string }): Promise<DataItem> {
     const detail = await cache.tryGet<Pick<DataItem, 'description' | 'content'>>(`txks:article:${item.link}`, async () => {
         const { data: contentResponse } = await got(item.link);
         const content = removeFontPresetting(load(contentResponse));
@@ -62,7 +51,7 @@ const handler: Route['handler'] = async () => {
     const $ = load(listResponse);
 
     // Select all list items containing news information
-    const itemSelector = 'ul[class*="newsList"] > li';
+    const itemSelector = 'ul[class^="newsList"] > li';
     const listItems = $(itemSelector);
 
     // Map through each list item to extract details
@@ -71,7 +60,7 @@ const handler: Route['handler'] = async () => {
         const title = $(element).find('a').attr('title')!;
         const link = $(element).find('a').attr('href')!;
 
-        const formattedDate = getPublicationDate(date);
+        const formattedDate = parseDate(`${date}T00:00:00Z`);
         return {
             date: formattedDate,
             title,

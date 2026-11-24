@@ -7,32 +7,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function getImageUrl(value: string | undefined, baseUrl: string): string | undefined {
-    if (!value) {
-        return;
-    }
-    try {
-        const url = new URL(value, baseUrl);
-        if (['http:', 'https:'].includes(url.protocol) && !url.username && !url.password) {
-            return url.href;
-        }
-    } catch {
-        // Ignore unsupported source image URLs.
-    }
-    return;
-}
-
-function getReleaseDate(value: string | undefined): Date | undefined {
-    if (!value?.trim()) {
-        return;
-    }
-    const date = parseDate(value);
-    // UTC midnight represents the release calendar day, not a publication instant.
-    return Number.isFinite(date.getTime()) ? timezone(date, 0) : undefined;
-}
+import { parseDate } from '@/utils/time';
 
 const render = (data: { cover?: string }) => renderToString(<SeriesDescription {...data} />);
 
@@ -84,15 +59,6 @@ async function handler(ctx: Context) {
 
                 $('svg, .social-share, .desktop-only, .detail-labels').remove();
 
-                $('.book-info img').each((_, node) => {
-                    const image = $(node);
-                    const src = getImageUrl(image.attr('src') || image.attr('data-src'), item.link!);
-                    if (src) {
-                        image.attr('src', src).removeAttr('data-src');
-                    } else {
-                        image.remove();
-                    }
-                });
                 const cover = $('.book-info').find('.book-cover-img').html();
 
                 const bookInfo = $('.buy-info .deliver')
@@ -129,23 +95,20 @@ async function handler(ctx: Context) {
                     .children('.story-details.mobile-only')
                     .find('p')
                     .toArray()
-                    .map((node) => $(node).text())
-                    .filter((text) => text.trim());
-                const author = credits.length ? credits.join('; ') : undefined;
+                    .map((node) => $(node).text());
                 info.find('.buy-info, .series-cover, .story-details.mobile-only').remove();
 
                 const description = render({
                     cover: cover! + info.html(),
                 });
-                const releaseDate = bookInfo[0]?.detail.find((d) => d.key === 'Release Date')?.value;
                 return {
                     description,
                     category,
-                    pubDate: getReleaseDate(releaseDate),
-                    author,
+                    pubDate: parseDate(bookInfo[0].detail.find((d) => d.key === 'Release Date')!.value, 'MMM D, YYYY', 0),
+                    author: credits.join('; '),
                 };
             });
-            return { ...item, description, pubDate: pubDate ?? undefined, category, author };
+            return { ...item, description, pubDate, category, author };
         },
         { concurrency: 3, stopOnError: false }
     );

@@ -6,8 +6,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 const allowRegion = new Set(['tw', 'hk']);
 
@@ -56,7 +56,7 @@ async function handler(ctx) {
                 const $ = load(response.data);
 
                 // remove unwanted elements
-                $('noscript, script, style, .related-link-block').remove();
+                $('noscript, style').remove();
                 $('div[id^=dablewidget]').remove();
                 $('div[class^=parallax-ads]').remove();
                 $('.adsbygoogle, .join-eprice-fb, .teads').remove();

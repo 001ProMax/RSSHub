@@ -1,12 +1,11 @@
 import { load } from 'cheerio';
-import MarkdownIt from 'markdown-it';
 
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import MarkdownIt from '@/utils/markdown-it';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const md = MarkdownIt({
     html: true,
@@ -20,7 +19,7 @@ async function getArticles() {
     return json.props.pageProps.list.map((item) => ({
         title: item.title,
         link: 'https://www.apiseven.com' + item.slug,
-        pubDate: timezone(parseDate(item.published_at), 8),
+        pubDate: parseDate(item.published_at, 8),
         category: item.tags,
     }));
 }

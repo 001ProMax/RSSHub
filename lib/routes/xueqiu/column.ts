@@ -1,16 +1,14 @@
 import { load } from 'cheerio';
-import { CookieJar } from 'tough-cookie';
 
 import { config } from '@/config';
 import type { Route } from '@/types';
 import { evaluateScriptData } from '@/utils/evaluate-script';
 import got from '@/utils/got';
-import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import { getPlaywrightPage } from '@/utils/playwright';
+import { parseDate } from '@/utils/time';
 
-const cookieJar = new CookieJar();
-const baseUrl = 'https://xueqiu.com';
+import { parseToken } from './cookies';
+
+const baseUrl = 'https://www.xueqiu.com';
 
 export const route: Route = {
     path: '/column/:id',
@@ -19,7 +17,7 @@ export const route: Route = {
     parameters: { id: '用户 id, 可在用户主页 URL 中找到' },
     features: {
         requireConfig: [{ name: 'XUEQIU_COOKIES', optional: true, description: '需要登录才能访问的专栏请配置雪球登录 Cookie。' }],
-        requirePuppeteer: true,
+        requirePuppeteer: false,
         antiCrawler: true,
         supportBT: false,
         supportPodcast: false,
@@ -37,16 +35,10 @@ export const route: Route = {
 
 async function handler(ctx) {
     const id = ctx.req.param('id');
-    const pageUrl = `${baseUrl}/${id}/column`;
+    const pageUrl = `${baseUrl}/${encodeURIComponent(id)}/column`;
 
-    const configuredCookie = config.xueqiu.cookies;
-    if (!configuredCookie) {
-        const response = await ofetch.raw(baseUrl, { responseType: 'text' });
-        for (const cookie of response.headers.getSetCookie()) {
-            cookieJar.setCookieSync(cookie, baseUrl);
-        }
-    }
-    const headers = { Cookie: configuredCookie || cookieJar.getCookieStringSync(baseUrl), Referer: pageUrl };
+    const cookie = config.xueqiu.cookies || (await parseToken());
+    const headers = { Cookie: cookie, Referer: pageUrl };
 
     const pageData = await got(pageUrl, {
         headers,
@@ -65,17 +57,7 @@ async function handler(ctx) {
         throw new Error('The Xueqiu column profile is unavailable. Verify the user ID and refresh XUEQIU_COOKIES.');
     }
 
-    const response = await got(`${baseUrl}/statuses/original/timeline.json`, {
-        headers,
-        searchParams: {
-            user_id: id,
-            page: 1,
-        },
-    });
-    const data =
-        !configuredCookie && typeof response.data === 'string' && isBrowserVerification(response.data)
-            ? await getAnonymousTimeline(`${baseUrl}/statuses/original/timeline.json?${new URLSearchParams({ user_id: id, page: '1' })}`, pageUrl)
-            : response.data;
+    const { data } = await got(`https://api.xueqiu.com/statuses/original/timeline.json?${new URLSearchParams({ user_id: id, page: '1' })}`, { headers });
 
     if (!Array.isArray(data?.list)) {
         throw new TypeError('The Xueqiu column API did not return a timeline. Refresh XUEQIU_COOKIES and verify access to the column on Xueqiu.');
@@ -98,44 +80,4 @@ async function handler(ctx) {
         description: snowmanTarget.description,
         item: items,
     };
-}
-
-async function getAnonymousTimeline(url: string, pageUrl: string) {
-    const { page, destroy } = await getPlaywrightPage(url, {
-        noGoto: true,
-        closeTimeout: 0,
-        onBeforeLoad: async (page) => {
-            await page.route('**/*', (route) => (['document', 'script', 'xhr', 'fetch', 'stylesheet'].includes(route.request().resourceType()) ? route.continue() : route.abort()));
-        },
-    });
-    try {
-        await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
-        await page.waitForFunction(
-            () => {
-                try {
-                    const data = JSON.parse(document.body.textContent ?? '');
-                    return Array.isArray(data?.list) || typeof data?.error_code === 'number';
-                } catch {
-                    return false;
-                }
-            },
-            undefined,
-            { timeout: 15000 }
-        );
-        const content = await page.locator('body').textContent();
-        return JSON.parse(content ?? '');
-    } finally {
-        await destroy();
-    }
-}
-
-function isBrowserVerification(data: string) {
-    const $ = load(data);
-    try {
-        const payload = JSON.parse($('#renderData').text());
-        return Object.keys(payload).some((key) => key.startsWith('_waf_') && typeof payload[key] === 'string');
-    } catch {
-        return false;
-    }
 }

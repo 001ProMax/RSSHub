@@ -2,7 +2,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 // https://github.com/streamlink/streamlink/blob/master/src/streamlink/plugins/twitch.py#L286
 const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
@@ -48,14 +48,6 @@ export const route: Route = {
     maintainers: ['hoilc'],
     handler,
 };
-
-function getPublicationDate(value: string | undefined) {
-    if (typeof value !== 'string' || !value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-}
 
 async function handler(ctx) {
     const login = ctx.req.param('login');
@@ -105,7 +97,7 @@ async function handler(ctx) {
         title: item.title,
         link: `https://www.twitch.tv/videos/${item.id}`,
         author: displayName,
-        pubDate: getPublicationDate(item.publishedAt),
+        pubDate: parseDate(item.publishedAt),
         description: `<img style="max-width: 100%;" src="${item.previewThumbnailURL}"><br/><img style="max-width: 100%;" src="${item.animatedPreviewURL}">`,
         category: item.game && [item.game.displayName], // item.game may be null
     }));

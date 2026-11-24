@@ -3,17 +3,9 @@ import { renderToString } from 'hono/jsx/dom/server';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const host = 'https://www.ixigua.com';
-
-const parsePublishTime = (value?: number | string | null) => {
-    if (!value && value !== 0) {
-        return;
-    }
-    const date = parseDate(value, 'X');
-    return Number.isFinite(date.getTime()) ? date : undefined;
-};
 
 export const route: Route = {
     path: '/user/video/:uid/:disableEmbed?',
@@ -69,7 +61,7 @@ async function handler(ctx) {
             title: i.title,
             description: renderToString(<IxiguaVideoDescription i={i} disableEmbed={disableEmbed} />),
             link: `${host}/${i.group_id_str}`,
-            pubDate: parsePublishTime(i.publish_time),
+            pubDate: parseDate(i.publish_time, 'X'),
             author: userInfo.name,
         })),
     };
@@ -83,7 +75,7 @@ const IxiguaVideoDescription = ({ i, disableEmbed }: { i: any; disableEmbed?: st
                 <br />
             </>
         )}
-        {i.large_image_list?.[0]?.url ? <img src={i.large_image_list[0].url} /> : null}
+        <img src={i.large_image_list[0].url} />
         <p>{i.abstract}</p>
     </>
 );

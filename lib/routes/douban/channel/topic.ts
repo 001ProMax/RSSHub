@@ -2,8 +2,7 @@ import { html } from 'hono/html';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/channel/:id/:nav?',
@@ -76,8 +75,8 @@ async function handler(ctx) {
                     return {
                         title: item.title,
                         description,
-                        author: item.author?.name,
-                        pubDate: item.create_time ? timezone(parseDate(item.create_time), 8) : undefined,
+                        author: item.author.name,
+                        pubDate: parseDate(item.create_time, 8),
                         link: item.url,
                     };
                 }

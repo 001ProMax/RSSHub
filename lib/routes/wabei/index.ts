@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/hot-recommend',
@@ -61,11 +60,10 @@ async function handler() {
                     url: item.link,
                 });
                 const content = load(detailResponse.data);
-                const published = content('.attr .time').text().trim();
-                const pubDate = published ? timezone(parseDate(published, 'YYYY/M/D H:mm:ss'), 8) : undefined;
+                const published = content('.attr .time').text();
                 return {
-                    description: content('.subject-content').html() || undefined,
-                    pubDate: pubDate && !Number.isNaN(pubDate.getTime()) ? pubDate : undefined,
+                    description: content('.subject-content').html(),
+                    pubDate: parseDate(published, 'YYYY/M/D H:mm:ss', 8),
                 };
             });
             return { ...item, ...details, description: details.description || item.description };

@@ -3,7 +3,7 @@ import type { Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import type { Podcast, PodcastInfo } from './types';
 
@@ -41,7 +41,7 @@ const handler = async (ctx) => {
         description: item.contentEncoded,
         link: item.url,
         author: item.artistName,
-        pubDate: item.publishDate ? parseDate(item.publishDate) : undefined,
+        pubDate: parseDate(item.publishDate),
         itunes_item_image: item.cover,
         enclosure_url: item.audioUrl,
         enclosure_type: item.audioType,

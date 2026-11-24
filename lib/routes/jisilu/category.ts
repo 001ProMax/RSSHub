@@ -10,7 +10,7 @@ import { getRouteLimit } from '@/utils/route-limit';
 
 import { processItems, rootUrl } from './util';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { id } = ctx.req.param();
 
     if (!id) {
@@ -29,7 +29,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
     $('div.pagination').remove();
 
-    const author = $('meta[name="keywords"]').prop('content')?.split(/,/, 1)[0];
+    const author = $('meta[name="keywords"]').prop('content').split(/,/, 1)[0];
     const feedImage = $('div.aw-logo img').prop('src');
 
     return {

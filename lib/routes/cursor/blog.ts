@@ -6,8 +6,8 @@ import type { Data, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 const getBlogContent = (url: string) =>
@@ -15,12 +15,8 @@ const getBlogContent = (url: string) =>
         const response = await ofetch(url);
         const $ = load(response);
         const article = $('.prose--blog, main article .prose').first();
-        if (!article.length) {
-            throw new Error(`Cursor blog article content was not found at ${url}`);
-        }
-
-        const description = article.html() ?? undefined;
-        article.find('script, style').remove();
+        const description = article.html();
+        article.find('style').remove();
 
         return {
             description,
@@ -31,7 +27,7 @@ const getBlogContent = (url: string) =>
         };
     });
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { topic, locale } = ctx.req.param();
     if (locale && !isValidHost(locale)) {
         throw new InvalidParameterError('Invalid locale');
@@ -55,7 +51,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
         .toArray()
         .map((el) => {
             const $el = $(el);
-            const descendantLink = $el.find('a').first();
+            const descendantLink = $el.find('a');
             const $link = descendantLink.length ? descendantLink : $el.closest('a');
 
             const title = $el.find('p').first().text();
@@ -76,7 +72,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
         })
         .filter((item, index, items) => items.findIndex((candidate) => candidate.link === item.link) === index)
         .slice(0, limit);
-    const orderedList = ctx.req.query('sorted') === 'false' ? list : list.toSorted((a, b) => (b.pubDate?.getTime() ?? 0) - (a.pubDate?.getTime() ?? 0));
+    const orderedList = ctx.req.query('sorted') === 'false' ? list : list.toSorted((a, b) => (b.pubDate?.epochMilliseconds ?? 0) - (a.pubDate?.epochMilliseconds ?? 0));
     const candidates = orderedList.slice(0, requestedLimit);
     const items = await Promise.all(
         candidates.map(async (item) => {

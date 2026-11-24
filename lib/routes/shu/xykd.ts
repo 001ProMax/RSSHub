@@ -4,8 +4,7 @@ import pMap from 'p-map'; // cheerio@1.0.0
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const noticeType = {
     whxx: { title: '上海大学 - 文化信息', url: 'https://www.shu.edu.cn/xnrc/whxx.htm' },
@@ -80,8 +79,7 @@ async function handler(ctx) {
                 }); // 获取详情页内容
                 const content = load(detailResponse.data); // 使用cheerio解析内容
 
-                const published = content('.sj').text();
-                item.pubDate = published ? timezone(parseDate(published, 'YYYY.MM.DD'), 8) : undefined;
+                item.pubDate = parseDate(content('.sj').text(), 'YYYY.MM.DD', 8);
                 item.description = content('#vsb_content_500 .v_news_content').html() || item.description; // 提取内容区详情
 
                 return { description: item.description, pubDate: item.pubDate }; // 返回完整的item

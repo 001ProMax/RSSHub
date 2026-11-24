@@ -1,7 +1,7 @@
 import type { Data, Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/commonslibrary/type/:topic?',
@@ -44,7 +44,7 @@ async function handler(ctx) {
                 link: item.link,
                 guid: item.guid,
                 author: item.creator || undefined,
-                description: item['content:encoded'] ?? item.content,
+                description: item['content:encoded'],
                 pubDate: item.pubDate ? parseDate(item.pubDate) : undefined,
             };
         }),

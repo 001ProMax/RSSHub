@@ -4,9 +4,8 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/programme/:id?/:limit?/:isFull?',
@@ -81,8 +80,7 @@ export const route: Route = {
 
 async function handler(ctx) {
     const id = ctx.req.param('id') ?? '1';
-    const requestedLimit = Number(ctx.req.param('limit'));
-    const limit = Number.isFinite(requestedLimit) && requestedLimit >= 1 ? Math.floor(requestedLimit) : 15;
+    const limit = ctx.req.param('limit') ? Number.parseInt(ctx.req.param('limit')) : 15;
     const itemLimit = getRouteLimit(ctx, 100);
     const isFull = /t|y/i.test(ctx.req.param('isFull') ?? 'true');
 
@@ -115,7 +113,7 @@ async function handler(ctx) {
                     guid: item.id,
                     title: item.programmeTitle,
                     link: item.programmeUrl,
-                    pubDate: timezone(parseDate(item.pubTime), 8),
+                    pubDate: parseDate(item.pubTime, 8),
                     description: renderToString(
                         <video poster={item.programmeImage} controls>
                             <source src={item.programmeUrl} type="video/mp4" />

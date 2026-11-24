@@ -1,19 +1,21 @@
-import { type Cheerio, type CheerioAPI, load } from 'cheerio';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 import type { Element } from 'domhandler';
 import type { Context } from 'hono';
 import pMap from 'p-map';
 
-import { type Data, type DataItem, type Language, type Route, ViewType } from '@/types';
+import type { Data, DataItem, Language, Route } from '@/types';
+import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
-const parseFeedDate = (date: string) => parseDate(/^\d{4}-\d{2}-\d{2}$/.test(date.trim()) ? `${date.trim()}T00:00:00Z` : date);
+const parseFeedDate = (date: string) => parseDate(`${date}T00:00:00Z`);
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { topic } = ctx.req.param();
     const limit = getRouteLimit(ctx, 10);
 

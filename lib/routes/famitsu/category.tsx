@@ -7,7 +7,7 @@ import { config } from '@/config';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import type { ArticleDetail, Category, CategoryArticle } from './types';
 
@@ -127,12 +127,12 @@ async function handler(ctx) {
 
     const list = data.pageProps.categoryArticleDataForPc
         .filter((item) => !item.advertiserName)
-        .map((item): DataItem & { link: string; pubDate?: Date; publicationDate: string | undefined; articleId: string } => {
+        .map((item): DataItem & { link: string; pubDate?: Temporal.Instant; publicationDate: string | undefined; articleId: string } => {
             const publicationDate = item.publishedAt?.slice(0, 7).replace('-', '');
             return {
                 title: item.title,
                 link: `https://www.famitsu.com/article/${publicationDate}/${item.id}`,
-                pubDate: item.publishedAt ? parseDate(item.publishedAt) : undefined,
+                pubDate: parseDate(item.publishedAt!),
                 category: [...new Set([item.mainCategory.nameJa, ...(item.subCategories?.map((c) => c.nameJa) ?? [])])],
                 publicationDate,
                 articleId: item.id,
@@ -151,7 +151,7 @@ async function handler(ctx) {
                 });
 
                 const articleDetail = data.pageProps.articleDetailData;
-                item.updated = articleDetail.updatedAt ? parseDate(articleDetail.updatedAt) : undefined;
+                item.updated = parseDate(articleDetail.updatedAt);
                 item.author = articleDetail.authors?.map((a) => a.name_ja).join(', ') ?? articleDetail.user.name_ja;
                 item.description = render({
                     bannerImage: articleDetail.ogpImageUrl ?? articleDetail.thumbnailUrl,

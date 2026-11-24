@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.piyao.org.cn';
 
@@ -53,8 +53,8 @@ async function handler() {
 
                 item.title = content('div.con_tit > h2').text();
                 item.description = content('div.con_txt').html();
-                const date = content('div.con_tit > p > span').text().split('时间：', 2)[1]?.trim();
-                item.pubDate = date ? parseDate(`${date}T00:00:00Z`) : undefined;
+                const date = content('div.con_tit > p > span').text().split('时间：', 2)[1].trim();
+                item.pubDate = parseDate(`${date}T00:00:00Z`);
 
                 return item;
             }),

@@ -1,22 +1,11 @@
-import { type Cheerio, load } from 'cheerio';
-import { type AnyNode, cloneNode, Document } from 'domhandler';
+import { load } from 'cheerio';
 import { raw } from 'hono/html';
 import { renderToString } from 'hono/jsx/dom/server';
 
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
-
-function copyElements<T extends AnyNode>(selection: Cheerio<T>): Cheerio<T> {
-    const copy = selection.map((_, element) => cloneNode(element, true));
-    const root = new Document(copy.toArray());
-    copy.each((_, element) => {
-        element.parent = root;
-    });
-    return copy;
-}
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'http://www.mztoday.gov.cn';
 const basicInfoDict = {
@@ -110,7 +99,7 @@ const getInfoUrlList = async (url) => {
         .map((item) => ({
             title: $('a', item).attr('title')!,
             url: `${rootUrl}${$('a', item).attr('href')}`,
-            pubDate: timezone(parseDate($('div > div:nth-child(4)', item).html()!.trim()), 8),
+            pubDate: parseDate($('div > div:nth-child(4)', item).html()!.trim(), 8),
         }));
     return infoList;
 };
@@ -120,13 +109,13 @@ const getInfoContent = (item) =>
     cache.tryGet(item.url, async () => {
         const response = await got(item.url);
         const $ = load(response.data);
-        const content = copyElements($('.showText, #js_content, #articleContent').first());
+        const content = $('.showText, #js_content, #articleContent');
         if (!content.length && $('.articleTitle, #js_article').length) {
             throw new Error(`Article content was not found: ${item.url}`);
         }
         content.find('img[data-src]').each((_, image) => {
             const $image = $(image);
-            $image.attr('src', $image.attr('data-src')!).removeAttr('data-src');
+            $image.attr('src', $image.attr('data-src')).removeAttr('data-src');
         });
         return {
             title: item.title,

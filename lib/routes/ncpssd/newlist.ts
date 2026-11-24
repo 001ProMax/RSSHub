@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/newlist',
@@ -23,8 +23,8 @@ export const route: Route = {
 
 interface ArticleResponse {
     data?: {
-        showwriter?: string | null;
-        remarkc?: string | null;
+        showwriter: string;
+        remarkc: string;
         publishDateTime?: string | null;
     };
 }
@@ -53,9 +53,6 @@ async function handler() {
                 const $detail = load(articleContent);
                 const lngid = $detail('#ftl_urlId').attr('value');
                 const type = $detail('#ftl_urlTypename').attr('value');
-                if (!lngid || !type) {
-                    throw new Error('The NCpssd article page did not provide the identifiers required by its detail API.');
-                }
                 const response = await ofetch<ArticleResponse>(`${baseUrl}/articleinfoHandler/getjournalarticletable`, {
                     method: 'POST',
                     body: { lngid, type, pageType: $detail('#ftl_urlPagetype').attr('value') ? 2 : 1 },
@@ -65,9 +62,9 @@ async function handler() {
                 }
                 return {
                     ...item,
-                    author: response.data.showwriter ?? undefined,
-                    description: response.data.remarkc ?? undefined,
-                    pubDate: response.data.publishDateTime ? parseDateInTimezone(response.data.publishDateTime, 8) : undefined,
+                    author: response.data.showwriter,
+                    description: response.data.remarkc,
+                    pubDate: response.data.publishDateTime ? parseDate(response.data.publishDateTime, 8) : undefined,
                 };
             }),
         { concurrency: 6 }

@@ -7,7 +7,7 @@ import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news',
@@ -67,9 +67,9 @@ async function handler() {
                 pubDate: parseDate(Number.parseInt($item.find('.new_time').attr('data-date')!)),
             };
         });
-    const candidates = items;
+
     items = await pMap(
-        candidates,
+        items,
         (item) =>
             cache.tryGet(item.link, async () => {
                 const detailResponse = await got({

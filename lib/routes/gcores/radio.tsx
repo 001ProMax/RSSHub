@@ -3,8 +3,8 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import type { Language, Route } from '@/types';
 import got from '@/utils/got';
-import md5 from '@/utils/md5';
-import { parseDate } from '@/utils/parse-date';
+import { md5 } from '@/utils/hash';
+import { parseDate } from '@/utils/time';
 
 import { parseContent } from './parser';
 import { getAudioMimeType } from './util';
@@ -52,7 +52,7 @@ async function handler(ctx) {
     api.searchParams.set('filter[list-all]', '0');
     api.searchParams.set('filter[is-require-privilege]', '0');
     api.searchParams.set('fields[radios]', 'title,cover,published-at,duration,content,media');
-    const { data, included = [] } = await get(api);
+    const { data, included } = await get(api);
 
     const audios = {};
     for (const media of included) {

@@ -6,9 +6,8 @@ import { getMimeType } from 'hono/utils/mime';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 
 const documentMimeTypes = {
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -34,7 +33,7 @@ const renderDescription = ({ images, description }) =>
             {description ? <>{raw(description)}</> : null}
         </>
     );
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { category = 'fgw_zxxxgk' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 20);
 
@@ -52,12 +51,10 @@ export const handler = async (ctx) => {
         .toArray()
         .map((item): DataItem => {
             const $item = $(item);
-            const date = $item.find('span.time').text().trim();
-            const pubDate = date ? timezone(parseDate(date, 'YYYY-MM-DD', true), 8) : undefined;
 
             return {
-                title: $item.find('a').prop('title')!,
-                pubDate: pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : undefined,
+                title: $item.find('a').prop('title'),
+                pubDate: parseDateStrict($item.find('span.time').text(), 'YYYY-MM-DD', 8),
                 link: new URL($item.find('a').prop('href')!, rootUrl).href,
                 language,
             };
@@ -95,9 +92,8 @@ export const handler = async (ctx) => {
 
                 item.title = title;
                 item.description = description;
-                const date = $$('meta[name="PubDate"]').prop('content')?.replaceAll('∶', ':');
-                const pubDate = date ? timezone(parseDate(date, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm'], true), 8) : undefined;
-                item.pubDate = pubDate && Number.isFinite(pubDate.getTime()) ? pubDate : item.pubDate;
+                const date = $$('meta[name="PubDate"]').prop('content').replaceAll('∶', ':');
+                item.pubDate = parseDateStrict(date, ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm'], 8);
                 item.category = [...new Set([$$('meta[name="ColumnName"]').prop('content'), $$('meta[name="ColumnKeywords"]').prop('content')])].filter(Boolean);
                 item.author = $$('meta[name="ContentSource"]').prop('content');
                 item.content = {
@@ -118,11 +114,6 @@ export const handler = async (ctx) => {
             })
         )
     );
-
-    if (ctx.req.query('sorted') !== 'false' && items.every((item) => item.pubDate instanceof Date && Number.isFinite(item.pubDate.getTime()))) {
-        items.sort((a, b) => (b.pubDate as Date).getTime() - (a.pubDate as Date).getTime());
-        items = items.slice(0, limit);
-    }
 
     const author = $('meta[name="SiteName"]').prop('content');
     const imageUrl = $('span.logo-icon img').prop('src');

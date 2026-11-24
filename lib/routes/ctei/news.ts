@@ -4,8 +4,7 @@ import type { Context } from 'hono';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news/:id?',
@@ -40,14 +39,13 @@ async function handler(ctx: Context) {
             return {
                 title: $item.attr('title') || $item.text(),
                 link,
-                pubDate: timezone(parseDate(link.match(/\/t(\d{8})_\d+\.htm/)![1], 'YYYYMMDD'), 8),
+                pubDate: parseDate(link.match(/\/t(\d{8})_\d+\.htm/)![1], 'YYYYMMDD', 8),
             };
         });
 
     const uniqueItems = new Map(list.map((item) => [item.link, item])).values().toArray();
-    const articles = uniqueItems;
     const items = await Promise.all(
-        articles.map((item) =>
+        uniqueItems.map((item) =>
             cache.tryGet(item.link!, async () => {
                 const detailResponse = await ofetch(item.link!);
                 const content = load(detailResponse);

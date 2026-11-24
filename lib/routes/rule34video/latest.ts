@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseRelativeDate } from '@/utils/parse-date';
+import { parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/latest',
@@ -55,8 +55,7 @@ async function handler() {
             const $el = $(element);
             const title = $el.attr('title')?.trim() || $el.find('.thumb_title').text().trim();
             const link = $el.attr('href')?.trim() || '';
-            const thumbnail = $el.find('img.thumb').first();
-            const preview = thumbnail.attr('data-rd-jpg') || thumbnail.attr('data-original') || thumbnail.attr('src');
+            const preview = $el.find('img.thumb').attr('data-rd-jpg');
             const duration = $el.find('.time').text().trim();
             const added = $el.find('.added').text().replaceAll(/\s+/g, ' ').trim();
             const rating = $el.find('.rating').text().trim();
@@ -124,7 +123,7 @@ function buildDataItem(item: VideoItem) {
         link: item.link,
         description,
         image: item.preview,
-        ...(pubDate && { pubDate: pubDate.toISOString() }),
+        ...(pubDate && { pubDate }),
         guid: item.videoId ? `rule34video:${item.videoId}` : item.link,
         category: item.isHD ? ['HD'] : [],
     };

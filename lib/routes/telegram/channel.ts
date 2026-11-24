@@ -12,8 +12,8 @@ import cache from '@/utils/cache';
 import { isWorker } from '@/utils/is-worker';
 import logger from '@/utils/logger';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { fallback, queryToBoolean } from '@/utils/readable-social';
+import { parseDate, parseDuration, toRFC822 } from '@/utils/time';
 
 import { expandTelegraph } from './telegraph';
 import { renderVideo } from './templates/video';
@@ -156,7 +156,7 @@ Due to Telegram restrictions, some channels involving pornography, copyright, an
 MTProto connections can use a SOCKS4/5 \`PROXY_URI\` (for example, \`socks5://127.0.0.1:1080\`) or the dedicated \`TELEGRAM_PROXY_HOST\`, \`TELEGRAM_PROXY_PORT\`, and \`TELEGRAM_PROXY_SECRET\` MTProxy settings, which take precedence. HTTP proxies only apply to the public web feed; use a SOCKS or MTProxy endpoint for authenticated MTProto feeds.
 When MTProto hits a flood wait or gives no response within \`REQUEST_TIMEOUT\`, the route falls back to the public web feed. Other MTProto errors fail the feed. Cloudflare Workers deployments always use the public web feed.
 
-When a reverse proxy removes a public URL prefix (for example, \`/rss\`), set its \`X-Forwarded-Prefix\` request header to that prefix so Telegram media links include it. Access-control \`key\` and \`code\` parameters are preserved in these media links.
+When a reverse proxy removes a public URL prefix (for example, \`/rss\`), set its \`X-Forwarded-Prefix\` request header to that prefix so Telegram media links include it. When \`ACCESS_KEY\` is set, each media link carries the access \`code\` of its own path, never the requester's \`key\` or \`code\`.
 :::`,
 };
 
@@ -589,19 +589,6 @@ async function handler(ctx) {
                     voiceHtml += '</b></p>';
                     voiceHtml += `<audio src="${voiceUrl}"></audio>`;
                 }
-                const voiceDuration = () => {
-                    if (durationObj.length) {
-                        const p = durationInMmss.split(':');
-                        let second = 0,
-                            minute = 1;
-                        while (p.length > 0) {
-                            second += minute * Number(p.pop());
-                            minute *= 60;
-                        }
-                        return second.toString();
-                    }
-                    return '';
-                };
 
                 /* link preview */
                 const linkPreview = () => {
@@ -723,8 +710,7 @@ async function handler(ctx) {
                 }
 
                 /* pubDate */
-                const publishedAt = $item.find('.tgme_widget_message_date time').attr('datetime');
-                const pubDate = publishedAt ? parseDate(publishedAt) : undefined;
+                const pubDate = parseDate($item.find('.tgme_widget_message_date time').attr('datetime')!);
 
                 /* ----- finished parsing ----- */
 
@@ -771,7 +757,7 @@ async function handler(ctx) {
                     messageTitle += (messageTitle && titleText ? ': ' : '') + titleText;
                 }
 
-                messageTitle = messageTitle === '' ? mediaTag || pubDate?.toUTCString() || '' : `${mediaTag}${mediaTag ? ' ' : ''}${messageTitle}`;
+                messageTitle = messageTitle === '' ? mediaTag || toRFC822(pubDate!) : `${mediaTag}${mediaTag ? ' ' : ''}${messageTitle}`;
 
                 let description = '';
                 if (showFwdFrom) {
@@ -797,7 +783,7 @@ async function handler(ctx) {
                     author: $item.find('.tgme_widget_message_from_author').text(),
 
                     enclosure_url: voiceUrl,
-                    itunes_duration: voiceDuration(),
+                    itunes_duration: parseDuration(durationInMmss),
                     enclosure_type: 'audio/ogg',
 
                     _extra: extra,

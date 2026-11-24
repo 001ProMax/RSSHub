@@ -5,7 +5,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Data, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const categories = {
     all: {
@@ -44,13 +44,6 @@ const categories = {
         en: { name: 'XJTLU Stories', path: 'news/xjtlu-stories' },
         zh: { name: '招生专区', path: 'news_category/topictopic4683' },
     },
-};
-const parseModifiedDate = (raw?: string) => {
-    if (!raw || !/(?:Z|[+-]\d{2}:\d{2})$/.test(raw)) {
-        return;
-    }
-    const parsed = parseDate(raw);
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 };
 const handler = async (ctx): Promise<Data> => {
     const lang = ctx.req.param('lang') ?? 'en';
@@ -92,34 +85,22 @@ const handler = async (ctx): Promise<Data> => {
     // Fetch full article content for each item
     const items = await pMap(
         list,
-        (item) =>
-            mapResolvedValue(
-                cache.tryGet(`xjtlu:news:detail:v4:${item.link}`, async () => {
-                    const articleResponse = await ofetch(item.link!);
-                    const $article = load(articleResponse);
-                    const fullContent = $article('.post_content').html();
-                    if (!fullContent?.trim()) {
-                        throw new Error(`Unable to find article content at ${item.link}`);
-                    }
-                    const articleDate = $article('.edited-view .date, p.date').text();
-                    // Parse date based on language
+        async (item) => {
+            const detail = await cache.tryGet(`xjtlu:news:detail:v4:${item.link}`, async () => {
+                const articleResponse = await ofetch(item.link!);
+                const $article = load(articleResponse);
+                const articleDate = $article('.edited-view .date, p.date').text();
+                const modified = $article('meta[property="article:modified_time"]').attr('content');
+                return {
+                    description: $article('.post_content').html(),
                     // English: "21 Jan 2026" with 'en' locale for month name recognition
                     // Chinese: "2026年01月20日" - numeric format, no locale needed
-                    let pubDate: Date | undefined;
-                    if (articleDate) {
-                        const parsed = lang === 'en' ? parseDate(articleDate, 'DD MMM YYYY', 'en', true) : parseDate(articleDate, 'YYYY年MM月DD日', true);
-                        if (!Number.isNaN(parsed.getTime())) {
-                            pubDate = parsed;
-                        }
-                    }
-                    return {
-                        description: fullContent,
-                        pubDate,
-                        updated: parseModifiedDate($article('meta[property="article:modified_time"]').attr('content')),
-                    };
-                }),
-                (detail) => ({ ...item, ...detail })
-            ),
+                    pubDate: lang === 'en' ? parseDate(articleDate, 'DD MMM YYYY') : parseDate(articleDate, 'YYYY年MM月DD日'),
+                    updated: modified ? parseDate(modified) : undefined,
+                };
+            });
+            return { ...item, ...detail };
+        },
         { concurrency: 3, stopOnError: false }
     );
     const categoryTitle = categories[category][lang].name;
@@ -169,7 +150,3 @@ ${Object.entries(categories)
     .map(([key, value]) => `| \`${key}\` | ${value.en.name} | ${value.zh.name} |`)
     .join('\n')}`,
 };
-async function mapResolvedValue<T, U>(promise: Promise<T>, mapper: (value: T) => U | Promise<U>): Promise<U> {
-    const value = await promise;
-    return mapper(value);
-}

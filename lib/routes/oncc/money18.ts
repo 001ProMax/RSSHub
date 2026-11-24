@@ -1,18 +1,14 @@
 import { load } from 'cheerio';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc.js';
 import { FetchError } from 'ofetch';
 import pMap from 'p-map';
 
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { formatDate, parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/money18';
-
-dayjs.extend(utc);
 
 const sections = {
     exp: '新聞總覽',
@@ -50,9 +46,7 @@ export const route: Route = {
 
 async function handler(ctx) {
     const id = ctx.req.param('id') ?? 'exp';
-    // oxlint-disable-next-line unicorn/prefer-number-coercion -- Preserve decimal-prefix semantics shared with RSSHub's common limit parser.
-    const parsedLimit = Number.parseInt(ctx.req.query('limit') ?? '', 10);
-    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 30;
+    const limit = getRouteLimit(ctx, 30);
 
     const rootUrl = 'https://money18.on.cc';
     const currentUrl = `${rootUrl}/finnews/news_${id === 'industry' ? 'industry.html' : `breaking.html?section=${id}`}`;
@@ -61,8 +55,8 @@ async function handler(ctx) {
 
     const toApiUrl = (date) => `${rootUrl}/cnt/utf8/content/${date}/articleList/list_${id}_all.js`;
 
-    const today = dayjs().utcOffset(8);
-    let apiUrl = id === 'ipo' ? ipoApiUrl : id === 'industry' ? industryApiUrl : toApiUrl(today.format('YYYYMMDD'));
+    const today = Temporal.Now.zonedDateTimeISO('+08:00');
+    let apiUrl = id === 'ipo' ? ipoApiUrl : id === 'industry' ? industryApiUrl : toApiUrl(formatDate(today, 'YYYYMMDD'));
     let hasArticle = false;
     let items: DataItem[];
     let i = 0;
@@ -81,7 +75,7 @@ async function handler(ctx) {
             if (id === 'ipo' || id === 'industry' || !(error instanceof FetchError) || error.response?.status !== 404 || i >= 7) {
                 throw error;
             }
-            apiUrl = toApiUrl(today.subtract(++i, 'day').format('YYYYMMDD'));
+            apiUrl = toApiUrl(formatDate(today.subtract({ days: ++i }), 'YYYYMMDD'));
         }
     }
 
@@ -90,13 +84,13 @@ async function handler(ctx) {
     if (id === 'ipo') {
         items = response.data.articles.map((item) => ({
             title: item.title,
-            author: item.authorname || undefined,
+            author: item.authorname,
             link: `${rootUrl}/finnews/content/${id}/${item.articleId}.html`,
             description: renderDescription({
                 images: item.hasHdPhoto ? [`https://hk.on.cc/hk/bkn${item.hdEnlargeThumbnail}`] : undefined,
                 description: item.content,
             }),
-            pubDate: timezone(parseDate(item.pubDate), 8),
+            pubDate: parseDate(item.pubDate, 8),
         }));
     } else if (id === 'industry') {
         items = response.data.articles.slice(0, limit).map((item) => ({
@@ -104,14 +98,14 @@ async function handler(ctx) {
             author: item.authorname || undefined,
             link: `${rootUrl}/finnews/content/${id}/${item.articleId}.html`,
             category: item.sector.map((s) => s.name),
-            pubDate: timezone(parseDate(item.pubDate), 8),
+            pubDate: parseDate(item.pubDate, 8),
         }));
     } else {
         items = response.data.slice(0, limit).map((item) => ({
             title: item.title,
             author: item.authorname || undefined,
             link: `${rootUrl}/finnews/content/${id}/${item.articleId}.html`,
-            pubDate: timezone(parseDate(item.pubDate), 8),
+            pubDate: parseDate(item.pubDate, 8),
         }));
     }
 

@@ -2,9 +2,8 @@ import type { Context } from 'hono';
 
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const getMzzlbg = async (ctx: Context) => {
     const url = 'https://api.cntv.cn/video/videolistById?serviceId=cbox&vsid=C10354&em=01&p=1&n=50';
@@ -15,14 +14,7 @@ export const getMzzlbg = async (ctx: Context) => {
     });
 
     const data = response.data;
-    const limit = getRouteLimit(ctx);
-    let videos = data.video;
-    if (limit !== undefined) {
-        if (ctx.req.query('sorted') !== 'false') {
-            videos = videos.toSorted((a, b) => (b.ptime ? +parseDate(b.ptime) : 0) - (a.ptime ? +parseDate(a.ptime) : 0));
-        }
-        videos = videos.slice(0, limit);
-    }
+    const videos = data.video.slice(0, getRouteLimit(ctx));
 
     const resultItem = await Promise.all(
         videos.map(async (video) => {
@@ -31,7 +23,7 @@ export const getMzzlbg = async (ctx: Context) => {
                 title: video.t,
                 description: video.desc,
                 link: video.url,
-                pubDate: video.ptime ? timezone(parseDate(video.ptime), 8) : undefined,
+                pubDate: video.ptime ? parseDate(video.ptime, 8) : undefined,
             };
             const videoDetail = await cache.tryGet(url, async () => {
                 const { data } = await got(url);

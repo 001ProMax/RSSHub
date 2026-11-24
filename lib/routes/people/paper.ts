@@ -5,9 +5,8 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDateStrict } from '@/utils/time';
 
 const rootUrl = 'https://paper.people.com.cn/rmrb/pc/';
 const indexUrl = `${rootUrl}layout/index.html`;
@@ -25,14 +24,11 @@ type PaperArticle = DataItem & {
 
 const normalizeText = (text: string) => text.replaceAll(/\s+/g, ' ').trim();
 
-const parseCalendarDate = (date: string) => {
-    // UTC midnight represents the source calendar day, not its publication time.
-    const parsed = timezone(parseDate(date, 'YYYY年MM月DD日', true), 0);
-    return Number.isFinite(parsed.getTime()) ? parsed : undefined;
-};
+// UTC midnight represents the source calendar day, not its publication time.
+const parseCalendarDate = (date: string) => parseDateStrict(date, 'YYYY年MM月DD日', 0);
 
 const getEditionDate = (url: string) => {
-    const match = url.match(/\/(\d{4})(\d{2})\/(\d{2})\//);
+    const match = /\/(\d{4})(\d{2})\/(\d{2})\//.exec(url);
     if (!match) {
         throw new Error('Unable to determine the current People’s Daily edition date');
     }
@@ -63,7 +59,7 @@ const getPages = async () => {
     return pages;
 };
 
-const getArticles = async (page: PaperPage, pubDate: Date): Promise<PaperArticle[]> => {
+const getArticles = async (page: PaperPage, pubDate: Temporal.Instant): Promise<PaperArticle[]> => {
     const html = await ofetch<string>(page.url);
     const $ = load(html);
     return $('.news-list a[href]')
@@ -91,7 +87,7 @@ const getArticleDetail = async (article: PaperArticle): Promise<PaperArticle> =>
         return {
             title: /\S/.test(title) ? title : undefined,
             description: content.html()?.trim(),
-            pubDate: parseCalendarDate(date),
+            pubDate: date ? parseCalendarDate(date) : undefined,
             author: author || undefined,
         };
     });
@@ -134,10 +130,7 @@ async function handler(ctx) {
     }
 
     const editionDate = getEditionDate(pages[0].url);
-    const pubDate = parseCalendarDate(editionDate);
-    if (!pubDate) {
-        throw new Error('Invalid People’s Daily edition date');
-    }
+    const pubDate = parseCalendarDate(editionDate)!;
     const targetPages = selectedPage ? [selectedPage] : pages;
     const articleLists = await pMap(targetPages, (page) => getArticles(page, pubDate), { concurrency: 3, stopOnError: false });
     const articles = articleLists.flat().slice(0, limit);

@@ -5,8 +5,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const yzb_base_url = 'http://yzb.tju.edu.cn/';
 
@@ -15,7 +14,7 @@ const getArticle = async (link: string) => {
         const response = await got(link, { responseType: 'buffer' });
         const $ = load(iconv.decode(response.data, 'gbk'));
         $('.font_18_b, .font_grey_en').remove();
-        return { description: $('.nav_a10 > table > tbody').html() ?? undefined };
+        return { description: $('.nav_a10 > table > tbody').html() };
     } catch {
         // Keep the source listing when an article detail is unavailable.
         return {};
@@ -92,7 +91,7 @@ async function handler(ctx) {
             return {
                 title: $('td > a', item).text(),
                 link: type === 'in-site' ? yzb_base_url + path + href : href,
-                pubDate: timezone(parseDate($('.font_10_time', item).text().slice(2, -2), 'YYYY-MM-DD'), 8),
+                pubDate: parseDate($('.font_10_time', item).text().slice(2, -2), 'YYYY-MM-DD', 8),
                 type,
             };
         });

@@ -36,20 +36,19 @@ async function handler(ctx: Context) {
     const listResponse = await cnuFetch(url);
     const $ = load(listResponse);
 
-    const list = $('.grid-item.work-thumbnail')
+    const list = $('.cnu-discovery-card')
         .toArray()
         .map((item) => {
             const $item = $(item);
 
             return {
-                title: $item.find('.title').text().trim(),
-                link: $item.find('a.thumbnail').attr('href'),
+                title: $item.find('.cnu-discovery-meta strong').text().trim(),
+                link: $item.find('a.cnu-discovery-card-link').attr('href'),
             };
         });
-    const candidates = list;
 
     const out = await Promise.all(
-        candidates.map(async (item) => {
+        list.map(async (item) => {
             try {
                 return await cache.tryGet(item.link!, async () => {
                     const response = await cnuFetch(item.link!);

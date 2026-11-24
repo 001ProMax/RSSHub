@@ -4,40 +4,37 @@ import { escapeAttribute } from 'entities';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import weiboUtils from './utils';
 
-const parseFreshDate = (value: string, reference?: Date) => {
+const parseFreshDate = (value: string, reference?: Temporal.Instant) => {
     let date = value;
     const relative = /^(今天|昨天|前天)\s+(\d{1,2}:\d{2})$/.exec(value);
     const elapsed = /^(\d+)\s*(分钟|小时|秒)前$/.exec(value);
     const monthDay = /^(\d{1,2})月(\d{1,2})日\s+(\d{1,2}:\d{2})$/.exec(value);
     if (relative || elapsed || monthDay || /^\d{1,2}-\d{1,2}\s/.test(value)) {
-        if (!reference || Number.isNaN(reference.getTime())) {
+        if (!reference) {
             return;
         }
         if (elapsed) {
             const seconds = elapsed[2] === '小时' ? 3600 : elapsed[2] === '分钟' ? 60 : 1;
-            return parseDate(reference.getTime() - Number(elapsed[1]) * seconds * 1000);
+            return reference.subtract({ seconds: Number(elapsed[1]) * seconds });
         }
-        const chinaDate = new Date(reference.getTime() + 8 * 60 * 60 * 1000);
+        const chinaDate = reference.toZonedDateTimeISO('+08:00');
         if (relative) {
             const days = relative[1] === '昨天' ? 1 : relative[1] === '前天' ? 2 : 0;
-            chinaDate.setUTCDate(chinaDate.getUTCDate() - days);
-            date = `${chinaDate.toISOString().slice(0, 10)} ${relative[2]}`;
+            date = `${chinaDate.subtract({ days }).toPlainDate().toString()} ${relative[2]}`;
         } else {
             const parts = monthDay || /^(\d{1,2})-(\d{1,2})\s/.exec(value)!;
             const month = Number(parts[1]);
             const day = Number(parts[2]);
-            const isPreviousYear = month > chinaDate.getUTCMonth() + 1 || (month === chinaDate.getUTCMonth() + 1 && day > chinaDate.getUTCDate());
-            const year = chinaDate.getUTCFullYear() - Number(isPreviousYear);
+            const isPreviousYear = month > chinaDate.month || (month === chinaDate.month && day > chinaDate.day);
+            const year = chinaDate.year - Number(isPreviousYear);
             date = `${year}-${monthDay ? `${monthDay[1]}-${monthDay[2]} ${monthDay[3]}` : value}`;
         }
     }
-    const parsed = timezone(parseDate(date, 'YYYY-M-D HH:mm'), 8);
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+    return parseDate(date, 'YYYY-M-D HH:mm', 8);
 };
 
 export const route: Route = {
@@ -48,7 +45,7 @@ export const route: Route = {
     maintainers: ['DIYgod'],
     parameters: { id: '新鲜事页面 URL 中的标识，例如 7574046780235777_1 或 60e8c3bf5b9c0e70_0。保留末尾的栏目类型。' },
     features: {
-        requirePuppeteer: true,
+        requirePuppeteer: false,
         antiCrawler: true,
         requireConfig: [{ name: 'WEIBO_COOKIES', optional: true, description: '仅登录可见的新鲜事需要配置。' }],
     },
@@ -64,14 +61,14 @@ async function handler(ctx) {
     }
     const link = `https://weibo.com/a/hot/${id}.html`;
     const response = await weiboUtils.tryWithCookies(async (cookies, verifier) => {
-        const response = await ofetch.raw(link, { headers: { Cookie: cookies, Referer: 'https://weibo.com/a/hot/realtime' }, responseType: 'text' });
+        const response = await ofetch.raw(link, { headers: { Cookie: cookies, Referer: 'https://weibo.com/a/hot/realtime' } });
         verifier({ data: response._data });
         return response;
     });
-    const $ = load(response._data!);
+    const $ = load(response._data);
     const serverDate = response.headers.get('date');
     const reference = serverDate ? parseDate(serverDate) : undefined;
-    const title = $('h2.list_title').first().text();
+    const title = $('h2.list_title').text();
     if (!title) {
         throw new Error('The Weibo fresh-topic page is unavailable. Verify the topic ID and WEIBO_COOKIES if login is required.');
     }
@@ -85,15 +82,15 @@ async function handler(ctx) {
             const images = $item
                 .find('.pic > img')
                 .toArray()
-                .map((image) => `<img src="${escapeAttribute(new URL($(image).attr('src')!, link).href)}">`)
+                .map((image) => `<img src="${escapeAttribute($(image).attr('src')!)}">`)
                 .join('');
-            const date = $item.find('.subinfo_box > span.subinfo:not(.subinfo_rgt)').first().text();
+            const date = $item.find('.subinfo_box > span.subinfo:not(.subinfo_rgt)').text();
             return {
                 title: content.text(),
                 description: `${content.html() || ''}${images}`,
                 link: new URL($item.attr('href')!, link).href,
                 author: $item.find('.subinfo_box a .subinfo').text(),
-                pubDate: date ? parseFreshDate(date, reference) : undefined,
+                pubDate: parseFreshDate(date, reference),
             };
         });
 

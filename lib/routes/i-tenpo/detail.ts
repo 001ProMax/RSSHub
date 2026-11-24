@@ -5,8 +5,7 @@ import { clean, normalizeFloor, parseArea, parseCondition, parseJpy, parseWalkMi
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const HOST = 'https://www.i-tenpo.com';
 /** 所在地 and the fee rows end with this members-only placeholder. */
@@ -101,13 +100,13 @@ const parseDetail = (html: string, id: string): DataItem | null => {
         title,
         link,
         guid: link,
-        updated: extra.listed_at === null ? undefined : timezone(parseDate(extra.listed_at, 'YYYY-MM-DD'), 9),
+        updated: extra.listed_at === null ? undefined : parseDate(extra.listed_at, 'YYYY-MM-DD', 9),
         description: summarize(extra),
         _extra: extra,
     };
 };
 
-export const handler = async (ctx): Promise<Data> => {
+const handler = async (ctx): Promise<Data> => {
     const id: string = ctx.req.param('id');
     if (!/^\d+$/.test(id)) {
         throw new Error(`Invalid id "${id}", expected the numeric 物件 id from a /t{id} URL`);

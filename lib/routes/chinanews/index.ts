@@ -4,9 +4,8 @@ import { load } from 'cheerio';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.chinanews.com.cn';
 
@@ -16,15 +15,14 @@ function getPubDate(content: CheerioAPI) {
     if (!date) {
         return;
     }
-    return timezone(parseDate(date.replaceAll(/[年月]/g, '-').replace('日', '')), 8);
+    return parseDate(date.replaceAll(/[年月]/g, '-').replace('日', ''), 8);
 }
 
 function getAuthor(content: CheerioAPI) {
     const source = content('#source_baidu, a.source, .source_wrapper')
         .first()
         .text()
-        .replace(/^来源\s*[:：]\s*/, '')
-        .trim();
+        .replace(/^来源\s*[:：]\s*/, '');
     if (source) {
         return source;
     }
@@ -78,11 +76,8 @@ async function handler(ctx) {
                     item.description = content('div.content_desc').html();
                     const videoUrl = detailResponse.data.match(/\bsource\s*:\s*["'](https?:\/\/[^"']+\.mp4(?:\?[^"']*)?)["']/)?.[1];
                     if (videoUrl) {
-                        const video = content('<video controls></video>').attr('src', videoUrl);
                         const poster = detailResponse.data.match(/addVariable\(["']vsimg["']\s*,\s*["']([^"']+)["']/)?.[1];
-                        if (poster) {
-                            video.attr('poster', poster);
-                        }
+                        const video = content('<video controls></video>').attr('src', videoUrl).attr('poster', poster);
                         item.description = video.toString() + (item.description ?? '');
                         item.enclosure_url = videoUrl;
                         item.enclosure_type = 'video/mp4';

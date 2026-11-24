@@ -3,8 +3,7 @@ import { load } from 'cheerio';
 
 import type { DataItem, Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://cline.bot';
 const blogUrl = `${rootUrl}/blog`;
@@ -17,17 +16,17 @@ function extractArticlesFromDOM($: CheerioAPI): DataItem[] {
             const element = $(article);
 
             const title = element.find('h2').text();
-            const link = element.find('a').first().attr('href');
+            const link = element.find('a').attr('href');
             const fullLink = link ? (link.startsWith('http') ? link : `${rootUrl}${link.startsWith('/') ? link : `/${link}`}`) : '';
 
             // Extract date and author with single regex
             const metaText = element.find('[class^="Editorial_meta"]').text();
             const metaMatch = metaText.match(/^([^•]+)•\s*([A-Z]+\s+\d{1,2},?\s+\d{4})/i);
             const author = metaMatch ? metaMatch[1].trim() : 'Cline Team';
-            const pubDate = metaMatch ? timezone(parseDate(metaMatch[2]), 0) : undefined;
+            const pubDate = metaMatch ? parseDate(metaMatch[2], 'MMMM D, YYYY', 0) : undefined;
 
             const summary = element.find('[class^="Editorial_excerpt"]').text().trim();
-            const imgSrc = element.find('img').attr('src') || '';
+            const imgSrc = element.find('img').attr('src');
 
             return title && link
                 ? {

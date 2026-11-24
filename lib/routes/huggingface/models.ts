@@ -1,24 +1,16 @@
 import { load } from 'cheerio';
-import MarkdownIt from 'markdown-it';
 import { FetchError } from 'ofetch';
 import pMap from 'p-map';
 
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import MarkdownIt from '@/utils/markdown-it';
+import { parseDate } from '@/utils/time';
 
 const md = MarkdownIt({
     html: true,
 });
-
-function getPublicationDate(value?: string) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
 
 export const route: Route = {
     path: '/models/:group',
@@ -60,7 +52,7 @@ async function handler(ctx) {
         .map((article) => {
             const $article = $(article);
             const title = $article.find('a > div > header > h4').text();
-            const href = $article.find('a[href]').first().attr('href');
+            const href = $article.find('a[href]').attr('href');
             if (!href) {
                 throw new Error('Hugging Face returned a model card without its repository URL.');
             }
@@ -71,7 +63,7 @@ async function handler(ctx) {
             return {
                 title,
                 link,
-                pubDate: getPublicationDate(datetime),
+                pubDate: datetime ? parseDate(datetime) : undefined,
             };
         })
         .filter((item) => item.title);

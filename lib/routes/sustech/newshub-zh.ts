@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/newshub-zh',
@@ -44,12 +44,9 @@ async function handler() {
 
     const list: Array<DataItem & { link: string }> = $('.m-newslist ul li')
         .toArray()
-        .flatMap((item) => {
+        .map((item) => {
             const $item = $(item);
-            const href = $item.find('a').attr('href');
-            const title = $item.find('.f-clamp').text();
-            const itemPubdate = $item.find('.mobi').text();
-            return href && title ? { title, link: new URL(href, baseUrl).href, pubDate: itemPubdate ? parseDateInTimezone(itemPubdate, 8) : undefined } : [];
+            return { title: $item.find('.f-clamp').text(), link: `${baseUrl}${$item.find('a').attr('href')}`, pubDate: parseDate($item.find('.mobi').text(), 8) };
         });
     const items = await pMap(
         list,
@@ -58,9 +55,6 @@ async function handler() {
                 const response = await got(item.link);
                 const content = load(response.data);
                 const body = content('.m-details-con .u-content');
-                if (!body.length) {
-                    throw new Error(`The news page has no public article content: ${item.link}`);
-                }
                 const credits: string[] = [];
                 for (const element of body.children().toArray().toReversed()) {
                     const text = content(element).text().trim();
@@ -74,7 +68,7 @@ async function handler() {
                         break;
                     }
                 }
-                return { description: body.html() ?? undefined, author: credits.length ? credits.join(' ') : undefined };
+                return { description: body.html(), author: credits.join(' ') };
             });
             return { ...item, ...detail };
         },

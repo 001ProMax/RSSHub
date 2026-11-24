@@ -1,11 +1,11 @@
-import dayjs from 'dayjs';
+import { raw } from 'hono/html';
 import { renderToString } from 'hono/jsx/dom/server';
 import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { formatDate, parseDate } from '@/utils/time';
 
 import { namespace } from './namespace';
 
@@ -39,7 +39,7 @@ interface Exhibition {
     _id: string;
     name: string;
     external_url?: string;
-    created_at?: number;
+    created_at: number;
     start_time?: number;
     end_time?: number;
     address?: string;
@@ -49,34 +49,7 @@ interface Exhibition {
 
 interface Chapter {
     name: string;
-    content?: string;
-}
-
-function parseEpochDate(value?: number) {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-        return;
-    }
-    const date = parseDate(value * 1000);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
-
-function parseEventDate(value?: number) {
-    const date = parseEpochDate(value);
-    return date ? dayjs(date).format('YYYY-MM-DD') : undefined;
-}
-
-function exhibitionLink(value: string | undefined, fallback: string) {
-    if (value) {
-        try {
-            const link = new URL(value);
-            if (['http:', 'https:'].includes(link.protocol)) {
-                return link.href;
-            }
-        } catch {
-            // Use the source exhibition identity if its external URL is invalid.
-        }
-    }
-    return fallback;
+    content: string;
 }
 
 interface Download {
@@ -88,7 +61,7 @@ async function fetchExhibitionBody(id: string) {
     const detail = await callCloudApi<Exhibition>(`/exhibition/${id}`);
     const chapters = await callCloudApi<Chapter[]>(`/exhibition/chapter/all?refId=${id}`);
     const downloads = await callCloudApi<Download[]>(`/download/all?module=exhibition&moduleId=${id}`);
-    return { content: detail.data.content || '', chapters: chapters.data || [], downloads: downloads.data || [] };
+    return { content: detail.data.content || '', chapters: chapters.data, downloads: downloads.data };
 }
 
 export const route: Route = {
@@ -137,24 +110,20 @@ export const route: Route = {
             async (item) => {
                 // online exhit has VR link, for others, itemLink and guid share the same link.
                 const guid = `https://www.wuzhongmuseum.com/portal/exhibition/content?id=${item._id}`;
-                const itemLink = exhibitionLink(item.external_url, guid);
+                const itemLink = item.external_url ?? guid;
 
                 const detail = await cache.tryGet(`${guid}:body`, () => fetchExhibitionBody(item._id));
                 const title = item.name;
-                const pubDate = parseEpochDate(item.created_at);
-                const startDate = parseEventDate(item.start_time);
-                const endDate = parseEventDate(item.end_time);
+                const pubDate = parseDate(item.created_at * 1000);
+                const startDate = item.start_time ? formatDate(parseDate(item.start_time * 1000)!, 'YYYY-MM-DD') : undefined;
+                const endDate = item.end_time ? formatDate(parseDate(item.end_time * 1000)!, 'YYYY-MM-DD') : undefined;
                 const location = item.address;
                 const imgUrl = item.cover;
 
                 const description = renderToString(
                     <div>
-                        {imgUrl && (
-                            <>
-                                <img src={imgUrl} />
-                                <br />
-                            </>
-                        )}
+                        <img src={imgUrl} />
+                        <br />
                         {location && (
                             <p>
                                 <b>地点：</b>
@@ -173,11 +142,11 @@ export const route: Route = {
                                 {endDate}
                             </p>
                         )}
-                        <div dangerouslySetInnerHTML={{ __html: detail.content }} />
+                        <div>{raw(detail.content)}</div>
                         {detail.chapters.map((chapter) => (
                             <section>
                                 <h3>{chapter.name}</h3>
-                                <div dangerouslySetInnerHTML={{ __html: chapter.content || '' }} />
+                                <div>{raw(chapter.content)}</div>
                             </section>
                         ))}
                         {detail.downloads.map((download) => (

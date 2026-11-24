@@ -49,7 +49,7 @@ const renderDescription = ({ images, stargazersCount, language, description }) =
         </>
     );
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category = 'repositories' } = ctx.req.param();
     if (!['repositories', 'users', 'organizations'].includes(category)) {
         throw new InvalidParameterError('category must be repositories, users, or organizations.');
@@ -100,7 +100,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                 id: guid,
                 content: {
                     html: description,
-                    text: $(description ?? '').text(),
+                    text: $(description).text(),
                 },
                 image,
                 banner: image,

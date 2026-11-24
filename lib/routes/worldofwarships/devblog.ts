@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/devblog',
@@ -33,22 +33,13 @@ interface Post {
     id: number;
     title: string;
     slug: string;
-    publication_date?: string;
+    publication_date: string;
     categories: string[];
-    short_content?: string;
-    content?: string;
-    main_image?: string;
+    content: string;
+    main_image: string;
 }
 
 const baseUrl = 'https://blog.worldofwarships.com/';
-
-function parsePublicationDate(value?: string) {
-    if (!value || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {
-        return;
-    }
-    const date = parseDate(value, 'YYYY-MM-DD HH:mm:ss', true);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
 
 async function handler() {
     // The public website requests six entries on its initial page.
@@ -59,19 +50,17 @@ async function handler() {
             const link = new URL(`blog/${encodeURIComponent(post.slug)}`, baseUrl).href;
             const detail = await cache.tryGet(link, async () => {
                 const article = await ofetch<Post>(new URL(`api/posts/${encodeURIComponent(post.slug)}/`, baseUrl).href);
-                const $ = load(article.content || '', null, false);
-                if (article.main_image) {
-                    $.root().prepend($('<img>').attr('src', article.main_image));
-                }
-                return { description: $.root().html() || undefined } satisfies Pick<DataItem, 'description'>;
+                const $ = load(article.content, null, false);
+                $.root().prepend($('<img>').attr('src', article.main_image));
+                return { description: $.root().html() } satisfies Pick<DataItem, 'description'>;
             });
             return {
                 title: post.title,
                 link,
-                pubDate: parsePublicationDate(post.publication_date),
+                pubDate: parseDate(post.publication_date, 'YYYY-MM-DD HH:mm:ss'),
                 category: post.categories,
                 author: 'Wargaming',
-                description: detail.description || post.short_content,
+                description: detail.description,
             };
         },
         { concurrency: 3 }

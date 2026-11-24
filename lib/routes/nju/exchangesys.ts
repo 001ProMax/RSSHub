@@ -1,7 +1,7 @@
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/exchangesys/:type',
@@ -52,7 +52,7 @@ async function handler(ctx) {
                 if (type === 'proj') {
                     return {
                         title: item.mc,
-                        pubDate: [undefined, null, ''].includes(item.cjsj) ? undefined : parseDate(item.cjsj),
+                        pubDate: item.cjsj ? parseDate(item.cjsj) : undefined,
                         link: item.sqyq,
                     };
                 }
@@ -61,7 +61,7 @@ async function handler(ctx) {
                         title: item.bt,
                         author: item.createBy,
                         description: item.nr,
-                        pubDate: [undefined, null, ''].includes(item.createDate) ? undefined : parseDate(item.createDate),
+                        pubDate: item.createDate ? parseDate(item.createDate) : undefined,
                         link: `http://elite.nju.edu.cn/exchangesystem/index/detail?pid=${item.pid}`,
                     };
                 }

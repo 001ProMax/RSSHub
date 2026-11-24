@@ -2,8 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/rank/:status?',
@@ -27,20 +26,20 @@ async function handler(ctx) {
     const currentUrl = 'https://www.air-level.com/rank/';
     const response = await ofetch(currentUrl);
     const $ = load(response);
-    let table = '';
-    let title = '';
+    let table: string;
+    let title: string;
 
     const cards = $('main .card').filter((_, element) => $(element).find('table').length > 0);
     const best = cards.filter((_, element) => $(element).find('.card-header').text().includes('最佳'));
     const worst = cards.filter((_, element) => $(element).find('.card-header').text().includes('最差'));
-    const titleBest = best.find('.card-header').text().trim();
-    const titleWorst = worst.find('.card-header').text().trim();
+    const titleBest = best.find('.card-header').text();
+    const titleWorst = worst.find('.card-header').text();
     const pubTime = $('main p')
         .first()
         .text()
         .match(/数据更新时间：\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/)?.[1];
 
-    if (!pubTime || !best.find('tbody tr').length || !worst.find('tbody tr').length) {
+    if (!pubTime) {
         throw new Error('Unable to find current air quality rankings on the source page.');
     }
 
@@ -63,7 +62,7 @@ async function handler(ctx) {
             link: currentUrl,
             description: table,
             guid: pubTime,
-            pubDate: timezone(parseDate(pubTime, 'YYYY-MM-DD HH:mm:ss'), 8),
+            pubDate: parseDate(pubTime, 'YYYY-MM-DD HH:mm:ss', 8),
         },
     ];
     return {

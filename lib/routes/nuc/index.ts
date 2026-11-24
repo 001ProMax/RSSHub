@@ -6,8 +6,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const types = {
     zbxw: {
@@ -77,7 +76,7 @@ async function handler(ctx: Context) {
         .toArray()
         .flatMap((item): string[] => {
             const $item = $(item);
-            const anchor = $item.is('a') ? $item : $item.find('a').first();
+            const anchor = $item.is('a') ? $item : $item.find('a');
             const href = anchor.attr('href');
             return href ? [new URL(href, pageUrl).href] : [];
         });
@@ -92,16 +91,12 @@ async function handler(ctx: Context) {
                     .text()
                     .match(/\d{4}[-/年]\d{1,2}[-/月]\d{1,2}/)?.[0]
                     .replaceAll(/[年月]/g, '/');
-                const description = $(typeConfig.selector.content).first().html();
-                if (!description) {
-                    throw new Error(`Article content was not found: ${articleUrl}`);
-                }
 
                 return {
-                    title: $(typeConfig.selector.title).first().text(),
+                    title: $(typeConfig.selector.title).text(),
                     link: articleUrl,
-                    description: description.replaceAll('/__local', 'http://www.nuc.edu.cn/__local'),
-                    pubDate: dateText ? timezone(parseDate(dateText), 8) : undefined,
+                    description: $(typeConfig.selector.content).html()?.replaceAll('/__local', 'http://www.nuc.edu.cn/__local'),
+                    pubDate: dateText ? parseDate(dateText, 8) : undefined,
                 };
             }),
         { concurrency: 3 }

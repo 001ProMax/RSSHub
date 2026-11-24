@@ -4,7 +4,8 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 interface WordpressPost {
     title: { rendered: string };
@@ -66,9 +67,8 @@ const processArticleContent = (html: string | null, articleLink?: string): strin
     return processed;
 };
 
-export const handler = async (ctx) => {
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, 100) : 20;
+const handler = async (ctx) => {
+    const limit = Math.min(getRouteLimit(ctx, 20), 100);
 
     const apiUrl = `${rootUrl}/wp-json/wp/v2/posts`;
     const posts = await ofetch<WordpressPost[]>(apiUrl, {
@@ -107,7 +107,7 @@ export const handler = async (ctx) => {
                     description: contents,
                     link: item.link,
                     guid: item.link,
-                    pubDate: parseDateInTimezone(item.date_gmt, 0),
+                    pubDate: parseDate(item.date_gmt, 0),
                 };
             }),
         { concurrency: 3 }

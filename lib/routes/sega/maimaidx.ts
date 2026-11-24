@@ -6,7 +6,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/maimaidx/news',
@@ -44,19 +44,19 @@ async function handler() {
             const i = $(items);
             const title = i.find('.newsLink').text();
             const pubDateStr = i.find('.newsDate').text().slice(0, 10);
-            const pubDate = pubDateStr ? parseDate(`${pubDateStr.replaceAll('.', '-')}T00:00:00Z`) : undefined;
+            const pubDate = parseDate(`${pubDateStr.replaceAll('.', '-')}T00:00:00Z`);
             const image = i.find('.newsImg');
             const link = i.find('a').attr('href')!;
-            const detailHtml = await cache.tryGet(`${link}:html`, async () => {
+            return await cache.tryGet(link, async () => {
                 const response = await got(link);
-                return response.body;
+                const description = parseContent(response.body, image);
+                return {
+                    title,
+                    link,
+                    description,
+                    pubDate,
+                };
             });
-            return {
-                title,
-                link,
-                description: parseContent(detailHtml, image),
-                pubDate,
-            };
         },
         { concurrency: 3 }
     );

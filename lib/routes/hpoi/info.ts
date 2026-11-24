@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseRelativeDate } from '@/utils/parse-date';
+import { parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/info/:type?/:catType?',
@@ -102,7 +102,7 @@ async function handler(ctx) {
             const infoTime = rightNode.find('.type-time').text();
             return {
                 title: infoTitle,
-                pubDate: infoTime ? parseRelativeDate(infoTime) : undefined,
+                pubDate: parseRelativeDate(infoTime),
                 link: new URL(relativeLink!, baseUrl).href,
                 category: [infoType, typeName],
                 typeName,

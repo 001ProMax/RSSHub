@@ -1,16 +1,12 @@
-import { type CheerioAPI, load } from 'cheerio';
-import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat.js';
-import utc from 'dayjs/plugin/utc.js';
+import type { CheerioAPI } from 'cheerio';
+import { load } from 'cheerio';
 import { raw } from 'hono/html';
 import { renderToString } from 'hono/jsx/dom/server';
 
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-
-dayjs.extend(customParseFormat);
-dayjs.extend(utc);
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/trending/:filters?',
@@ -42,10 +38,10 @@ async function handler(ctx) {
 
     const list = $('a[data-article-id]')
         .toArray()
-        .flatMap((element) => {
+        .map((element) => {
             const anchor = $(element);
             const id = anchor.attr('data-article-id');
-            return id ? { title: anchor.text(), link: `${rootUrl}/${id}`, id } : [];
+            return { title: anchor.text(), link: `${rootUrl}/${id}`, id };
         });
 
     let articles: Promise<CheerioAPI> | undefined;
@@ -56,11 +52,8 @@ async function handler(ctx) {
             const details = await cache.tryGet(`${item.link}:pubmed-xml:v2`, async () => {
                 const content = await getArticles();
                 const article = content('PubmedArticle').filter((_, element) => content(element).find('MedlineCitation > PMID').text() === id);
-                if (!article.length) {
-                    throw new Error(`PubMed returned no article for PMID ${id}`);
-                }
-                const electronicDate = article.find('ArticleDate[DateType="Electronic"]').first();
-                const publicationDate = electronicDate.length ? electronicDate : article.find('JournalIssue > PubDate').first();
+                const electronicDate = article.find('ArticleDate[DateType="Electronic"]');
+                const publicationDate = electronicDate.length ? electronicDate : article.find('JournalIssue > PubDate');
                 const date =
                     publicationDate.find('MedlineDate').text() ||
                     publicationDate
@@ -68,21 +61,19 @@ async function handler(ctx) {
                         .toArray()
                         .map((element) => content(element).text())
                         .join(' ');
-                const pubDate = date ? parsePublicationDate(date) : undefined;
                 return {
                     title: article.find('ArticleTitle').text(),
-                    doi: article.find('ArticleId[IdType="doi"]').first().text() || undefined,
-                    pubDate: pubDate && !Number.isNaN(pubDate.getTime()) ? pubDate : undefined,
+                    doi: article.find('ArticleId[IdType="doi"]').first().text(),
+                    pubDate: parseDate(date, ['YYYY M D', 'YYYY MMM D', 'YYYY MMMM D', 'YYYY M', 'YYYY MMM', 'YYYY MMMM', 'YYYY']),
                     author: article
                         .find('AuthorList > Author')
                         .toArray()
                         .map((element) => {
                             const author = content(element);
                             return {
-                                name: author.find('CollectiveName').text() || [author.find('ForeName').text() || author.find('Initials').text(), author.find('LastName').text()].filter(Boolean).join(' '),
+                                name: author.find('CollectiveName').text() || `${author.find('ForeName').text()} ${author.find('LastName').text()}`,
                             };
-                        })
-                        .filter((author) => author.name),
+                        }),
                     description: renderToString(
                         <>
                             {article
@@ -93,7 +84,7 @@ async function handler(ctx) {
                                     return (
                                         <>
                                             {abstract.attr('Label') ? <h3>{abstract.attr('Label')}</h3> : null}
-                                            <p>{raw(abstract.html() ?? '')}</p>
+                                            <p>{raw(abstract.html())}</p>
                                         </>
                                     );
                                 })}
@@ -110,15 +101,6 @@ async function handler(ctx) {
         link: currentUrl,
         item: items,
     };
-}
-
-function parsePublicationDate(value: string): Date | undefined {
-    for (const format of ['YYYY M D', 'YYYY MMM D', 'YYYY MMMM D', 'YYYY M', 'YYYY MMM', 'YYYY MMMM', 'YYYY']) {
-        const date = dayjs.utc(value, format);
-        if (date.isValid()) {
-            return date.toDate();
-        }
-    }
 }
 
 async function fetchArticleXml(ids: string) {

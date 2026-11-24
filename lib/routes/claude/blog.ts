@@ -5,39 +5,22 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://claude.com';
 
 interface ArticleMetadata {
-    '@type': string | string[];
-    datePublished?: string;
+    '@type': string;
+    datePublished: string;
     dateModified?: string;
-    author?: string | Array<string | { name?: string }> | { name?: string };
-    articleSection?: string | string[];
+    author?: Array<{ name: string }> | { name: string };
+    articleSection?: string;
 }
 
 function getArticleMetadata($: CheerioAPI): ArticleMetadata | undefined {
-    for (const element of $('script[type="application/ld+json"]').toArray()) {
-        let schema;
-        try {
-            schema = JSON.parse($(element).text());
-        } catch {
-            continue;
-        }
-        const entries = Array.isArray(schema) ? schema : (schema['@graph'] ?? [schema]);
-        const article = entries.find((entry) => [entry['@type']].flat().some((type) => ['Article', 'NewsArticle', 'BlogPosting'].includes(type)));
-        if (article) {
-            return article;
-        }
-    }
-}
-
-function parseArticleDate(date: string) {
-    const parsed = parseDate(date);
-    return /^\d{4}-\d{2}-\d{2}T/.test(date) ? parsed : timezone(parsed, 0);
+    const script = $('script[type="application/ld+json"]:contains("BlogPosting")');
+    return script.length ? JSON.parse(script.text()) : undefined;
 }
 
 export const route: Route = {
@@ -79,9 +62,9 @@ async function handler(ctx) {
             const $el = $(el);
             const title = $el.find('h3').text();
             const href = $el.attr('href')!;
-            const pubDateText = $el.find('[class*="ResourceCard"][class*="__meta"]').text();
+            const pubDateText = $el.find('[class^="ResourceCard"][class*="__meta"]').text();
             const category = $el
-                .find('[class*="ResourceCard"][class*="__productTag"]:not([class*="__moreTag"])')
+                .find('[class^="ResourceCard"][class*="__productTag"]:not([class*="__moreTag"])')
                 .toArray()
                 .map((c) => $(c).text())
                 .filter(Boolean);
@@ -89,7 +72,7 @@ async function handler(ctx) {
             return {
                 title,
                 link: new URL(href, baseUrl).href,
-                pubDate: pubDateText ? parseArticleDate(pubDateText) : undefined,
+                pubDate: parseDate(pubDateText, 'MMM D, YYYY'),
                 category,
             };
         });
@@ -102,32 +85,26 @@ async function handler(ctx) {
                 const $ = load(response);
 
                 const metadata = getArticleMetadata($);
-                const publicationDate = metadata?.datePublished ?? $('time[datetime]').first().attr('datetime');
+                const publicationDate = metadata?.datePublished ?? $('time[datetime]').attr('datetime');
                 if (publicationDate) {
-                    item.pubDate = parseArticleDate(publicationDate);
+                    item.pubDate = parseDate(publicationDate);
                 }
                 if (metadata?.dateModified) {
-                    item.updated = parseArticleDate(metadata.dateModified);
+                    item.updated = parseDate(metadata.dateModified);
                 }
                 if (metadata?.author) {
                     item.author = [metadata.author]
                         .flat()
-                        .map((author) => (typeof author === 'string' ? author : author.name))
-                        .filter(Boolean)
+                        .map((author) => author.name)
                         .join(', ');
                 }
                 if (metadata?.articleSection) {
-                    item.category = [...new Set([...(item.category ?? []), ...[metadata.articleSection].flat()])];
+                    item.category = [...new Set([...[item.category ?? []].flat(), metadata.articleSection])];
                 }
 
                 // Some cards link to anthropic.com posts, whose body is the article's `<hash>_body` block since the 2026-10 class rename
-                const content = $('[class*="ArticleLayout"][class*="__content"], article[class*="MooSanityContainer"], article article, div.prose, article > div > div[class$="_body"]').first();
-
-                if (!content.length) {
-                    throw new Error(`Article content was not found at ${item.link}`);
-                }
-
-                content.find('style, script').remove();
+                const content = $('[class^="ArticleLayout"][class*="__content"], article[class*="MooSanityContainer"], article article, div.prose, article > div > div[class$="_body"]').first();
+                content.find('style').remove();
 
                 item.description = content.html();
 

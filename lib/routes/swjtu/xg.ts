@@ -6,8 +6,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const rootURL = 'http://xg.swjtu.edu.cn';
 const listURL = {
@@ -31,7 +30,7 @@ const getItem = async (item) => {
             const $$ = load(resp.data);
             const newsText = $$('.detail-content-text').html();
             return {
-                description: newsText || undefined,
+                description: newsText,
             };
         } catch (error) {
             if (error instanceof FetchError && error.statusCode === 404) {
@@ -42,7 +41,7 @@ const getItem = async (item) => {
             throw error;
         }
     });
-    return { title: newsTitle, pubDate: newsTime ? timezone(parseDate(newsTime, 'YYYY-MM-DD'), 8) : undefined, link, ...details };
+    return { title: newsTitle, pubDate: parseDate(newsTime, 'YYYY-MM-DD', 8), link, ...details };
 };
 
 export const route: Route = {

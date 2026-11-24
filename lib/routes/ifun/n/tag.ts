@@ -5,9 +5,9 @@ import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
 import { getRouteLimit } from '@/utils/route-limit';
 
-import { apiRoot, author, getRecords, language, processItems, rootUrl } from './util';
+import { apiRoot, author, language, processItems, rootUrl } from './util';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { name } = ctx.req.param();
     const limit = getRouteLimit(ctx, 30);
 
@@ -16,7 +16,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
         method: 'POST',
         body: { current: 1, pageSize: limit, searchText: '', tag: name },
     });
-    const items: DataItem[] = processItems(getRecords(apiResponse), limit);
+    const items: DataItem[] = processItems(apiResponse.data.list, limit);
 
     return {
         title: `${author} - ${name}`,

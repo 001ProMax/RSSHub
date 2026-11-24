@@ -8,7 +8,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 const resolveRelativeLink = (link: string | undefined, baseUrl: string) => (link ? new URL(link, baseUrl).href : undefined);
 
@@ -72,10 +72,10 @@ async function handler(ctx) {
         description = $('channel > description').text();
         list = $('item')
             .toArray()
-            .flatMap((item) => {
+            .map((item) => {
                 const $item = $(item);
                 const link = $item.find('link').text();
-                return link ? { link: new URL(link, currentUrl).href } : [];
+                return { link: new URL(link, currentUrl).href };
             });
     } else {
         title = $('head > title').text();
@@ -122,19 +122,17 @@ async function handler(ctx) {
                 );
 
                 const ldJson = JSON.parse($('script[type="application/ld+json"]').text() || '[]').find((obj) => obj['@type'] === 'NewsArticle');
-                const authors = Array.isArray(ldJson?.author) ? ldJson.author : [ldJson?.author];
-                article.author ||=
-                    authors
-                        .map((author) => (typeof author === 'string' ? author : author?.name))
-                        .filter(Boolean)
-                        .join(', ') || undefined;
+                article.author ||= ldJson?.author
+                    .map((author) => author?.name)
+                    .filter(Boolean)
+                    .join(', ');
                 const pubDateMatch = ldJson && ldJson.datePublished;
                 const updatedMatch = ldJson && ldJson.dateModified;
                 if (pubDateMatch) {
-                    article.pubDate = parseDateInTimezone(pubDateMatch, 9);
+                    article.pubDate = parseDate(pubDateMatch, 9);
                 }
                 if (updatedMatch) {
-                    article.updated = parseDateInTimezone(updatedMatch, 9);
+                    article.updated = parseDate(updatedMatch, 9);
                 }
 
                 article.category = $('.article-header-cate__link')

@@ -9,7 +9,7 @@ import ofetch from '@/utils/ofetch';
 
 import { bbsOrigin, fetchThread, generateDescription, getDate, getUpdated } from '../utils';
 
-async function fetchDescription(id: string): Promise<{ description?: string; updated?: Date }> {
+async function fetchDescription(id: string): Promise<{ description?: string; updated?: Temporal.Instant }> {
     const { data } = await fetchThread(id);
     if (data && !data.startsWith('<script type="text/javascript">')) {
         const $ = load(data);
@@ -95,15 +95,14 @@ async function handler(ctx: Context): Promise<Data> {
             const category = $item
                 .find('th em a')
                 .toArray()
-                .map((element) => $(element).text())
-                .filter(Boolean);
+                .map((element) => $(element).text());
 
             return {
                 id,
                 title,
                 link,
                 pubDate,
-                author: author || undefined,
+                author,
                 category,
             };
         });

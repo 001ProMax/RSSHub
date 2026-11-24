@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const url = 'https://news.shisu.edu.cn';
 const banner = 'https://news.shisu.edu.cn/news/index/39adf3d9ae414bc39c6d3b9316ae531f.png';
@@ -78,7 +78,7 @@ async function handler(ctx) {
                 return {
                     description: $('.ot_main_r .content').html(),
                     author: $('.math_time_l > span:nth-child(3)').text().trim(),
-                    pubDate: date ? parseDate(`${date}T00:00:00+08:00`) : undefined,
+                    pubDate: parseDate(`${date}T00:00:00+08:00`),
                     itunes_item_image: img ? `${url}${img}` : undefined,
                 };
             });

@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDateInTimezone } from '@/utils/parse-date-in-timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/jwnews',
@@ -25,7 +25,6 @@ async function handler() {
         async (item) => {
             const itemLink = new URL($('a', item).attr('href')!, link).href;
 
-            const date = $(item).find('p.date').text();
             const article = await cache.tryGet(itemLink, async () => {
                 const result = await ofetch(itemLink);
                 const $article = load(result);
@@ -44,7 +43,7 @@ async function handler() {
             });
             return {
                 ...article,
-                pubDate: date ? parseDateInTimezone(date, 8) : undefined,
+                pubDate: parseDate($(item).find('p.date').text(), 8),
             };
         },
         { concurrency: 3 }

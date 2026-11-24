@@ -1,7 +1,7 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/feeds/:category?',
@@ -50,8 +50,8 @@ async function handler(ctx) {
         title: article.title,
         link: article.url,
         description: article.summary,
-        pubDate: article.publishTimeStamp ? parseDate(article.publishTimeStamp) : undefined,
-        author: article.authors?.map((name) => ({ name })),
+        pubDate: parseDate(article.publishTimeStamp),
+        author: article.authors.map((name) => ({ name })),
         category: article.category,
     }));
 

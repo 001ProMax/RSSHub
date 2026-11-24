@@ -6,7 +6,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const findNatgeo = ($) =>
     JSON.parse(
@@ -176,7 +176,7 @@ async function handler() {
                     description: bodyTile.dscrptn,
                     body: bodyTile.bdy,
                 });
-                const pubDate = bodyTile.pbDt ? parseDate(bodyTile.pbDt) : undefined;
+                const pubDate = parseDate(bodyTile.pbDt);
 
                 return { author, description, pubDate };
             });

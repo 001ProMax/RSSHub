@@ -7,18 +7,13 @@ import pMap from 'p-map';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import type { Category, Collection, Tag } from './types';
 
 const b64tou8a = (str) => Uint8Array.from(Buffer.from(str, 'base64'));
-const b64tohex = (str) => Buffer.from(str, 'base64').toString('hex');
-const s256 = (s1: Uint8Array, s2: string) => {
-    const sha = crypto.createHash('sha256');
-    sha.update(s1);
-    sha.update(s2);
-    return sha.digest('hex');
-};
+const b64tohex = (str) => Buffer.from(str, 'base64').toHex();
+const s256 = (s1: Uint8Array, s2: string) => crypto.hash('sha256', Buffer.concat([s1, Buffer.from(s2)]));
 
 /**
  * Solve _wafchallengeid
@@ -42,11 +37,11 @@ export const solveWafChallenge = (cs: string) => {
     for (let i = 0; i < 1_000_000; i++) {
         const hash = s256(prefix, i.toString());
         if (hash === expect) {
-            c.d = Buffer.from(i.toString()).toString('base64');
+            c.d = Buffer.from(i.toString()).toBase64();
             break;
         }
     }
-    return Buffer.from(JSON.stringify(c)).toString('base64');
+    return Buffer.from(JSON.stringify(c)).toBase64();
 };
 
 const getArticle = async (link) => {
@@ -70,7 +65,7 @@ const getArticle = async (link) => {
     return $('.article-viewer').html();
 };
 
-export const getShortMsgDescription = (msg, content = msg.content) => html`${content.split('\n').map((line) => html`${line}<br />`)}${(msg.pic_list ?? []).map((url) => html`<img src="${url}" />`)}`.toString();
+export const getShortMsgDescription = (msg, content = msg.content) => html`${content.split('\n').map((line) => html`${line}<br />`)}${msg.pic_list.map((url) => html`<img src="${url}" />`)}`.toString();
 
 export const parseList = (data) =>
     data.map((item) => {

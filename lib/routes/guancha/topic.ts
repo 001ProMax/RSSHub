@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseRelativeDate } from '@/utils/parse-date';
+import { parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/topic/:id/:order?',
@@ -79,9 +79,8 @@ async function handler(ctx) {
 
                 const content = load(detailResponse.data);
 
-                const time = content('.time1').text();
                 return {
-                    pubDate: time ? parseRelativeDate(time) : undefined,
+                    pubDate: parseRelativeDate(content('.time1').text(), ['YYYY-MM-DD HH:mm', 'MM-DD HH:mm'], 8),
                     author: content('.user-main h4 a').first().text(),
                     description: content('.article-txt-content').html(),
                 };

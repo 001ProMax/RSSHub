@@ -8,27 +8,16 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
 import { renderDescription } from './templates/description';
 
-const getUpdatedDate = ($: CheerioAPI) => {
-    for (const element of $('script[type="application/ld+json"]').toArray()) {
-        try {
-            const metadata = JSON.parse($(element).text());
-            if (metadata['@type'] === 'BlogPosting' && metadata.dateModified) {
-                return parseDate(metadata.dateModified);
-            }
-        } catch {
-            continue;
-        }
-    }
-};
+const getUpdatedDate = ($: CheerioAPI) => parseDate(JSON.parse($('script[type="application/ld+json"]:contains("BlogPosting")').text()).dateModified);
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { lang = 'en' } = ctx.req.param();
     if (!isValidHost(lang)) {
         throw new InvalidParameterError('Invalid lang');
@@ -46,10 +35,11 @@ export const handler = async (ctx: Context): Promise<Data> => {
     const feedItems = new Map(feed.items.map((item) => [item.link, item]));
 
     let items: DataItem[] = $('h4, h6')
+        .slice(0, limit)
         .toArray()
         .map((el) => {
             const $el: Cheerio<Element> = $(el).parent().parent();
-            const linkUrl = $el.find('a[href]').attr('href');
+            const linkUrl = $el.find('a[data-dui-component="Button"]').attr('href');
             const link = linkUrl ? new URL(linkUrl, baseUrl).href : undefined;
             const feedItem = feedItems.get(link);
 
@@ -92,8 +82,6 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
             return processedItem;
         });
-    const orderedItems = ctx.req.query('sorted') === 'false' ? items : items.toSorted((a, b) => parseDate(b.pubDate ?? 0).getTime() - parseDate(a.pubDate ?? 0).getTime());
-    items = orderedItems.slice(0, limit);
 
     items = await Promise.all(
         items.map((item) => {
@@ -104,10 +92,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
             return cache.tryGet(item.link, async (): Promise<DataItem> => {
                 const detailResponse = await ofetch(item.link!);
                 const $$: CheerioAPI = load(detailResponse);
-                const article = $$('[data-contentful-field-id="text"]').first();
-                if (!article.length) {
-                    throw new Error(`DeepL blog article content was not found at ${item.link}`);
-                }
+                const article = $$('[data-contentful-field-id="text"]');
 
                 const title: string = $$('h1[data-contentful-field-id="title"]').text();
                 const description: string | undefined =

@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?',
@@ -85,7 +85,7 @@ async function handler(ctx): Promise<Data> {
                 .text();
             const author = $item.find('span.article--post__author-name a').text();
             const time = $item.find('p.article--post__teaser time').attr('datetime');
-            const pubDate = time ? parseDate(`${time}T00:00:00Z`) : undefined;
+            const pubDate = parseDate(`${time}T00:00:00Z`);
             return {
                 title: a.text(),
                 link: `${baseUrl}${a.attr('href')}`,

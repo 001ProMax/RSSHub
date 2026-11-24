@@ -2,7 +2,7 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'http://www.tqyb.com.cn';
 
@@ -30,14 +30,6 @@ export const route: Route = {
     url: 'www.tqyb.com.cn/gz/weatherAlarm/otherCity/',
 };
 
-function parsePubDate(value?: string) {
-    if (!value) {
-        return;
-    }
-    const date = parseDate(`${value} +08:00`, 'YYYY年MM月DD日 HH:mm Z');
-    return Number.isFinite(date.getTime()) ? date : undefined;
-}
-
 async function handler() {
     const sncsyjxhJsUrl = `${rootUrl}/data/gzWeather/otherCityAlarm.js`;
 
@@ -61,7 +53,7 @@ async function handler() {
                 <text>等级： {item.sigtypename} </text>
             </>
         ),
-        pubDate: parsePubDate(item.datetime),
+        pubDate: parseDate(`${item.datetime} +08:00`, 'YYYY年MM月DD日 HH:mm Z'),
         guid: `weather-alert:${item.obtid}:${item.signame}:${item.sigcolor}:${item.datetime}`,
     }));
 

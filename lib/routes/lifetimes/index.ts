@@ -5,7 +5,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:category?',
@@ -76,8 +76,8 @@ async function handler(ctx: Context) {
                     description: content('article').html(),
                     title: content('.container-title').text(),
                     author: content('.source').text().replace('来源：', ''),
-                    pubDate: pubDate ? parseDate(Number(pubDate)) : undefined,
-                    updated: updated ? parseDate(Number(updated)) : undefined,
+                    pubDate: parseDate(Number(pubDate)),
+                    updated: parseDate(Number(updated)),
                 };
             }),
         { concurrency: 3 }

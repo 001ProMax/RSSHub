@@ -4,7 +4,7 @@ import { parseToken } from '@/routes/xueqiu/cookies';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://xueqiu.com';
 const apiUrl = 'https://api.xueqiu.com';
@@ -19,7 +19,7 @@ export const route: Route = {
     },
     features: {
         requireConfig: false,
-        requirePuppeteer: true,
+        requirePuppeteer: false,
         antiCrawler: true,
         supportBT: false,
         supportPodcast: false,
@@ -43,7 +43,7 @@ const stripHtml = (html: string): string => sanitizeHtml(html, { allowedTags: []
 async function handler(ctx) {
     const { uid, id } = ctx.req.param();
     const link = `${rootUrl}/${uid}/${id}`;
-    const cookie = await parseToken(link);
+    const cookie = await parseToken();
 
     const detail: any = await cache.tryGet(`xueqiu:detail:${id}`, async () => {
         const response = await ofetch(`${apiUrl}/statuses/show.json`, {

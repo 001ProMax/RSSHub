@@ -4,8 +4,10 @@ import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
 import { getRouteLimit } from '@/utils/route-limit';
+import { isOnSite } from '@/utils/valid-host';
 
-import { csvRecords, decodeText, isoDate, type PermitExtra, type Row } from '../utils';
+import type { PermitExtra, Row } from '../utils';
+import { csvRecords, decodeText, isoDate } from '../utils';
 
 /**
  * 食品営業許可 facilities of 大阪市, from the CC BY 4.0 CSV linked on the city's 食品営業許可施設一覧 page
@@ -25,10 +27,7 @@ const permitKey = (no: string): [number, number] | null => {
     return m ? [Number(m[1]), Number(m[2])] : null;
 };
 
-const toNumber = (v: string | null | undefined): number | null => {
-    const n = v ? Number(v) : NaN;
-    return Number.isFinite(n) ? n : null;
-};
+const toNumber = (v: string | null | undefined): number | null => (v ? Number(v) : null);
 
 /** The publisher's 経度 / 緯度 columns have been swapped in past releases, so the pair is ordered by value (in Japan lon > lat). */
 const coords = (raw: Row) => {
@@ -43,14 +42,15 @@ const coords = (raw: Row) => {
 const fetchRows = async (): Promise<Row[]> => {
     const html: string = await ofetch(PAGE);
     const $ = load(html);
-    const href = $('a[href$=".csv"]')
+    const link = $('#mol_contents a[href$=".csv"]')
         .toArray()
-        .map((a) => $(a).attr('href')!)
-        .find((h) => h.includes('city.osaka.lg.jp'));
-    if (!href) {
+        .map((a) => new URL($(a).attr('href')!, PAGE).href)
+        // only follow links on the site itself
+        .find((h) => isOnSite(h, 'city.osaka.lg.jp'));
+    if (!link) {
         throw new Error('lg/osaka/food-permit: no CSV link on the 食品営業許可施設一覧 page');
     }
-    const buf: ArrayBuffer = await ofetch(new URL(href, PAGE).href, { responseType: 'arrayBuffer' });
+    const buf: ArrayBuffer = await ofetch(link, { responseType: 'arrayBuffer', maxResponseSize: 32 * 1024 * 1024 });
     return csvRecords(decodeText(buf));
 };
 
@@ -98,7 +98,7 @@ const fetchItems = async (limit: number): Promise<Array<DataItem & { _extra: Per
         .map((r) => toItem(r.raw));
 };
 
-export const handler = async (ctx): Promise<Data> => {
+const handler = async (ctx): Promise<Data> => {
     const limit = Math.min(getRouteLimit(ctx, DEFAULT_LIMIT), MAX_LIMIT);
     const items = await cache.tryGet(`lg/osaka/food-permit:${limit}`, () => fetchItems(limit));
     return {

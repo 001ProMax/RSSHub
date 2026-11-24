@@ -1,9 +1,9 @@
 import { load } from 'cheerio';
 
-import type { DataItem, Route } from '@/types';
+import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.hotukdeals.com';
 
@@ -104,10 +104,7 @@ async function handler(ctx) {
 
             return cache.tryGet(itemLink, async () => {
                 const threadDetail = await getThreadDetail(itemLink);
-                const category = (threadDetail.groups ?? []).map((group) => group.threadGroupName);
-                if (thread.merchant?.merchantName) {
-                    category.push(thread.merchant.merchantName);
-                }
+                const category = [...(threadDetail.groups ?? []).map((group) => group.threadGroupName), ...(thread.merchant?.merchantName ? [thread.merchant.merchantName] : [])];
 
                 return {
                     title: thread.title,
@@ -117,7 +114,7 @@ async function handler(ctx) {
                     author: thread.user?.username,
                     category,
                     image,
-                } as DataItem;
+                };
             });
         })
     );
@@ -125,6 +122,6 @@ async function handler(ctx) {
     return {
         title: `hotukdeals - ${tag}`,
         link,
-        item: items as DataItem[],
+        item: items,
     };
 }

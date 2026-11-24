@@ -1,6 +1,6 @@
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/researchResults',
@@ -39,9 +39,6 @@ async function handler() {
         },
     });
     const list = response._data?.data?.list;
-    if (!Array.isArray(list)) {
-        throw new TypeError('The research API did not return a report list. Check that the source is available.');
-    }
 
     return {
         title: '房地产行业研究报告',
@@ -52,7 +49,7 @@ async function handler() {
             link: `https://research.ke.com/${item.contentTypeId}/ArticleDetail?id=${item.id}`,
             author: item.author,
             description: item.guideReading,
-            pubDate: item.publishTime ? parseDate(item.publishTime) : undefined,
+            pubDate: parseDate(item.publishTime),
         })),
     };
 }

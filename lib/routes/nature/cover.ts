@@ -20,8 +20,7 @@ import cache from '@/utils/cache';
 // natastron:        Nature Astronomy
 // nphys             Nature Physics
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 import { baseUrl, journalMap } from './utils';
 
@@ -78,14 +77,14 @@ async function handler() {
                 const imageUrl = `https://media.springernature.com/full/springer-static/cover-hires/journal/${id}/${volume}/${issue}?as=webp`;
                 const contents = `<div align="center"><img src="${imageUrl}" alt="Volume ${volume} Issue ${issue}"></div>`;
 
-                const date = $('title').text().split(',', 2)[1]?.trim();
+                const date = $('title').text().split(',', 2)[1].trim();
                 const issueDescription = $('div[data-test=issue-description]').html() ?? '';
 
                 return {
                     title: `${name} | Volume ${volume} Issue ${issue}`,
                     description: contents + issueDescription,
-                    link: ogUrl ?? link,
-                    pubDate: date ? timezone(parseDate(date, ['D MMMM YYYY', 'MMMM YYYY']), 0) : undefined,
+                    link: ogUrl,
+                    pubDate: parseDate(date, ['D MMMM YYYY', 'MMMM YYYY'], 0),
                 };
             }),
         { concurrency: 3 }

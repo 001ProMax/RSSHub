@@ -5,8 +5,7 @@ import type { Data, DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import logger from '@/utils/logger';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/yz/:category?',
@@ -45,14 +44,13 @@ async function handler(ctx) {
     const $ = load(response);
     const list = $('div.list-con ul li')
         .toArray()
-        .filter((item) => $(item).find('a').attr('href'))
         .map((item_) => {
             const item = $(item_);
             const a = item.find('a');
             const dataItem: DataItem = {
                 title: a.attr('title')!,
                 link: new URL(a.attr('href')!, targetUrl).href,
-                pubDate: timezone(parseDate(item.find('span.date.fr').text()), 8),
+                pubDate: parseDate(item.find('span.date.fr').text(), 8),
             };
             return dataItem;
         });
@@ -71,12 +69,8 @@ async function handler(ctx) {
                 const detail = await cache.tryGet(`xjtu:yz:content:v1:${item.link}`, async () => {
                     const res = await ofetch(item.link!);
                     const content = load(res);
-                    const body = content('#vsb_content').html();
-                    if (!body?.trim()) {
-                        throw new Error(`Unable to find article content at ${item.link}`);
-                    }
                     return {
-                        description: body + (content('form ul').length > 0 ? content('form ul').html() : ''),
+                        description: content('#vsb_content').html()! + (content('form ul').length > 0 ? content('form ul').html() : ''),
                     };
                 });
                 return { ...item, ...detail };

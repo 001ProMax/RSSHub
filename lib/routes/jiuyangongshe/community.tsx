@@ -3,11 +3,10 @@ import { renderToString } from 'hono/jsx/dom/server';
 
 import type { Data, Route } from '@/types';
 import { ViewType } from '@/types';
-import md5 from '@/utils/md5';
+import { md5 } from '@/utils/hash';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 interface User {
     follow_type: number;
@@ -122,7 +121,7 @@ export const route: Route = {
 async function handler(ctx: Context): Promise<Data> {
     const link = 'https://www.jiuyangongshe.com';
 
-    const time = String(Date.now());
+    const time = String(Temporal.Now.instant().epochMilliseconds);
     const response = await ofetch<Community>('https://app.jiuyangongshe.com/jystock-app/api/v2/article/community', {
         method: 'POST',
         headers: {
@@ -144,7 +143,7 @@ async function handler(ctx: Context): Promise<Data> {
         title: item.title,
         description: render({ cover: item.cover, content: item.content }),
         link: `${link}/a/${item.article_id}`,
-        pubDate: parseCreatedAt(item.create_time),
+        pubDate: parseDate(item.create_time, 'YYYY-MM-DD HH:mm:ss', 8),
         author: item.user.nickname,
         category: item.stock_list.map((stock) => stock.name),
     }));
@@ -155,9 +154,4 @@ async function handler(ctx: Context): Promise<Data> {
         language: 'zh-CN',
         item: items,
     };
-}
-
-function parseCreatedAt(value?: string): Date | undefined {
-    const date = value ? parseDate(value, 'YYYY-MM-DD HH:mm:ss', true) : undefined;
-    return date && Number.isFinite(date.getTime()) ? timezone(date, 8) : undefined;
 }

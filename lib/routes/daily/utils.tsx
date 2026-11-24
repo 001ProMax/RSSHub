@@ -6,7 +6,7 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 interface SharedPost {
     title: string;
@@ -96,7 +96,7 @@ export const getList = (edges: FeedEdge[]): DataItem[] =>
             }),
             author: node.author?.name,
             itunes_item_image: post.image,
-            pubDate: node.createdAt ? parseDate(node.createdAt) : undefined,
+            pubDate: parseDate(node.createdAt),
             upvotes: node.numUpvotes,
             comments: node.numComments,
             category: node.tags,

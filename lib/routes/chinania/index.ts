@@ -3,10 +3,10 @@ import { load } from 'cheerio';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { category = 'xiehuidongtai/xiehuitongzhi' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 25);
 

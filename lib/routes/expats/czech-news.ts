@@ -8,33 +8,10 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
-interface ArticleDates {
-    '@type'?: string;
-    '@graph'?: ArticleDates | ArticleDates[];
-    datePublished?: string;
-    dateModified?: string;
-}
-
-const getArticleDates = ($: CheerioAPI) => {
-    for (const element of $('script[type="application/ld+json"]').toArray()) {
-        try {
-            const metadata: ArticleDates = JSON.parse($(element).text());
-            const graph = metadata['@graph'] ?? metadata;
-            const articles = Array.isArray(graph) ? graph : [graph];
-            const article = articles.find((entry) => entry?.['@type'] === 'NewsArticle');
-            if (article) {
-                return article;
-            }
-        } catch {
-            // Other structured data need not contain valid article dates.
-        }
-    }
-};
-
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category = 'daily-news' } = ctx.req.param();
     const detailLimit = getRouteLimit(ctx);
     const limit = ctx.req.query('sorted') === 'false' && detailLimit !== undefined ? detailLimit : Math.max(30, getRouteLimit(ctx, 30));
@@ -59,7 +36,8 @@ export const handler = async (ctx: Context): Promise<Data> => {
             };
 
             return processedItem;
-        });
+        })
+        .filter((item, index, items) => items.findIndex((candidate) => candidate.link === item.link) === index);
 
     items = await pMap(
         items,
@@ -78,8 +56,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                 const articleContent = $$('div#expats-article-content');
                 articleContent.find('script, style').remove();
                 const description = articleContent.html();
-                const articleDates = getArticleDates($$);
-                const pubDateStr: string | undefined = $$('meta[property="article:published_time"]').attr('content') ?? articleDates?.datePublished;
+                const pubDateStr: string | undefined = $$('meta[property="article:published_time"]').attr('content');
                 const categories: string[] = [$$('meta[property="article:section"]').attr('content') ?? ''];
                 const authorEls: Element[] = $$('span.written-by a').toArray();
                 const authors: DataItem['author'] = authorEls.map((authorEl) => {
@@ -94,7 +71,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
                     };
                 });
                 const image: string | undefined = $$('meta[property="og:image"]').attr('content');
-                const upDatedStr: string | undefined = $$('meta[property="article:modified_time"]').attr('content') ?? articleDates?.dateModified;
+                const upDatedStr: string | undefined = JSON.parse($$('script[type="application/ld+json"]').text())['@graph'].dateModified;
 
                 const processedItem: DataItem = {
                     title,

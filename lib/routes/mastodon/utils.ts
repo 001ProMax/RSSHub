@@ -4,7 +4,7 @@ import { config } from '@/config';
 import ConfigNotFoundError from '@/errors/types/config-not-found';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const allowSiteList = ['mastodon.social', 'pawoo.net', 'fosstodon.org', config.mastodon.apiHost].filter(Boolean);
 
@@ -17,7 +17,7 @@ const apiHeaders = (site) => {
 const mediaParse = (media_attachments) =>
     media_attachments
         .map((item) => {
-            const selectedUrl = escapeUTF8(item.remote_url ?? item.url ?? '');
+            const selectedUrl = escapeUTF8(item.remote_url ?? item.url);
             const description = escapeUTF8(item.description ?? '');
             switch (item.type) {
                 case 'gifv':
@@ -64,7 +64,7 @@ const parseStatuses = (data) =>
     });
 
 async function getAccountStatuses(site, account_id, only_media) {
-    const statuses_url = `https://${site}/api/v1/accounts/${account_id}/statuses?only_media=${only_media}`;
+    const statuses_url = `https://${site}/api/v1/accounts/${encodeURIComponent(account_id)}/statuses?only_media=${only_media}`;
     const statuses_response = await got({
         method: 'get',
         url: statuses_url,

@@ -5,8 +5,7 @@ import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import { evaluateScriptData } from '@/utils/evaluate-script';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const noticeType = {
     zhxw: { title: '上海大学研究生院-综合新闻', url: 'https://gs.shu.edu.cn/xwlb/zh.htm' }, // 综合新闻
@@ -70,7 +69,7 @@ async function handler(ctx) {
             return {
                 title, // 获取标题
                 link: rawLink ? new URL(rawLink, rootUrl).href : rootUrl, // 生成完整链接
-                pubDate: timezone(parseDate(dateParts, 'YYYY/MM/DD HH:mm:ss'), 8), // 解析日期
+                pubDate: parseDate(dateParts, 'YYYY/MM/DD HH:mm:ss', 8), // 解析日期
                 description: item.find('td').eq(2).text().trim(), // 提取访问次数或其他信息
             };
         });
@@ -95,19 +94,11 @@ async function handler(ctx) {
                 const content = load(detailResponse.data); // 使用cheerio解析内容
 
                 if (url.hostname === 'www.kankanews.com') {
-                    const script = content('script')
-                        .toArray()
-                        .map((element) => content(element).html() || '')
-                        .find((text) => text.startsWith('window.__NUXT__='));
+                    const script = content('script:contains("window.__NUXT__=")').html();
                     if (script) {
-                        const data = await evaluateScriptData<{ data?: Array<{ newsDetail?: { video_info?: { play_url?: string; cover?: string } } }> }>(script, '__NUXT__');
-                        const video = data.data?.[0]?.newsDetail?.video_info;
-                        if (video?.play_url) {
-                            item.description = content('<video controls></video>')
-                                .attr('src', video.play_url)
-                                .attr('poster', video.cover || '')
-                                .toString();
-                        }
+                        const data = await evaluateScriptData<{ data: Array<{ newsDetail: { video_info: { play_url: string; cover: string } } }> }>(script, '__NUXT__');
+                        const video = data.data[0].newsDetail.video_info;
+                        item.description = content('<video controls preload="metadata"></video>').attr('src', video.play_url).attr('poster', video.cover).toString();
                     }
                 } else {
                     item.description = content('#vsb_content .v_news_content').html() || item.description;

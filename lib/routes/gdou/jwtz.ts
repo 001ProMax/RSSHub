@@ -5,9 +5,8 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit, hasItemFilters } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { compareDates, parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/jwc',
@@ -36,16 +35,14 @@ async function handler(ctx: Context) {
             return {
                 title: $item.find('em').text(),
                 link: new URL($item.attr('href')!, link).href,
-                pubDate: timezone(parseDate($item.find('span').text(), 'YYYY-MM-DD'), 8),
+                pubDate: parseDate($item.find('span').text(), 'YYYY-MM-DD', 8),
                 author: '教务部',
             };
         });
-    if (ctx.req.query('sorted') === 'false' || list.every((item) => item.pubDate && Number.isFinite(new Date(item.pubDate).getTime()))) {
-        if (ctx.req.query('sorted') !== 'false') {
-            list.sort((a, b) => new Date(b.pubDate!).getTime() - new Date(a.pubDate!).getTime());
-        }
-        list.splice(getRouteLimit(ctx, hasItemFilters(ctx) ? list.length : 10));
+    if (ctx.req.query('sorted') !== 'false') {
+        list.sort((a, b) => compareDates(b.pubDate, a.pubDate));
     }
+    list.splice(getRouteLimit(ctx, hasItemFilters(ctx) ? list.length : 10));
 
     const items = await pMap(
         list,

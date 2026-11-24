@@ -3,7 +3,7 @@ import { load } from 'cheerio';
 import type { Route } from '@/types';
 import { ViewType } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/blog',
@@ -39,8 +39,8 @@ async function handler() {
     const posts = $('script[type="application/ld+json"]')
         .toArray()
         .map((script) => JSON.parse($(script).text()))
-        .find((data) => data['@type'] === 'Blog')?.blogPost;
-    const publishedDates = new Map<string, string>(posts?.map((post) => [post.url, post.datePublished]));
+        .find((data) => data['@type'] === 'Blog').blogPost;
+    const publishedDates = Object.fromEntries(posts.map((post) => [post.url, post.datePublished]));
 
     const items = $('section li a')
         .toArray()
@@ -48,13 +48,12 @@ async function handler() {
             const $item = $(item);
 
             const link = new URL($item.attr('href')!, baseUrl).href;
-            const publishedDate = publishedDates.get(link);
 
             return {
                 title: $item.find('h2').text(),
                 link,
                 description: $item.find('p').text(),
-                pubDate: publishedDate ? parseDate(publishedDate) : parseDate($item.find('span').text(), 'MM.DD.YY'),
+                pubDate: parseDate(publishedDates[link]),
             };
         });
 

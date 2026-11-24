@@ -8,12 +8,11 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 import { isValidHost } from '@/utils/valid-host';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category, id: rawId } = ctx.req.param();
     const id = rawId.endsWith('.jspx') ? rawId.slice(0, -5) : rawId;
     if (!isValidHost(category)) {
@@ -30,6 +29,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
     const language = ($('html').attr('lang') ?? 'zh-CN') as Language;
 
     let items: DataItem[] = $('div.m_listpagebox ol li a')
+        .slice(0, limit)
         .toArray()
         .map((el) => {
             const $el: Cheerio<Element> = $(el);
@@ -40,19 +40,13 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
             const processedItem: DataItem = {
                 title,
-                pubDate: pubDateStr ? timezone(parseDate(pubDateStr), 8) : undefined,
+                pubDate: pubDateStr ? parseDate(pubDateStr, 8) : undefined,
                 link: linkUrl ? new URL(linkUrl, targetUrl).href : undefined,
                 language,
             };
 
             return processedItem;
         });
-
-    const datesKnown = items.every((item) => item.pubDate instanceof Date && Number.isFinite(item.pubDate.getTime()));
-    if (ctx.req.query('sorted') !== 'false' && datesKnown) {
-        items.sort((a, b) => Number(b.pubDate) - Number(a.pubDate));
-    }
-    items = items.slice(0, datesKnown || ctx.req.query('sorted') === 'false' ? limit : Math.max(30, limit));
 
     items = (
         await Promise.all(

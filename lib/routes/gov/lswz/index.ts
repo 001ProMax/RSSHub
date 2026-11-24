@@ -3,11 +3,10 @@ import { load } from 'cheerio';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { category = 'html/xinwen/index' } = ctx.req.param();
     const limit = getRouteLimit(ctx, 25);
     // Article timestamps can refine the dates on the first list page.
@@ -22,7 +21,7 @@ export const handler = async (ctx) => {
     const redirectsToFirstLink = $('script')
         .toArray()
         .some((script) => /window\.location\.href\s*=\s*document\.links\[0\]\.href/.test($(script).text()));
-    const redirectUrl = redirectsToFirstLink ? $('a[href]').first().prop('href') : undefined;
+    const redirectUrl = redirectsToFirstLink ? $('a[href]').prop('href') : undefined;
     if (redirectUrl) {
         currentUrl = new URL(redirectUrl, currentUrl).href;
         const { data: redirectedResponse } = await got(currentUrl);
@@ -40,7 +39,7 @@ export const handler = async (ctx) => {
 
             return {
                 title: $item.find('a').text(),
-                pubDate: pubDate ? timezone(parseDate(pubDate), 8) : undefined,
+                pubDate: pubDate ? parseDate(pubDate, 8) : undefined,
                 link: new URL($item.find('a').prop('href')!, rootUrl).href,
             };
         });
@@ -61,7 +60,7 @@ export const handler = async (ctx) => {
 
                 item.title = title || item.title;
                 item.description = description;
-                item.pubDate = pubDate ? timezone(parseDate(pubDate), 8) : item.pubDate;
+                item.pubDate = pubDate ? parseDate(pubDate, 8) : item.pubDate;
                 item.author = $$('meta[name="ContentSource"]').prop('content')?.trim() ?? undefined;
                 item.content = {
                     html: description,
@@ -74,8 +73,7 @@ export const handler = async (ctx) => {
         )
     );
 
-    const imageSource = $('div.lsj-index-logo img').prop('src');
-    const image = imageSource ? new URL(imageSource, rootUrl).href : undefined;
+    const image = new URL($('div.lsj-index-logo img').prop('src')!, rootUrl).href;
 
     return {
         title: $('title').text(),

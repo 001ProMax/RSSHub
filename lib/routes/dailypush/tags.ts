@@ -2,6 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import { getPlaywrightPage } from '@/utils/playwright';
+import { getRouteLimit } from '@/utils/route-limit';
 
 import { BASE_URL, enhanceItemsWithSummaries, fetchPageHtml, parseArticles } from './utils';
 
@@ -56,9 +57,7 @@ async function handler(ctx) {
         const html = await fetchPageHtml(context, url, 'article');
         const $ = load(html);
         const list = parseArticles($, BASE_URL);
-        const orderedList = list;
-        const candidates = orderedList;
-        const items = await enhanceItemsWithSummaries(context, candidates);
+        const items = await enhanceItemsWithSummaries(context, list.slice(0, getRouteLimit(ctx, 20)));
 
         const pageTitle = $('title').text() || `DailyPush - ${tag.charAt(0).toUpperCase() + tag.slice(1)}`;
 

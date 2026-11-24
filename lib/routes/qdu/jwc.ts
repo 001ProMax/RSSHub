@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const base = 'https://jwc.qdu.edu.cn/';
 
@@ -48,11 +47,7 @@ async function handler() {
             if (!href) {
                 return [];
             }
-            const link = new URL(href, `${base}jwtz.htm`);
-            if (!['http:', 'https:'].includes(link.protocol)) {
-                return [];
-            }
-            return { element: item, link: link.href };
+            return { element: item, link: new URL(href, `${base}jwtz.htm`).href };
         });
     const items = await pMap(
         list,
@@ -74,7 +69,7 @@ async function handler() {
                 return {
                     title: itemTitle,
                     link: itemUrl,
-                    pubDate: timezone(parseDate(itemDate), 8),
+                    pubDate: parseDate(itemDate, 8),
                     description,
                 };
             });

@@ -6,9 +6,9 @@ import { config } from '@/config';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import logger from '@/utils/logger';
-import { getPlaywrightPage } from '@/utils/playwright';
-import { getCookies } from '@/utils/playwright-utils';
+import ofetch from '@/utils/ofetch';
 import { fallback, queryToBoolean, queryToInteger } from '@/utils/readable-social';
+import { parseDate, parseDateStrict } from '@/utils/time';
 
 class RenewWeiboCookiesError extends Error {
     constructor(message: string) {
@@ -119,34 +119,25 @@ const weiboUtils = {
                 logger.info(`Fetching visitor Cookies from ${url}`);
             }
             visitorCookiesPromise = (async () => {
-                let times = 0;
-                const { page, destroy } = await getPlaywrightPage(url, {
-                    onBeforeLoad: async (page) => {
-                        const expectResourceTypes = new Set(['document', 'script', 'xhr', 'fetch']);
-                        await page.setExtraHTTPHeaders({ 'User-Agent': weiboUtils.apiHeaders['User-Agent'] });
-                        await page.route('**/*', (route) => {
-                            const request = route.request();
-                            // 1st: initial request, 302 to visitor.passport.weibo.cn; 2nd: auth ok
-                            if (!expectResourceTypes.has(request.resourceType()) || times >= 2) {
-                                route.abort();
-                                return;
-                            }
-                            if (request.url().startsWith(url)) {
-                                times++;
-                            }
-                            route.continue();
-                        });
-                    },
-                    gotoConfig: { waitUntil: 'networkidle' },
+                const headers = { 'User-Agent': weiboUtils.apiHeaders['User-Agent'] };
+                const visitorPage = await ofetch<string, 'text'>(url, { headers, responseType: 'text' });
+                const body = new URLSearchParams({
+                    cb: 'visitor_gray_callback',
+                    ver: visitorPage.match(/&ver=(\d+)/)![1],
+                    request_id: visitorPage.match(/request_id = "(\w+)"/)![1],
+                    tid: '',
+                    from: 'weibo',
+                    webdriver: 'false',
+                    rid: `${Temporal.Now.instant().epochMilliseconds}`,
+                    return_url: url,
                 });
-                let cookies: string;
-                try {
-                    cookies = await getCookies(page, 'weibo.cn');
-                    if (times < 2 || !cookies) {
-                        throw new Error(`Unable to fetch visitor cookies. Please set WEIBO_COOKIES. Redirection: ${times}, last URL: ${page.url()}`);
-                    }
-                } finally {
-                    await destroy();
+                const response = await ofetch.raw('https://visitor.passport.weibo.cn/visitor/genvisitor2', { method: 'POST', headers, body });
+                const cookies = response.headers
+                    .getSetCookie()
+                    .map((cookie) => cookie.split(';', 1)[0])
+                    .join('; ');
+                if (!cookies) {
+                    throw new Error('Unable to fetch visitor cookies. Please set WEIBO_COOKIES.');
                 }
                 if (renew) {
                     await cache.set(cacheKey, cookies);
@@ -205,6 +196,7 @@ const weiboUtils = {
             }
         };
     })(),
+    parseCreatedAt: (value: Temporal.Instant | string) => (value instanceof Temporal.Instant ? value : (parseDate(value) ?? parseDateStrict(value, 'ddd MMM DD HH:mm:ss ZZ YYYY'))),
     formatTitle: (html) =>
         html
             .replaceAll(/<span class=["']url-icon["']><img\s[^>]*?alt=["']?([^>\s"']+)["']?\s[^>]*?\/?><\/span>/g, '$1') // 表情转换
@@ -403,7 +395,7 @@ const weiboUtils = {
                 html += `<br><small>原博：<a href="https://weibo.com/${status.retweeted_status.user.id}/${status.retweeted_status.bid}" target="_blank" rel="noopener noreferrer">https://weibo.com/${status.retweeted_status.user.id}/${status.retweeted_status.bid}</a></small>`;
             }
             if (showTimestampInDescription) {
-                html += '<br><small>' + new Date(status.retweeted_status.created_at).toLocaleString() + '</small>';
+                html += '<br><small>' + (weiboUtils.parseCreatedAt(status.retweeted_status.created_at)?.toLocaleString(undefined, { timeZone: 'UTC' }) ?? '') + '</small>';
             }
             if (readable) {
                 html += '<br clear="both" /><div style="clear: both"></div>';

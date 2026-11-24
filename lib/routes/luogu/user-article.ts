@@ -2,9 +2,10 @@ import pMap from 'p-map';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
-import { getArticleDescription, getPageData, type LuoguArticle } from './utils';
+import type { LuoguArticle } from './utils';
+import { getArticleDescription, getPageData } from './utils';
 
 export const route: Route = {
     path: '/user/article/:uid',
@@ -38,7 +39,7 @@ async function handler(ctx) {
     const { uid } = ctx.req.param();
 
     const link = `${baseUrl}/user/${uid}/article`;
-    const response = await ofetch(link, { responseType: 'text' });
+    const response = await ofetch(link);
     const { articles, user } = getPageData<{ articles: { result: LuoguArticle[] }; user: { name: string; slogan: string; avatar: string } }>(response);
     const item = await pMap(
         articles.result,

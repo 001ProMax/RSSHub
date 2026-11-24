@@ -8,22 +8,11 @@ import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import logger from '@/utils/logger';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const rootUrl = 'https://www.txrjy.com';
 
 class ArticlePermissionError extends Error {}
-
-function getPublicationDate(value: string): Date | undefined {
-    const match = /^(\d{4})-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{2})$/.exec(value);
-    if (!match) {
-        return;
-    }
-    const normalized = `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')} ${match[4].padStart(2, '0')}:${match[5]}`;
-    const date = parseDate(normalized, 'YYYY-MM-DD HH:mm', true);
-    return Number.isFinite(date.getTime()) ? timezone(date, 8) : undefined;
-}
 
 export const route: Route = {
     path: '/fornumtopic/:channel?',
@@ -62,7 +51,7 @@ async function handler(ctx) {
             title: $(item).find('td.title2').text(),
             link: new URL($(item).find('td.title2 > a').attr('href')!, rootUrl).href,
             author: $(item).find('td.author').text(),
-            pubDate: getPublicationDate($(item).find('td.dateline').text()),
+            pubDate: parseDate($(item).find('td.dateline').text(), 'YYYY-M-D HH:mm', 8),
             category: $(item).find('td.forum').text(),
         }))
         .filter((item) => item.title);

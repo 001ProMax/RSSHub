@@ -4,7 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate, toRFC822 } from '@/utils/time';
 
 export const route: Route = {
     path: '/course/:sign',
@@ -27,14 +27,6 @@ interface Classroom {
     class_start?: number;
     class_end?: number;
     count: number;
-}
-
-function parseClassDate(value?: number) {
-    if (value === undefined || !Number.isFinite(value)) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 async function fetchSkuInfo(sign: string, classroomId: number): Promise<string> {
@@ -60,7 +52,7 @@ async function handler(ctx: Context) {
 
     const link = `${baseUrl}/course/${sign}`;
     const courseTitle = basicInfo.data.course_name;
-    const categories = [...new Set<string>([...(basicInfo.data.classifys ?? []), ...(basicInfo.data.tags ?? []).map((tag) => tag.title)].filter(Boolean))];
+    const categories = [...new Set([...basicInfo.data.classifys, ...basicInfo.data.tags.map((tag) => tag.title)])];
     const authors: Array<{ name: string }> = (basicInfo.data.teacher_list?.length ? basicInfo.data.teacher_list : basicInfo.data.teacher ? [basicInfo.data.teacher] : [])
         .map((teacher) => teacher.name)
         .filter(Boolean)
@@ -70,15 +62,15 @@ async function handler(ctx: Context) {
         classroom.data.current,
         async (c) => {
             const skuInfo = await cache.tryGet(`xuetangx:course:sku:${sign}:${c.classroom_id}`, () => fetchSkuInfo(sign, c.classroom_id));
-            const classStart = parseClassDate(c.class_start);
-            const classEnd = parseClassDate(c.class_end);
-            const info = [`班次: ${c.classroom_name}`, ...(classStart ? [`开课时间: ${classStart.toUTCString()}`] : []), ...(classEnd ? [`结课时间: ${classEnd.toUTCString()}`] : []), skuInfo].join('<br>');
+            const classStart = c.class_start ? parseDate(c.class_start) : undefined;
+            const classEnd = c.class_end ? parseDate(c.class_end) : undefined;
+            const info = [`班次: ${c.classroom_name}`, ...(classStart ? [`开课时间: ${toRFC822(classStart)}`] : []), ...(classEnd ? [`结课时间: ${toRFC822(classEnd)}`] : []), skuInfo].join('<br>');
             return {
                 title: `${courseTitle} - ${c.classroom_name}`,
-                description: `${basicInfo.data.long_intro || basicInfo.data.short_intro || ''}<br>${info}<br>报名人数: ${c.count}`,
+                description: `${basicInfo.data.long_intro || basicInfo.data.short_intro}<br>${info}<br>报名人数: ${c.count}`,
                 link: `${link}/${c.classroom_id}`,
                 guid: `${link}/${c.classroom_id}`,
-                category: categories.length ? categories : undefined,
+                category: categories,
                 author: authors.length ? authors : undefined,
                 pubDate: classStart,
             };

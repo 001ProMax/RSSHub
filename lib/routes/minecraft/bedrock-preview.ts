@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 const sectionId = '360001185332';
 
@@ -31,7 +31,7 @@ async function handler() {
         item: response.articles.map((article) => {
             const $ = load(article.body, null, false);
             $('p')
-                .filter((_, paragraph) => $(paragraph).find('strong').first().text().startsWith('Posted:'))
+                .filter((_, paragraph) => $(paragraph).find('strong').text().startsWith('Posted:'))
                 .remove();
             return {
                 title: article.title,

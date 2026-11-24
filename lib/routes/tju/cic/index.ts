@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const cic_base_url = 'http://cic.tju.edu.cn/';
 
@@ -13,10 +12,9 @@ const getArticle = async (link: string) => {
     try {
         const response = await got(link);
         const $ = load(response.data);
-        const dateText = $('.news_info > span').first().text();
-        const pubDate = dateText ? timezone(parseDate(dateText, 'YYYY年MM月DD日 HH:mm'), 8) : undefined;
+        const pubDate = parseDate($('.news_info > span').first().text(), 'YYYY年MM月DD日 HH:mm', 8);
         $('.news_tit, .news_info').remove();
-        return { pubDate, description: $('.con_news_body > div').html() ?? undefined };
+        return { pubDate, description: $('.con_news_body > div').html() };
     } catch {
         // Keep the source listing when an article detail is unavailable.
         return {};

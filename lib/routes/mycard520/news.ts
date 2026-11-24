@@ -8,12 +8,13 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
+import { isOnSite } from '@/utils/valid-host';
 
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const { category = 'cardgame' } = ctx.req.param();
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0 ? requestedLimit : 18;
+    const limit = getRouteLimit(ctx, 18);
 
     const baseUrl = 'https://app.mycard520.com.tw';
     const targetUrl: string = new URL(`category/${category.endsWith('/') ? category : `${category}/`}`, baseUrl).href;
@@ -41,15 +42,15 @@ export const handler = async (ctx: Context): Promise<Data> => {
             const processedItem: DataItem = {
                 title,
                 description,
-                pubDate: pubDateStr ? parseDate(pubDateStr) : undefined,
-                link: linkUrl,
+                pubDate: pubDateStr ? parseDate(pubDateStr, 'YYYY.MM.DD') : undefined,
+                link: linkUrl ? new URL(linkUrl, targetUrl).href : undefined,
                 content: {
                     html: description,
                     text: description,
                 },
                 image,
                 banner: image,
-                updated: upDatedStr ? parseDate(upDatedStr) : undefined,
+                updated: upDatedStr ? parseDate(upDatedStr, 'YYYY.MM.DD') : undefined,
                 language,
             };
 
@@ -60,11 +61,12 @@ export const handler = async (ctx: Context): Promise<Data> => {
         await pMap(
             items,
             (item) => {
-                if (!item.link) {
+                // only follow links on the site itself
+                if (!isOnSite(item.link, 'mycard520.com.tw')) {
                     return item;
                 }
 
-                return cache.tryGet(item.link, async (): Promise<DataItem> => {
+                return cache.tryGet(item.link!, async (): Promise<DataItem> => {
                     const detailResponse = await ofetch(item.link!);
                     const $$: CheerioAPI = load(detailResponse);
                     const $$pageBox: Cheerio<Element> = $$('div.page_box');
@@ -80,12 +82,12 @@ export const handler = async (ctx: Context): Promise<Data> => {
                     const processedItem: DataItem = {
                         title,
                         description,
-                        pubDate: pubDateStr ? parseDate(pubDateStr) : item.pubDate,
+                        pubDate: pubDateStr ? parseDate(pubDateStr, 'YYYY.MM.DD') : item.pubDate,
                         content: {
                             html: description ?? '',
                             text: description ?? '',
                         },
-                        updated: upDatedStr ? parseDate(upDatedStr) : item.updated,
+                        updated: upDatedStr ? parseDate(upDatedStr, 'YYYY.MM.DD') : item.updated,
                         language,
                     };
 

@@ -4,6 +4,7 @@ import { chromium } from 'patchright';
 import { config } from '@/config';
 
 import logger from './logger';
+import { limitContentLength, limitNavigation } from './playwright-utils';
 import proxy from './proxy';
 
 type GotoOptions = Parameters<Page['goto']>[1];
@@ -60,7 +61,7 @@ const getProxyOptions = (currentProxy: ProxyState | null | undefined): ProxyOpti
 };
 
 // Patchright already patches playwright's default args (e.g. injects --disable-blink-features=AutomationControlled and strips --enable-automation)
-const COMMON_LAUNCH_ARGS = ['--no-sandbox', '--disable-setuid-sandbox', '--window-position=0,0', '--ignore-certificate-errors', '--ignore-certificate-errors-spki-list'];
+const COMMON_LAUNCH_ARGS = ['--no-sandbox', '--disable-setuid-sandbox', '--window-position=0,0'];
 
 const getLaunchOptions = (proxyOptions: ProxyOptions): LaunchOptions => ({
     args: [...COMMON_LAUNCH_ARGS, ...proxyOptions.args],
@@ -98,7 +99,6 @@ const toBrowserlessCDPLaunchOptions = (proxyOptions: ProxyOptions): BrowserlessC
 
 const getContextOptions = (javaScriptEnabled?: boolean): BrowserContextOptions => ({
     ...(javaScriptEnabled !== undefined && { javaScriptEnabled }),
-    ignoreHTTPSErrors: true,
     userAgent: config.ua,
 });
 
@@ -114,6 +114,8 @@ const launchBrowser = async (proxyOptions: ProxyOptions, javaScriptEnabled?: boo
     }
     try {
         const context = await browser.newContext(getContextOptions(javaScriptEnabled));
+        context.on('page', limitContentLength);
+        context.on('page', limitNavigation);
         return { browser, context };
     } catch (error) {
         await browser.close();
@@ -127,12 +129,13 @@ const getBrowserlessEndpoint = (endpoint: string, launchOptions: BrowserlessLaun
     return endpointURL.href;
 };
 
+// upper bound on how long a browser stays open when the caller owns its lifetime
+const MAX_CLOSE_TIMEOUT = 300000;
+
 const scheduleClose = (browser: Browser, timeout = 30000) =>
-    timeout === 0
-        ? undefined
-        : setTimeout(() => {
-              void browser.close();
-          }, timeout);
+    setTimeout(() => {
+        void browser.close();
+    }, timeout || MAX_CLOSE_TIMEOUT);
 
 /**
  * @returns Playwright browser context (native `newPage()` shares state across calls)
@@ -152,7 +155,7 @@ export const setBrowserBinding = (_binding: any) => {};
 export const getPlaywrightPage = async (
     url: string,
     instanceOptions: {
-        // Set to zero only when the caller always awaits destroy() in finally.
+        // Set to zero only when the caller always awaits destroy() in finally; the browser is still closed after MAX_CLOSE_TIMEOUT.
         closeTimeout?: number;
         gotoConfig?: GotoOptions;
         noGoto?: boolean;

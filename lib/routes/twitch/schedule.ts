@@ -1,7 +1,7 @@
 import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate, toISOString } from '@/utils/time';
 
 // https://github.com/streamlink/streamlink/blob/master/src/streamlink/plugins/twitch.py#L286
 const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
@@ -31,19 +31,11 @@ export const route: Route = {
     handler,
 };
 
-function getPublicationDate(value: string | undefined) {
-    if (typeof value !== 'string' || !value) {
-        return;
-    }
-    const date = parseDate(value);
-    return Number.isFinite(date.getTime()) ? date : undefined;
-}
-
 async function handler(ctx) {
     const login = ctx.req.param('login');
 
-    const today = new Date();
-    const oneWeekLater = new Date(today.getTime() + 86_400_000 * 7);
+    const today = Temporal.Now.instant();
+    const oneWeekLater = today.add({ hours: 24 * 7 });
     const response = await got({
         method: 'post',
         url: 'https://gql.twitch.tv/gql',
@@ -71,8 +63,8 @@ async function handler(ctx) {
                     login,
                     startingWeekday: 'MONDAY',
                     utcOffsetMinutes: 480,
-                    startAt: today.toISOString(),
-                    endAt: oneWeekLater.toISOString(),
+                    startAt: toISOString(today),
+                    endAt: toISOString(oneWeekLater),
                 },
                 query: streamScheduleQuery,
             },
@@ -86,9 +78,6 @@ async function handler(ctx) {
     const channelShellData = response.data[0].data;
     const streamScheduleData = response.data[1].data;
 
-    if (!channelShellData || !streamScheduleData) {
-        throw new Error('Twitch schedule API returned no channel or schedule data');
-    }
     if (!streamScheduleData.user?.id) {
         throw new InvalidParameterError('Username does not exist');
     }
@@ -102,7 +91,7 @@ async function handler(ctx) {
         link: `https://www.twitch.tv/${login}`,
         author: displayName,
         description: `EndAt: ${item.endAt}`,
-        pubDate: getPublicationDate(item.startAt),
+        pubDate: parseDate(item.startAt),
         category: item.categories.map((item) => item.name),
     }));
 

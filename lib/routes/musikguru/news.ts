@@ -1,8 +1,5 @@
 import type { Cheerio, CheerioAPI } from 'cheerio';
 import { load } from 'cheerio';
-import dayjs from 'dayjs';
-import timezonePlugin from 'dayjs/plugin/timezone.js';
-import utc from 'dayjs/plugin/utc.js';
 import type { Element } from 'domhandler';
 import type { Context } from 'hono';
 import pMap from 'p-map';
@@ -11,15 +8,12 @@ import type { Data, DataItem, Language, Route } from '@/types';
 import { ViewType } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
 import { renderDescription } from './templates/description';
 
-dayjs.extend(utc);
-dayjs.extend(timezonePlugin);
-
-export const handler = async (ctx: Context): Promise<Data> => {
+const handler = async (ctx: Context): Promise<Data> => {
     const limit = getRouteLimit(ctx, 10);
 
     const baseUrl = 'https://musikguru.de';
@@ -81,14 +75,14 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
                 const title: string = $$('div.article h1').text();
                 const leadHtml = ($$('p.lead').html() ?? '') + ($$('div.lead').html() ?? '');
-                const description: string | undefined = renderDescription({ description: leadHtml || undefined });
+                const description: string | undefined = renderDescription({ description: leadHtml });
                 const pubDateStr: string | undefined = $$('div.article div.text-muted').text().split(/\sUhr/, 1)?.[0];
                 const image: string | undefined = $$('div.article img').first().attr('src');
 
                 const processedItem: DataItem = {
                     title,
                     description,
-                    pubDate: pubDateStr ? parseDate(dayjs.tz(pubDateStr, 'DD.MM.YYYY HH:mm', 'Europe/Berlin').format()) : item.pubDate,
+                    pubDate: pubDateStr ? parseDate(pubDateStr, 'DD.MM.YYYY HH:mm', 'Europe/Berlin') : item.pubDate,
                     content: {
                         html: description,
                         text: $$('p.lead, div.lead').text(),
@@ -100,8 +94,7 @@ export const handler = async (ctx: Context): Promise<Data> => {
 
                 return processedItem;
             });
-            delete details.updated;
-            const description = `${item.description ?? ''}${details.description ?? ''}`;
+            const description = `${item.description}${details.description}`;
             return { ...item, ...details, description, content: { html: description, text: load(description).text() } };
         },
         { concurrency: 3 }

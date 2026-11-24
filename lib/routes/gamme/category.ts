@@ -4,7 +4,6 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
 import parser from '@/utils/rss-parser';
 import { isValidHost } from '@/utils/valid-host';
 
@@ -56,10 +55,7 @@ async function handler(ctx) {
             delete result.content;
             delete result.contentSnippet;
             delete result.isoDate;
-            return {
-                ...result,
-                pubDate: item.pubDate ? parseDate(item.pubDate) : undefined,
-            };
+            return result;
         })
     );
 

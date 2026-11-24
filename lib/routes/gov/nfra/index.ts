@@ -5,11 +5,10 @@ import InvalidParameterError from '@/errors/types/invalid-parameter';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import { getRouteLimit } from '@/utils/route-limit';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { id = '915' } = ctx.req.param();
     if (!/^[1-9]\d*$/.test(id)) {
         throw new InvalidParameterError('Category id must be a positive integer from the NFRA category page URL.');
@@ -37,7 +36,7 @@ export const handler = async (ctx) => {
         return {
             title,
             description,
-            pubDate: item.publishDate ? timezone(parseDate(item.publishDate), 8) : undefined,
+            pubDate: parseDate(item.publishDate, 8),
             link: new URL(`cn/view/pages/ItemDetail.html?docId=${guid}`, rootUrl).href,
             guid,
             id: guid,
@@ -68,10 +67,10 @@ export const handler = async (ctx) => {
                 const title = data.docTitle;
                 const description = $$('div.Section0').html();
 
-                item.title = title || item.title;
+                item.title = title;
                 item.description = description;
-                item.pubDate = data.publishDate ? timezone(parseDate(data.publishDate), 8) : item.pubDate;
-                item.category = data.listTwoItem?.[0]?.ItemLvs?.map((c) => c.itemName);
+                item.pubDate = parseDate(data.publishDate, 8);
+                item.category = data.listTwoItem?.[0]?.ItemLvs.map((c) => c.itemName);
                 item.author = data.docSource;
                 item.guid = `cbirc-${item.guid}`;
                 item.id = item.guid;
@@ -79,8 +78,8 @@ export const handler = async (ctx) => {
                     html: description,
                     text: $$('div.Section0').text(),
                 };
-                item.updated = data.docEditdate ? parseDate(data.docEditdate) : undefined;
-                item.language = ($$('html').prop('lang') || undefined) as Language | undefined;
+                item.updated = parseDate(data.docEditdate);
+                item.language = $$('html').prop('lang') as Language | undefined;
 
                 return item;
             }),

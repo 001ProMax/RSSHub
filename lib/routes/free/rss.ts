@@ -4,8 +4,8 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
 import parser from '@/utils/rss-parser';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -36,20 +36,17 @@ async function handler() {
             const description = await cache.tryGet(item.link, async () => {
                 const response = await ofetch(item.link!);
                 const $ = load(response);
-                const content = $('.entry-content').first();
-                content.find('.advads-entity-placement, .google-preferred-cta, script, style').remove();
+                const content = $('.entry-content');
+                content.find('.advads-entity-placement, .google-preferred-cta, style').remove();
                 content.children('.wp-block-group:has(.wp-block-jetpack-subscriptions)').remove();
                 content.find('img[data-src], iframe[data-src]').each((_, element) => {
                     const media = $(element);
-                    media.attr('src', media.attr('data-src')!);
+                    media.attr('src', media.attr('data-src'));
                 });
                 content.find('.perfmatters-lazy-video[data-src]').each((_, element) => {
                     $(element).replaceWith($('<iframe>').attr({ src: $(element).attr('data-src')!, width: '560', height: '315', allowfullscreen: 'true' }));
                 });
-                if (!content.text()) {
-                    throw new Error(`Free.com.tw did not provide article content for ${item.link}.`);
-                }
-                return content.html() ?? undefined;
+                return content.html();
             });
             return {
                 title: item.title,

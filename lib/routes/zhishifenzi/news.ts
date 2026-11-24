@@ -4,7 +4,7 @@ import type { Context } from 'hono';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseRelativeDate } from '@/utils/parse-date';
+import { parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/news/:type?',
@@ -65,7 +65,7 @@ async function handler(ctx: Context) {
                 const detailResponse = await ofetch(item.link!);
                 const content = load(detailResponse);
 
-                return { description: content('.inner_content').html() ?? undefined, pubDate: parseRelativeDate(content('.inner_view_from').text()) };
+                return { description: content('.inner_content').html(), pubDate: parseRelativeDate(content('.inner_view_from').text()) };
             });
             return { ...item, ...detail };
         })

@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const host = 'https://ipsw.me/';
 
@@ -31,11 +30,7 @@ function getFirmwareUrl(onclick: string | undefined) {
 }
 
 function parseReleaseDate(text: string) {
-    if (!text) {
-        return;
-    }
-    const date = parseDate(text.replaceAll(/(\d+)(?:st|nd|rd|th)\b/g, '$1'), ['MMMM D, YYYY', 'D MMM YYYY', 'D MMMM YYYY']);
-    return Number.isNaN(date.getTime()) ? undefined : timezone(date, 0);
+    return parseDate(text.replaceAll(/(\d+)(?:st|nd|rd|th)\b/g, '$1'), ['MMMM D, YYYY', 'D MMM YYYY', 'D MMMM YYYY'], 0);
 }
 
 async function handler(ctx) {
@@ -97,7 +92,7 @@ async function handler(ctx) {
                 });
                 const $ = load(response.data);
                 const description = $('div.selector__wizard').html();
-                const releaseDate = pname.includes(',') ? $('div.table-responsive table tr').first().find('td').text().trim() : $('tr.firmware').first().find('td').eq(2).text();
+                const releaseDate = pname.includes(',') ? $('div.table-responsive table tr').first().find('td').text() : $('tr.firmware').first().find('td').eq(2).text();
                 return {
                     title,
                     link: itemUrl,

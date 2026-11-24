@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate, parseRelativeDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate, parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/:params?',
@@ -59,7 +58,7 @@ async function handler(ctx) {
                 title: a.text(),
                 link: a.attr('href'),
                 author: $item.find('.aw-user-name').text(),
-                pubDate: pubDate ? (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(pubDate) ? timezone(parseDate(pubDate), 8) : parseRelativeDate(pubDate)) : undefined,
+                pubDate: /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(pubDate) ? parseDate(pubDate, 8) : parseRelativeDate(pubDate),
             };
         });
 
@@ -75,13 +74,13 @@ async function handler(ctx) {
 
                 const content = load(detailResponse.data);
 
-                const article = content('.markitup-box').first();
+                const article = content('.markitup-box');
                 const category = article
                     .find('.aw-topic-bar a.text')
                     .toArray()
                     .map((element) => content(element).text().trim());
                 article.find('.aw-topic-bar').remove();
-                return { description: article.html() ?? undefined, category };
+                return { description: article.html(), category };
             })),
         }),
         { concurrency: 3 }

@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 const baseUrl = 'https://career.cic.tsinghua.edu.cn/';
 const path = 'xsglxt/f/jyxt/anony/xxfb';
@@ -39,16 +38,14 @@ async function handler() {
 
     const list = $('#ts_div .list li')
         .toArray()
-        .filter((item) => $(item).find('a').attr('ahref'))
         .map((item) => {
             const $item = $(item);
             const a = $item.find('a');
-            const date = $item.find('span').text();
 
             return {
                 title: a.text(),
                 link: new URL(a.attr('ahref')!, baseUrl).href,
-                pubDate: date ? timezone(parseDate(date, 'YYYY.MM.DD'), 8) : undefined,
+                pubDate: parseDate($item.find('span').text(), 'YYYY.MM.DD', 8),
             };
         });
 

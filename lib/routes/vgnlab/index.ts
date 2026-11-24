@@ -3,7 +3,7 @@ import pMap from 'p-map';
 import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/',
@@ -38,7 +38,7 @@ async function handler() {
         .map((item): DataItem & { link: string } => ({
             title: item.title,
             link: `${baseUrl}/web/news-${item.id}`,
-            pubDate: typeof item.publish_time === 'number' && Number.isFinite(item.publish_time) ? parseDate(item.publish_time * 1000) : undefined,
+            pubDate: parseDate(item.publish_time * 1000),
             image: item.img_url,
             id: item.id,
         }));

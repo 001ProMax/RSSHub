@@ -5,13 +5,12 @@ import pMap from 'p-map';
 import type { DataItem, Language, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { getRouteLimit } from '@/utils/route-limit';
+import { parseDate } from '@/utils/time';
 
-export const handler = async (ctx) => {
+const handler = async (ctx) => {
     const { category = '60847' } = ctx.req.param();
-    const requestedLimit = Number(ctx.req.query('limit'));
-    const limit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0 ? requestedLimit : 12;
+    const limit = getRouteLimit(ctx, 12);
 
     const rootUrl = 'https://cfhd.cf.qq.com';
     const rootImageUrl = 'https://game.gtimg.cn';
@@ -54,7 +53,7 @@ export const handler = async (ctx) => {
 
                 item.title = title;
                 item.description = description;
-                item.pubDate = timezone(parseDate($$('p.news-details-p1').text().trim()), 8);
+                item.pubDate = parseDate($$('p.news-details-p1').text().trim(), 8);
                 item.content = {
                     html: description,
                     text: $$('div.news-details-cont').text(),

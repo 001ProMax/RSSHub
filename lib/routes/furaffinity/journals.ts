@@ -1,5 +1,5 @@
 import type { Route } from '@/types';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 
 import { getJournals } from './utils';
 
@@ -38,7 +38,7 @@ async function handler(ctx) {
         link: item.link,
         guid: item.id,
         description: item.description,
-        pubDate: item.posted_at ? parseDate(item.posted_at) : undefined,
+        pubDate: parseDate(item.posted_at),
         author: username,
     }));
 

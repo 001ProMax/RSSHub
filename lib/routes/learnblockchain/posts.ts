@@ -2,7 +2,7 @@ import { load } from 'cheerio';
 
 import type { Route } from '@/types';
 import got from '@/utils/got';
-import { parseDate, parseRelativeDate } from '@/utils/parse-date';
+import { parseDate, parseRelativeDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/posts/:cid/:sort?',
@@ -73,7 +73,7 @@ async function handler(ctx) {
 
             return {
                 title: item.find('h2 a').text(),
-                description: item.find('p').first().text(),
+                description: item.find('p').text(),
                 pubDate: date ? (/^\d{4}-\d{2}-\d{2}$/.test(date) ? parseDate(`${date}T00:00:00+08:00`) : parseRelativeDate(date)) : undefined,
                 link: item.find('h2 a').attr('href'),
                 author: item.find('a:has(img) span').text(),

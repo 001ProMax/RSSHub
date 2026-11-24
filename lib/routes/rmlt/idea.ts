@@ -4,8 +4,7 @@ import pMap from 'p-map';
 import type { Route } from '@/types';
 import cache from '@/utils/cache';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
-import timezone from '@/utils/timezone';
+import { parseDate } from '@/utils/time';
 
 export const route: Route = {
     path: '/idea',
@@ -37,12 +36,11 @@ async function handler() {
                 const detailResponse = await ofetch(item.link);
                 const content = load(detailResponse);
 
-                const date = content('.date').text().trim();
                 return {
                     ...item,
                     title: content('.article-title').text(),
                     description: content('.article-content').html(),
-                    pubDate: date ? timezone(parseDate(date, 'YYYY-MM-DD HH:mm'), 8) : undefined,
+                    pubDate: parseDate(content('.date').text(), 'YYYY-MM-DD HH:mm', 8),
                 };
             }),
         { concurrency: 3 }

@@ -7,7 +7,7 @@ import type { DataItem, Route } from '@/types';
 import cache from '@/utils/cache';
 import got from '@/utils/got';
 import ofetch from '@/utils/ofetch';
-import { parseDate } from '@/utils/parse-date';
+import { parseDate } from '@/utils/time';
 import { fixArticleContent } from '@/utils/wechat-mp';
 
 const gbk2utf8 = (s) => iconv.decode(s, 'gbk');
@@ -44,18 +44,14 @@ async function handler() {
     const $ = load(gbk2utf8(response));
     const list: Array<DataItem & { link: string }> = $('a.news-item')
         .toArray()
-        .flatMap((item) => {
+        .map((item) => {
             const $item = $(item);
-            const href = $item.attr('href');
-            if (!href) {
-                return [];
-            }
             const year = $item.find('.news-date-year').text();
             const monthDay = $item.find('.news-date-month').text();
             return {
                 title: $item.find('.news-title').text(),
-                link: new URL(href, baseUrl).href,
-                pubDate: year && monthDay ? parseDate(`${year}-${monthDay}T00:00:00Z`) : undefined,
+                link: `${baseUrl}${$item.attr('href')}`,
+                pubDate: parseDate(`${year}-${monthDay}T00:00:00Z`),
             };
         });
 
@@ -74,10 +70,7 @@ async function handler() {
                 if (isWeChat) {
                     content('#js_content iframe[data-src]').each((_, frame) => {
                         const element = content(frame);
-                        const source = element.attr('data-src');
-                        if (source) {
-                            element.attr('src', source).removeAttr('data-src');
-                        }
+                        element.attr('src', element.attr('data-src')).removeAttr('data-src');
                     });
                 }
                 const description = isWeChat ? fixArticleContent(content('#js_content')) : content('.article-content').last().html();
